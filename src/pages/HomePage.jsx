@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import SeriesCard from "../components/SeriesCard"
-import LoadingSpinner from "../components/LoadingSpinner"
-import { getAllSeries } from '../services/api'
+import { useEffect, useState } from "react";
+import SeriesCard from "../components/SeriesCard";           // ← שלושה ../ כי pages בתוך src
+import LoadingSpinner from "../components/LoadingSpinner";   // ← אותו דבר
+import { getAllSeries } from "../services/api";
 
 export default function HomePage() {
   const [series, setSeries] = useState([])
