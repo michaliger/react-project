@@ -2,15 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    font-family: 'Heebo', 'Assistant', system-ui, sans-serif;
-    direction: rtl;
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Heebo', sans-serif;
+  direction: rtl;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  min-height: 100vh;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.9s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.7s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(40px);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0);
   }
 }
 
-@layer components {
-  .container {
-    @apply max-w-7xl mx-auto px-4;
-  }
+/* אופציונלי – כרטיסים מרחפים יותר יפה */
+.hover\\:scale-105:hover {
+  transform: scale(1.05) !important;
 }
