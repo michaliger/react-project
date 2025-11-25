@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "title": "ליקוטי מוהר\"ן",
+    "author": "רבי נחמן מברסלב",
+    "seriesName": "ליקוטי מוהר\"ן",
+    "coverImage": "likutei-moharan.jpg",
+    "tags": ["ברסלב", "חסידות", "תורה"],
+    "volumes": [
+      { "volumeNumber": 1, "title": "חלק א'", "pdfUrl": "/pdfs/likutei1.pdf" },
+      { "volumeNumber": 2, "title": "חלק ב'", "pdfUrl": "/pdfs/likutei2.pdf" }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "שולחן ערוך הרב",
+    "author": "רבי שניאור זלמן מליאדי",
+    "seriesName": "שולחן ערוך הרב",
+    "coverImage": "shulchan-aruch-harav.jpg",
+    "tags": ["חב\"ד", "הלכה", "פוסקים"],
+    "volumes": [
+      { "volumeNumber": 1, "title": "אורח חיים א-ג", "pdfUrl": "/pdfs/shaar1.pdf" }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "משנה ברורה",
+    "author": "החפץ חיים",
+    "seriesName": "משנה ברורה",
+    "coverImage": "mishna-berura.jpg",
+    "tags": ["הלכה", "פוסקים", "יומי"],
+    "volumes": [
+      { "volumeNumber": 1, "title": "חלק א", "pdfUrl": "/pdfs/mb1.pdf" },
+      { "volumeNumber": 2, "title": "חלק ב", "pdfUrl": "/pdfs/mb2.pdf" }
+    ]
+  }
+]
