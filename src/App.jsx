@@ -1,11 +1,18 @@
-import Header from './components/Header'
+import { Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
+import SeriesPage from './pages/SeriesPage'
+import Login from './pages/Login'
+import Register from './pages/Register'
 
-export default function App() {
+function App() {
   return (
-    <div className="min-h-screen">
-      <Header />
-      <HomePage />
-    </div>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/series" element={<SeriesPage />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+    </Routes>
   )
 }
+
+export default App
