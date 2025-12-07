@@ -73,16 +73,6 @@ export default function Chry() {
           }}
         />
       </div>
-      {/* <div className="display-flex alin-items-end mb-10 space-x-4 space-y-0">
-        <div>
-          <button onClick={() => navigate('/add-series')}
-            className="block mx-auto mt-8 px-10 py-5 bg-black text-white text-2xl rounded-2xl hover:bg-black-700 transition">
-            להוספת סדרה</button>
-        </div>
-        <div>
-          <button onClick={() => navigate('/AddVolume')} className="block mx-auto mt-8 px-10 py-5 bg-black text-white text-2xl rounded-2xl hover:bg-black-700 transition ">להוספת כרך</button>
-        </div>
-      </div> */}
       <div className="flex justify-end mt-4 space-x-4">
         <button
           onClick={() => navigate('/add-series')}
@@ -92,7 +82,7 @@ export default function Chry() {
         </button>
 
         <button
-          onClick={() => navigate('/AddVolume')}
+          onClick={() => navigate('/add-volume')}
           className="px-6 py-3 bg-black text-white text-xl rounded-2xl hover:bg-gray-800 transition"
         >
           להוספת כרך

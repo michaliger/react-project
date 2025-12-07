@@ -20,9 +20,9 @@ function App() {
       <Route 
         path="/add-series" 
         element={
-          <ProtectedRoute>
+          // <ProtectedRoute>
             <AddNewSeries />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         } 
       />
 
@@ -30,9 +30,9 @@ function App() {
       <Route 
         path="/add-volume" 
         element={
-          <ProtectedRoute>
+          // <ProtectedRoute>
             <AddVolume />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         } 
       />
     </Routes>

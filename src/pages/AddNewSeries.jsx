@@ -40,30 +40,30 @@ export default function AddNewSeries() {
     setTopics(topics.filter((_, i) => i !== index))
   }
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault()
-  //   setLoading(true)
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
 
-  //   try {
-  //     // שלב 1 – יצירת הסדרה (בלי טוקן!)
-  //     const seriesRes = await axios.post('http://localhost:5000/api/series', series)
+    try {
+      // TODO: אם את רוצה לבדוק בלי שרת – אפשר להערים כאן
+      // const seriesRes = await axios.post('http://localhost:5000/api/series', series)
 
-  //     // שלב 2 – יצירת הכרך + נושאים (גם בלי טוקן)
-  //     await axios.post('http://localhost:5000/api/volumes', {
-  //       ...volume,
-  //       series: seriesRes.data._id,
-  //       topics: topics.filter(t => t.topicTitle.trim() !== '')
-  //     })
+      // TODO: יצירת כרך בלי שרת
+      // await axios.post('http://localhost:5000/api/volumes', {
+      //   ...volume,
+      //   series: seriesRes.data._id,
+      //   topics: topics.filter(t => t.topicTitle.trim() !== '')
+      // })
 
-  //     alert('הכל נשמר בהצלחה! הסדרה והכרך נוצרו')
-  //     navigate('/series')
-  //   } catch (err) {
-  //     console.error(err)
-  //     alert('שגיאה: ' + (err.response?.data?.message || err.message))
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
+      alert('שומרים רק באופן מקומי – בדיקה של הטופס עובדת!')
+      // navigate('/series') // TODO: אפשר להשאיר מסומן אחרי בדיקה
+    } catch (err) {
+      console.error(err)
+      alert('שגיאה: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 py-12 px-4" dir="rtl">
