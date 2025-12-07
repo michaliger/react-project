@@ -36,7 +36,7 @@ export default function Register() {
         <h2 className="text-5xl font-bold text-white text-center mb-10">הרשמה</h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם מלא" required className="w-full px-6 py-5 bg-white/20 border border-white/30 rounded-full text-white placeholder-white/60 focus:outline-none focus:border-amber-400 transition-all text-lg" />
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם מלא" required className="w-full px-6 py-5 bg-white/20 border border-white/30 rounded-full text-black placeholder-white/60 focus:outline-none focus:border-amber-400 transition-all text-lg" />
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="דוא״ל" required className="w-full px-6 py-5 bg-white/20 border border-white/30 rounded-full text-white placeholder-white/60 focus:outline-none focus:border-amber-400 transition-all text-lg" />
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="סיסמה" required className="w-full px-6 py-5 bg-white/20 border border-white/30 rounded-full text-white placeholder-white/60 focus:outline-none focus:border-amber-400 transition-all text-lg" />
           
