@@ -22,10 +22,10 @@
 //           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
 //           style={{ backgroundImage: "url('/images/background-full.jpg')" }}
 //         />
-        
+
 //         {/* שכבה כהה + גרדיאנט להדגשת הטקסט */}
 //         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/40" />
-        
+
 //         <div className="relative z-10 text-center px-6 max-w-6xl mx-auto">
 //           <h1 className="text-5xl md:text-8xl font-black text-white mb-8 leading-tight drop-shadow-2xl">
 //             ספריית הקודש של מיכלי
@@ -33,7 +33,7 @@
 //           <p className="text-2xl md:text-5xl font-light text-amber-200 mb-12 tracking-wide" style={{ fontFamily: 'Frank Ruhl Libre, serif' }}>
 //             האוסף היקר לליבי
 //           </p>
-          
+
 //           {/* חיפוש ענק וחכם */}
 //           <form onSubmit={handleSearch} className="max-w-4xl mx-auto">
 //             <div className="relative group">
@@ -69,7 +69,7 @@
 //           <h2 className="text-4xl md:text-6xl font-bold text-white mb-12">
 //             הספרייה הדיגיטלית הכי אישית ומלאה בעולם
 //           </h2>
-          
+
 //           <div className="grid md:grid-cols-3 gap-12 mb-20">
 //             <div className="group">
 //               <div className="w-24 h-24 mx-auto mb-6 bg-amber-600/20 rounded-full flex items-center justify-center group-hover:bg-amber-600/40 transition-all">
@@ -150,9 +150,9 @@ export default function HomePage() {
     <>
       {/* ========= חלק 1 – פתיחה עם תמונה על כל המסך ========= */}
       <section className="relative h-screen w-full relative overflow-hidden">
-        <img 
-          src="books.jpg" 
-          alt="ספרי קודש" 
+        <img
+          src="books.jpg"
+          alt="ספרי קודש"
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-black/60" />
@@ -170,7 +170,7 @@ export default function HomePage() {
         {/* כיתוב ראשי באמצע */}
         <div className="relative h-full flex items-center justify-center text-center px-6">
           <div className="animate-fadeIn">
-            <h1 
+            <h1
               className="text-6xl md:text-8xl lg:text-9xl font-black text-white drop-shadow-3xl leading-tight"
               style={{ fontFamily: 'Frank Ruhl Libre, serif' }}
             >
@@ -230,7 +230,7 @@ export default function HomePage() {
           </div>
 
           {/* כפתור כניסה גדול */}
-          <Link 
+          <Link
             to="/series"
             className="inline-flex items-center gap-6 px-24 py-8 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 hover:from-amber-700 hover:via-amber-600 hover:to-yellow-700 text-white text-4xl font-black rounded-full shadow-2xl transition-all transform hover:scale-110 hover:shadow-amber-500/70"
           >
@@ -243,7 +243,7 @@ export default function HomePage() {
       </section>
 
       {/* ========= Footer קטן ומרגש ========= */}
-      <footer className="py-12 px-6 bg-black border-t border-amber-900/50">
+      <footer className="py-12 px-6 bg-white border-t border-amber-900/50">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-2xl text-amber-300 italic mb-4" style={{ fontFamily: 'Frank Ruhl Libre, serif' }}>
             "כי מציון תצא תורה ודבר ה' מירושלים"
