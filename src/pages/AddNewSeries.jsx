@@ -107,6 +107,13 @@ export default function AddNewSeries() {
     </div>
   )
 
+  const removeVolume = (index) => {
+    setVolumes(prev => {
+      if (prev.length === 1) return prev // לא מאפשר מחיקה של הכרך האחרון
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 py-12 px-4" dir="rtl">
       <div className="max-w-6xl mx-auto">
@@ -227,7 +234,15 @@ export default function AddNewSeries() {
               <h2 className="text-2xl font-bold text-emerald-800 mb-6">
                 כרך {index + 1}
               </h2>
-
+              {volumes.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeVolume(index)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700"
+                >
+                  מחק כרך
+                </button>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                 <Field label="שם גיליון / כרך">
