@@ -120,52 +120,106 @@ export default function AddNewSeries() {
           <aside className="col-span-12 lg:col-span-7 space-y-5">
             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
               <div className="flex items-center gap-2 mb-4 text-indigo-600 border-b pb-3 font-black">
-                <Book size={20} /> <h2>פרטי הסדרה המלאים</h2>
+                <Book size={20} />
+                <h2>פרטי הסדרה המלאים</h2>
               </div>
 
               <div className="grid grid-cols-6 gap-4">
-                <Field label="שם מקדים" colSpan="col-span-1"><input value={series.prefixName} onChange={e => updateSeries('prefixName', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" /></Field>
-                <Field label="שם הקובץ (חובה)" colSpan="col-span-2"><input value={series.fileName} onChange={e => updateSeries('fileName', e.target.value)} className="p-2 bg-white border-2 border-indigo-100 rounded-lg font-bold text-slate-900" /></Field>
-
-                <Field label="שם מזהה (לכפילויות בלבד)" colSpan="col-span-2">
+                {/* שורה ראשונה */}
+                <Field label="שם מקדים" colSpan="col-span-1">
+                  <input value={series.prefixName} onChange={e => updateSeries('prefixName', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+                </Field>
+                <Field label="שם הקובץ (חובה)" colSpan="col-span-2">
+                  <input value={series.fileName} onChange={e => updateSeries('fileName', e.target.value)} className="p-2 bg-white border-2 border-indigo-100 rounded-lg font-bold text-slate-900" />
+                </Field>
+                <Field label="שם מזהה (לכפילויות בלבד)" colSpan="col-span-3">
                   <input value={series.identifierName} onChange={e => updateSeries('identifierName', e.target.value)} placeholder="רק אם יש שם זהה לסדרה אחרת" className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
                 </Field>
 
-                <Field label="מקום הוצאה"><input value={series.publicationPlace} onChange={e => updateSeries('publicationPlace', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" /></Field>
+                {/* שורה שנייה */}
+                <Field label="מחבר/עורך" colSpan="col-span-3">
+                  <input value={series.author} onChange={e => updateSeries('author', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+                </Field>
+                <Field label="מגזר" colSpan="col-span-1">
+                  <input value={series.sector} onChange={e => updateSeries('sector', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+                </Field>
+                <Field label="מקום הוצאה" colSpan="col-span-1">
+                  <input value={series.publicationPlace} onChange={e => updateSeries('publicationPlace', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+                </Field>
 
-                <Field label="מחבר/עורך" colSpan="col-span-3"><input value={series.author} onChange={e => updateSeries('author', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" /></Field>
-                <Field label="מגזר"><input value={series.sector} onChange={e => updateSeries('sector', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" /></Field>
-
-                <Field label="שנות הוצאה"><input value={series.publicationYears} onChange={e => updateSeries('publicationYears', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" /></Field>
-
-                 <Field label="סה''כ גליונות"><input type="number" value={series.totalVolumes} onChange={e => updateSeries('totalVolumes', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" /></Field>
-
-                <Field label="סטטוס קטלוג">
+                {/* שורה שלישית */}
+                <Field label="שנות הוצאה" colSpan="col-span-1">
+                  <input value={series.publicationYears} onChange={e => updateSeries('publicationYears', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+                </Field>
+                <Field label="סה''כ גליונות" colSpan="col-span-1">
+                  <input type="number" value={series.totalVolumes} onChange={e => updateSeries('totalVolumes', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+                </Field>
+                <Field label="סטטוס קטלוג" colSpan="col-span-1">
                   <select value={series.catalogStatus} onChange={e => updateSeries('catalogStatus', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900">
-                    <option value="חלקי">חלקי</option><option value="מלא">מלא</option><option value="טרם החל">טרם החל</option>
+                    <option value="חלקי">חלקי</option>
+                    <option value="מלא">מלא</option>
+                    <option value="טרם החל">טרם החל</option>
                   </select>
                 </Field>
 
-                <Field label="רשימת כרכים חסרים" colSpan="col-span-2"><textarea rows="1" value={series.missingVolumesList} onChange={e => updateSeries('missingVolumesList', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm" /></Field>
-                <Field label="תיאור הקובץ" colSpan="col-span-2"><textarea rows="1" value={series.fileDescription} onChange={e => updateSeries('fileDescription', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm" /></Field>
-                <Field label="הערות" colSpan="col-span-2"><textarea rows="1" value={series.userNotes} onChange={e => updateSeries('userNotes', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm" /></Field>
-              </div>
+                <Field label="תיאור הקובץ" colSpan="col-span-4">
+                  <textarea rows="1" value={series.fileDescription} onChange={e => updateSeries('fileDescription', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm" />
+                </Field>
+                {/* שורה חמישית - הערות (רוחב מלא) */}
+                <div className="col-span-4 flex flex-col gap-3">
+                  <Field label="הערות">
+                    <textarea
+                      rows="2"
+                      value={series.userNotes}
+                      onChange={e => updateSeries('userNotes', e.target.value)}
+                      className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm w-full"
+                    />
+                  </Field>
 
-              <div className="mt-5 pt-5 border-t border-slate-100">
-                <div onClick={() => fileInputRef.current.click()} className="h-32 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-all overflow-hidden relative bg-slate-50">
-                  {series.coverPreview ? <img src={series.coverPreview} alt="Preview" className="h-full w-auto object-contain p-1" /> : <Upload size={24} className="text-slate-300" />}
+                  <Field label="רשימת כרכים חסרים">
+                    <textarea
+                      rows="2"
+                      value={series.missingVolumesList}
+                      onChange={e => updateSeries('missingVolumesList', e.target.value)}
+                      className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm w-full"
+                    />
+                  </Field>
                 </div>
-                <input type="file" ref={fileInputRef} hidden onChange={handleImageUpload} accept="image/*" />
+
+                {/* שורה רביעית - תמונה משמאל + תיאור הקובץ מימין */}
+                <div className="col-span-2">
+
+                  <div
+                    onClick={() => fileInputRef.current.click()}
+                    className="w-full max-w-[260px] h-48 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-all overflow-hidden relative bg-slate-50"
+                  >
+                    {series.coverPreview ? (
+                      <img src={series.coverPreview} alt="Preview" className="col-span-2 h-full w-auto object-contain p-2 flex justify-flex-start" />
+                    ) : (
+                      <Upload size={48} className="text-slate-300" />
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    hidden
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                  />
+                </div>
+
+                {/* שורה שישית - רשימת כרכים חסרים (רוחב מלא, מתחת להערות) */}
+
               </div>
-            </div >
+            </div>
           </aside >
 
           {/* עמודה שמאלית: כרכים ומאמרים - 100% מהשדות */}
           <main className="col-span-12 lg:col-span-5 space-y-6">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            <div className="flex flex-wrap items-center gap-3 pb-4 -mx-1">
               {volumes.map((v, i) => (
                 <button key={v.id} onClick={() => setActiveVolume(i)} className={`px-5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 flex-shrink-0 ${activeVolume === i ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
-                  גליון {v.volumeNumber || i + 1}
+                  גליון {v.volumeTitle || i + 1}
                   {activeVolume === i && volumes.length > 1 && <X size={14} onClick={(e) => { e.stopPropagation(); removeVolume(i); }} />}
                 </button>
               ))}
@@ -178,7 +232,7 @@ export default function AddNewSeries() {
 
                 {/* שדה 1: שם גליון */}
                 {/* אם שדות אופציונליים מוסתרים (false), שם גליון תופס 3 עמודות. אם גלויים (true), הוא תופס עמודה 1. */}
-                <Field label="שם גליון" colSpan={currentVolume.showOptionalFields ? '' : 'md:col-span-3'}>
+                <Field label="שם גליון" colSpan="md:col-span-3">
                   <input
                     value={currentVolume.volumeTitle}
                     onChange={e => updateVolumeField(activeVolume, 'volumeTitle', e.target.value)}
@@ -188,19 +242,19 @@ export default function AddNewSeries() {
                 <Field label='י"ל לרגל' colSpan="md:col-span-3">
                   <input value={currentVolume.publishedFor} onChange={e => updateVolumeField(activeVolume, 'publishedFor', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg w-full text-slate-900 font-semibold" />
                 </Field>
-                <Field label="חודש/תקופה" colSpan="md:col-span-1 "><input value={currentVolume.publicationPeriod} onChange={e => updateVolumeField(activeVolume, 'publicationPeriod', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900" /></Field>
-                <Field label="סוג כריכה" colSpan="md:col-span-1"><input value={currentVolume.coverType} onChange={e => updateVolumeField(activeVolume, 'coverType', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900" /></Field>
-                <Field label="גודל גליון" colSpan="md:col-span-1"><input value={currentVolume.volumeSize} onChange={e => updateVolumeField(activeVolume, 'volumeSize', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900" /></Field>
+                <Field label="חודש/תקופה" colSpan="md:col-span-2 "><input value={currentVolume.publicationPeriod} onChange={e => updateVolumeField(activeVolume, 'publicationPeriod', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900" /></Field>
+                <Field label="סוג כריכה" colSpan="md:col-span-2"><input value={currentVolume.coverType} onChange={e => updateVolumeField(activeVolume, 'coverType', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900" /></Field>
+                <Field label="גודל גליון" colSpan="md:col-span-2"><input value={currentVolume.volumeSize} onChange={e => updateVolumeField(activeVolume, 'volumeSize', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900" /></Field>
 
-                <Field label="נושא ראשי" colSpan="md:col-span-1">
+                <Field label="נושא ראשי" colSpan="md:col-span-2">
                   <input value={currentVolume.mainTopic} onChange={e => updateVolumeField(activeVolume, 'mainTopic', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-semibold" />
                 </Field>
 
-                <Field label="סטטוס קטלוג">
+                <Field label="סטטוס קטלוג" colSpan="md:col-span-2">
                   <input value={currentVolume.articlesCatalogStatus} onChange={e => updateVolumeField(activeVolume, 'articlesCatalogStatus', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs" />
                 </Field>
 
-                <Field label="סטטוס מקורות">
+                <Field label="סטטוס מקורות" colSpan="md:col-span-2" >
                   <input value={currentVolume.articlesTopicsSourcesStatus} onChange={e => updateVolumeField(activeVolume, 'articlesTopicsSourcesStatus', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs" />
                 </Field>
 
@@ -208,7 +262,7 @@ export default function AddNewSeries() {
                 {/* --- בלוק שדות אופציונליים --- */}
                 {currentVolume.showOptionalFields ? (
                   // שורה חדשה עם 3 שדות + כפתור הסתר
-                  <div className="md:col-span-6 grid grid-cols-1 md:grid-cols-6 gap-4 mt-4 bg-indigo-50/30 p-4 rounded-xl border border-indigo-100">
+                  <div className="md:col-span-6 grid grid-cols-1 md:grid-cols-6 gap-4 mt-4 bg-indigo-50/30 p-4 rounded-xl">
                     <Field label="מספר גליון" colSpan="md:col-span-2">
                       <input value={currentVolume.volumeNumber} onChange={e => updateVolumeField(activeVolume, 'volumeNumber', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-bold w-full" />
                     </Field>
@@ -240,19 +294,13 @@ export default function AddNewSeries() {
                     </button>
                   </div>
                 )}
-                {/* --- סוף בלוק שדות אופציונליים / כפתור הוספה --- */}
-
-
-                {/* שדות רגילים נוספים */}
-                {/* מכאן והלאה השדות ממשיכים להיפרס כרגיל אחרי הבלוק המותנה */}
-
               </div>
 
               {/* טבלת מאמרים - כל השדות בטקסט שחור */}
               <div className="space-y-4">
                 <h4 className="font-black text-slate-800 border-r-4 border-indigo-500 pr-3">מאמרים בגליון</h4>
                 <div className="overflow-x-auto border border-slate-200 rounded-2xl">
-                  <table className="w-full text-right min-w-[1400px] border-collapse">
+                  <table className="w-full text-right border-collapse">
                     <thead>
                       <tr className="bg-slate-800 text-black text-[11px] font-black">
                         <th className="p-3 w-12 text-center">מס'</th>
