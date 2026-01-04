@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { BookOpen } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import Fuse from "fuse.js";
+import Fuse from "fuse.js"
 
 export default function Chry() {
   const [allSeries, setAllSeries] = useState([])
@@ -13,13 +13,7 @@ export default function Chry() {
     fetch('http://localhost:5000/api/series')
       .then(res => res.json())
       .then(result => {
-        console.log('מה שהשרת החזיר:', result)
-
-        // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
-        // הפתרון הסופי – המערך נמצא ב-result.data.series
         const seriesArray = result?.data?.series || []
-        // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
-
         setAllSeries(seriesArray)
         setLoading(false)
       })
@@ -29,93 +23,90 @@ export default function Chry() {
       })
   }, [])
 
-  if (loading) return <div className="p-20 text-4xl">טוען...</div>
+  const deleteSeries = async (id, fileName) => {
+    if (!window.confirm(`למחוק את "${fileName}"?`)) return
 
-  if (allSeries.length === 0) {
-    return <div className="p-20 text-3xl text-red-500">אין סדרות (אבל החיבור עובד!)</div>
+    try {
+      const res = await fetch(`http://localhost:5000/api/series/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('שגיאה במחיקה')
+
+      setAllSeries(prev => prev.filter(s => s._id !== id))
+      alert('נמחקה בהצלחה!')
+    } catch (err) {
+      alert('שגיאה: ' + err.message)
+    }
   }
+
+  if (loading) return <div className="p-20 text-3xl">טוען...</div>
+  if (allSeries.length === 0) return <div className="p-20 text-3xl text-red-500">אין סדרות</div>
+
   const fuse = new Fuse(allSeries, {
-    keys: [
-      "prefixName",
-      "fileName",
-      "author",
-      "description",
-      "genre",
-      "volumes.title",
-      "volumes.mainTopic",
-      "volumes.topics.topicTitle"
-    ],
+    keys: ["prefixName", "fileName", "author", "genre", "volumes.title"],
     threshold: 0.4
-  });
+  })
+
   const filteredSeries = searchTerm.trim()
     ? fuse.search(searchTerm).map(r => r.item)
-    : allSeries;
-  console.log(filteredSeries.length);
-
-  // setAllSeries(filteredSeries);
-
-
-
+    : allSeries
 
   return (
-    <div className="p-10" dir="rtl">
-      <div>
-        <input
-          type="text"
-          placeholder="חפש סדרה,כרך,מאמר..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            padding: "10px",
-            width: "300px",
-            fontSize: "16px",
-            marginBottom: "20px"
-          }}
-        />
-      </div>
-      <div className="flex justify-end mt-4 space-x-4">
-        <button
-          onClick={() => navigate('/add-series')}
-          className="px-6 py-3 bg-black text-white text-xl rounded-2xl hover:bg-gray-800 transition"
-        >
-          להוספת סדרה
-        </button>
+    <div className="p-6" dir="rtl">
+      <input
+        type="text"
+        placeholder="חיפוש..."
+        value={searchTerm}
+        onChange={e => setSearchTerm(e.target.value)}
+        className="p-3 mb-6 w-80 text-lg border rounded-lg"
+      />
 
-        <button
-          onClick={() => navigate('/add-volume')}
-          className="px-6 py-3 bg-black text-white text-xl rounded-2xl hover:bg-gray-800 transition"
-        >
-          להוספת כרך
+      <div className="flex justify-end gap-4 mb-8">
+        <button onClick={() => navigate('/add-series')} className="px-5 py-2 bg-black text-white rounded-xl">
+          + סדרה
+        </button>
+        <button onClick={() => navigate('/add-volume')} className="px-5 py-2 bg-black text-white rounded-xl">
+          + כרך
         </button>
       </div>
 
-      <h1 className="text-6xl font-bold text-green-500 mb-10">
-        הנה כל {allSeries.length} הסדרות :
+      <h1 className="text-4xl font-bold text-green-500 mb-6">
+        {allSeries.length} סדרות
       </h1>
-      {filteredSeries.map((s, i) => (
-        <div
-          key={s._id}
-          className="mb-6 p-4 border-2 border-amber-600 rounded-xl bg-black/50 flex items-start gap-6"
-        >
-          {/* תמונה קטנה */}
-          <img
-            src={s.coverImage ?? "/books.jpg"}
-            alt="כריכה"
-            className="w-24 h-32 object-cover rounded-lg shadow-lg"
-          />
 
-          {/* פרטים ליד התמונה */}
-          <div className="flex flex-col justify-start">
-            <h2 className="text-2xl font-bold text-amber-400">
-              {i + 1}. {s.prefixName || s.fileName}
-              {s.author && <span className="text-lg text-amber-200"> – {s.author}</span>}
-            </h2>
+      <div className="space-y-3">
+        {filteredSeries.map((s, i) => (
+          <div
+            key={s._id}
+            className="flex items-center gap-4 p-3 bg-gray-900/70 border border-amber-600 rounded-lg hover:bg-gray-800/80 transition"
+          >
+            {/* כפתור מחיקה */}
+            <button
+              onClick={() => deleteSeries(s._id, s.fileName || s.prefixName || 'סדרה')}
+              className="text-red-500 hover:text-red-400 p-1"
+              title="מחק"
+            >
+              <Trash2 size={18} />
+            </button>
 
-            <p className="text-sm text-gray-300 mt-1">ז׳אנר: {s.genre || 'לא צוין'}</p>
-            <p className="text-sm text-gray-400">מספר כרכים: {s.volumes?.length || 0}</p>
+            {/* תמונה */}
+            <img
+              src={s.coverImage ?? "/books.jpg"}
+              alt="כריכה"
+              className="w-16 h-20 object-cover rounded"
+            />
+
+            {/* פרטים */}
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-amber-400">
+                {i + 1}. {s.prefixName || s.fileName}
+                {s.author && <span className="text-amber-200"> – {s.author}</span>}
+              </h2>
+              <div className="text-sm text-gray-400">
+                ז׳אנר: {s.genre || 'לא צוין'} | כרכים: {s.volumes?.length || 0}
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
