@@ -53,7 +53,7 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 to-black flex items-center justify-center px-6">
       <div className="max-w-md w-full bg-white/10 backdrop-blur-xl rounded-3xl p-10 border border-amber-600/30 shadow-2xl">
-        <h2 className="text-5xl font-bold text-white text-center mb-10">הרשמה</h2>
+        <h2 className="text-5xl font-bold text-black text-center mb-10">הרשמה</h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <input
@@ -88,7 +88,7 @@ export default function Register() {
 
           <button
             type="submit"
-            className="w-full py-5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xl font-bold rounded-full shadow-xl transition-all hover:scale-105"
+            className="w-full py-5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-black text-xl font-bold rounded-full shadow-xl transition-all hover:scale-105"
           >
             צרי חשבון
           </button>
@@ -101,7 +101,7 @@ export default function Register() {
         )}
 
         <p className="text-center text-amber-300 mt-8 text-lg">
-          כבר רשומה? <a href="/login" className="underline hover:text-white font-bold">התחברי</a>
+        כבר נרשמת? <a href="/login" className="underline hover:text-white font-bold">להתחברות</a>
         </p>
       </div>
     </div>
