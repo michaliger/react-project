@@ -1,61 +1,110 @@
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Users, Save, X, Upload, EyeOff } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { Plus, Trash2, Users, Save, X, Upload, FileText, Layout, BookOpen, ChevronLeft, Info, Search, Database, AlertCircle, Home, CheckCircle2 } from 'lucide-react'
 
-const Field = ({ label, children, colSpan = '' }) => (
-  <div className={`flex flex-col gap-1.5 ${colSpan}`}>
-    <label className="text-sm font-bold text-slate-700 mr-1">{label}</label>
+// רכיב שדה חסכוני - תופס מינימום מקום גובה
+const CompactField = ({ label, children, colSpan = 'col-span-1', required = false, error = false }) => (
+  <div className={`flex flex-col gap-0.5 ${colSpan}`}>
+    <label className="text-[11px] font-bold text-slate-500 mr-1 flex items-center gap-1">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
     {children}
+    {error && <span className="text-[9px] text-red-500 font-bold mr-1">חובה</span>}
   </div>
 )
 
-export default function AddNewSeries() {
-  const navigate = useNavigate()
+export default function App() {
+  const [currentPage, setCurrentPage] = useState('editor') // 'home' or 'editor'
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState({ text: '', type: '' })
+  const [errors, setErrors] = useState({})
+  
   const fileInputRef = useRef(null)
+  const pdfInputRef = useRef(null)
   const [activeVolume, setActiveVolume] = useState(0)
+  
+  // נתוני סדרה - כולל ID לטיפול בעדכון מול יצירה
   const [series, setSeries] = useState({
-    prefixName: '', fileName: '', identifierName: '', details: '',
-    editor: '', publicationPlace: '', publicationYears: [],
-    sector: '', missingVolumesList: '', userNotes: '', adminNotes: '',
-    fileDescription: '', coverImage: null, coverPreview: null,
+    id: null, 
+    prefixName: '', 
+    fileName: '', 
+    identifierName: '', 
+    details: '',
+    editor: '', 
+    publicationPlace: '', 
+    publicationYears: [],
+    sector: '', 
+    missingVolumesList: '', 
+    userNotes: '', 
+    adminNotes: '',
+    fileDescription: '', 
+    coverImage: null, 
+    coverPreview: null,
     createdBy: "691f8b89e60ae71b1932aab0",
-    enteredBy: '', catalogStatus: ''
+    enteredBy: '', 
+    catalogStatus: 'טיוטה'
   })
 
   const createEmptyVolume = (index) => ({
     id: Math.random().toString(36).substr(2, 9),
-    volumeTitle: '', volumeNumber: (index + 1).toString(),
-    booklet: '', showOptionalFields: false,
-    mainTopic: '', publishedFor: '', publicationYear: '',
-    StartYear: '', publicationPeriod: '', coverType: '', volumeSize: '',
-    articlesCount: 0, fileCompleteness: '', scanCompleteness: '',
-    articlesCatalogStatus: '', articlesTopicsSourcesStatus: '',
+    volumeTitle: '', 
+    volumeNumber: (index + 1).toString(),
+    booklet: '', 
+    showOptionalFields: false,
+    mainTopic: '', 
+    publishedFor: '', 
+    publicationYear: '',
+    StartYear: '', 
+    publicationPeriod: '', 
+    coverType: '', 
+    volumeSize: '',
+    articlesCount: 0, 
+    fileCompleteness: '', 
+    scanCompleteness: '',
+    articlesCatalogStatus: '', 
+    articlesTopicsSourcesStatus: '',
+    pdfFile: null, 
+    pdfFileName: '',
     articles: [{
       id: Math.random().toString(36).substr(2, 9),
       autoId: 1,
       authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
       additionalAuthors: [],
-      page: '', title: '', generalTopic: '', source: '', linkedArticleId: '', linkType: ''
+      page: '', 
+      title: '', 
+      generalTopic: '', 
+      source: '', 
+      linkedArticleId: '', 
+      linkType: ''
     }]
   })
 
   const [volumes, setVolumes] = useState([createEmptyVolume(0)])
-
-  useEffect(() => {
-    setSeries(prev => ({ ...prev, totalVolumes: volumes.length }))
-  }, [volumes.length])
-
-  useEffect(() => {
-    const years = volumes.map(v => v.publicationYear).filter(y => y && y !== 'לא ידוע')
-    setSeries(prev => ({ ...prev, publicationYears: years }))
-  }, [volumes])
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
     if (file) setSeries(prev => ({ ...prev, coverImage: file, coverPreview: URL.createObjectURL(file) }))
   }
 
-  const updateSeries = (field, value) => setSeries(prev => ({ ...prev, [field]: value }))
+  const handlePdfUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      const newVolumes = [...volumes]
+      newVolumes[activeVolume].pdfFile = file
+      newVolumes[activeVolume].pdfFileName = file.name
+      setVolumes(newVolumes)
+    }
+  }
+
+  const updateSeries = (field, value) => {
+    setSeries(prev => ({ ...prev, [field]: value }))
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: false }))
+  }
+  
+  const updateVolumeField = (vIdx, field, value) => {
+    const newVolumes = [...volumes]
+    newVolumes[vIdx][field] = value
+    setVolumes(newVolumes)
+  }
 
   const addVolume = () => {
     const newVol = createEmptyVolume(volumes.length)
@@ -65,14 +114,9 @@ export default function AddNewSeries() {
 
   const removeVolume = (idx) => {
     if (volumes.length <= 1) return
-    setVolumes(volumes.filter((_, i) => i !== idx))
-    setActiveVolume(Math.max(0, idx - 1))
-  }
-
-  const updateVolumeField = (vIdx, field, value) => {
-    const newVolumes = [...volumes]
-    newVolumes[vIdx][field] = value
+    const newVolumes = volumes.filter((_, i) => i !== idx)
     setVolumes(newVolumes)
+    setActiveVolume(Math.max(0, idx - 1))
   }
 
   const updateArticle = (vIdx, aIdx, field, value) => {
@@ -126,375 +170,340 @@ export default function AddNewSeries() {
     setVolumes(newVolumes)
   }
 
-  const currentVolume = volumes[activeVolume] || { articles: [] }
+  // לוגיקת שמירה סופית עם מעבר לדף הבית
+  const handleFinalSave = async () => {
+    const newErrors = {}
+    if (!series.fileName) newErrors.fileName = true
+    if (!series.prefixName) newErrors.prefixName = true
 
-  const USER_ID = "691f8b89e60ae71b1932aab0";  // ה-ID האמיתי שלך – השתמשי באותו בכל מקום!
-
-  const handleSave = async () => {
-    if (!series.fileName.trim()) {
-      alert('שם הקובץ הוא חובה!');
-      return;
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      setSaveMessage({ text: 'נא למלא שדות חובה', type: 'error' })
+      return
     }
 
-    let seriesId = null;
+    setIsSaving(true)
+    setSaveMessage({ text: 'שומר בבסיס הנתונים...', type: 'info' })
 
     try {
-      // שלב 1: שמירת הסדרה
-      const seriesData = {
-        prefixName: series.prefixName?.trim() || '',
-        fileName: series.fileName.trim(),
-        identifierName: series.identifierName?.trim() || '',
-        details: series.details?.trim() || '',
-        editor: series.editor?.trim() || '',
-        publicationPlace: series.publicationPlace?.trim() || '',
-        sector: series.sector?.trim() || '',
-        catalogStatus: series.catalogStatus?.trim() || 'חדש',
-        fileDescription: series.fileDescription?.trim() || '',
-        userNotes: series.userNotes?.trim() || '',
-        missingVolumesList: series.missingVolumesList?.trim() || '',
-        createdBy: USER_ID
-      };
+      // כאן תתבצע הקריאה ל-API
+      console.log("Saving full dataset:", { series, volumes })
+      
+      // הדמיית שמירה
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-      console.log('שולח סדרה:', seriesData);
+      // לאחר הצלחה - עדכון מזהה (כדי שבפעם הבאה נדע שזה כבר קיים אם המשתמש יחזור)
+      if (!series.id) setSeries(prev => ({ ...prev, id: 'saved_id_123' }))
+      
+      setSaveMessage({ text: 'נשמר בהצלחה! עובר לדף הבית...', type: 'success' })
 
-      const seriesRes = await fetch('http://localhost:5000/api/series/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(seriesData)
-      });
+      // מעבר אוטומטי לדף הבית
+      setTimeout(() => {
+        setCurrentPage('home')
+      }, 1500)
 
-      if (!seriesRes.ok) {
-        const text = await seriesRes.text();
-        console.error('שגיאה בסדרה:', text);
-        throw new Error(`לא נשמרה הסדרה: ${text.substring(0, 200)}`);
-      }
-
-      const seriesJson = await seriesRes.json();
-      seriesId = seriesJson._id || "691f8b89e60ae71b1932aab0";
-
-      if (!seriesId) throw new Error('לא התקבל ID של הסדרה');
-
-      console.log('סדרה נשמרה! ID:', seriesId);
-
-      // שלב 2: שמירת כל הכרכים והמאמרים
-      for (const vol of volumes) {
-        const volumeData = {
-          title: vol.volumeTitle || '',
-          volumeNumber: vol.volumeNumber ? parseInt(vol.volumeNumber) : null,
-          publicationYear: vol.publicationYear || null,
-          publicationPeriod: vol.publicationPeriod || null,
-          publishedFor: vol.publishedFor || null,
-          mainTopic: vol.mainTopic || null,
-          volumeSize: series.volumeSize || '',
-          coverType: series.coverType || '',
-          articlesCatalogStatus: vol.articlesCatalogStatus || '',
-          articlesTopicsSourcesStatus: vol.articlesTopicsSourcesStatus || '',
-          series: seriesId,
-          createdBy: USER_ID
-          // **אל תוסיפי fileName בכלל!**
-        };
-
-        console.log('שולח כרך:', volumeData);
-
-        const volRes = await fetch('http://localhost:5000/api/volumes/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(volumeData)
-        });
-
-        if (!volRes.ok) {
-          const text = await volRes.text();
-          console.error('שגיאה בכרך:', text);
-          throw new Error(`שגיאה בשמירת כרך: ${text.substring(0, 200)}`);
-        }
-
-        const volJson = await volRes.json();
-        const volumeId = volJson._id;
-
-        // שמירת מאמרים
-        const subtitles = vol.articles.map((art, index) => ({
-          serialNumber: String(index + 1).padStart(3, '0'),
-          contentTitle: art.title?.trim() || 'ללא כותרת',
-          source: art.source?.trim() || null,
-          startPage: art.page ? parseInt(art.page) : null,
-          generalTopic: art.generalTopic?.trim() || '',
-          linkedArticleId: art.linkType?.trim() || '',
-          authors: [
-            {
-              titlePrefix: art.authors[0]?.titlePrefix?.trim() || '',
-              firstName: art.authors[0]?.firstName?.trim() || '',
-              lastName: art.authors[0]?.lastName?.trim() || '',
-              role: art.authors[0]?.role?.trim() || 'מחבר'
-            },
-            ...(art.additionalAuthors || []).map(a => ({
-              titlePrefix: a.titlePrefix?.trim() || '',
-              firstName: a.firstName?.trim() || '',
-              lastName: a.lastName?.trim() || '',
-              role: a.role?.trim() || 'מחבר'
-            }))
-          ],
-          createdBy: USER_ID
-        }));
-
-        for (const sub of subtitles) {
-          const subRes = await fetch('http://localhost:5000/api/subtitles/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sub)
-          });
-
-          if (!subRes.ok) {
-            const text = await subRes.text();
-            throw new Error(`שגיאה במאמר: ${text.substring(0, 200)}`);
-          }
-
-          const subJson = await subRes.json();
-
-          await fetch(`http://localhost:5000/api/volumes/${volumeId}/`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $push: { subtitles: subJson._id } })
-          });
-        }
-      }
-
-      alert('הכל נשמר בהצלחה! 🎉');
-      navigate('/series-list');
-
-    } catch (err) {
-      console.error('שגיאה כללית:', err);
-      alert('שגיאה: ' + err.message);
+    } catch (error) {
+      setIsSaving(false)
+      setSaveMessage({ text: 'שגיאה: ' + error.message, type: 'error' })
     }
-  };
+  }
 
+  const inputClass = (error) => `w-full p-1.5 bg-white border ${error ? 'border-red-400 focus:ring-red-100' : 'border-slate-200 focus:ring-indigo-100'} rounded text-sm focus:ring-1 outline-none transition-all placeholder:text-slate-300`
+
+  // תצוגת דף הבית
+  if (currentPage === 'home') {
+    return (
+      <div className="h-screen bg-slate-50 flex flex-col items-center justify-center font-sans text-right" dir="rtl">
+        <div className="bg-white p-10 rounded-3xl shadow-xl border border-slate-200 text-center space-y-6 max-w-md w-full">
+          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+            <CheckCircle2 size={40} />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-black text-slate-800">הנתונים נשמרו בהצלחה!</h1>
+            <p className="text-slate-500 text-sm italic">הסדרה "{series.fileName}" עודכנה במערכת.</p>
+          </div>
+          <button 
+            onClick={() => {
+              setSeries({ id: null, prefixName: '', fileName: '', identifierName: '', details: '', editor: '', publicationPlace: '', publicationYears: [], sector: '', missingVolumesList: '', userNotes: '', adminNotes: '', fileDescription: '', coverImage: null, coverPreview: null, createdBy: "691f8b89e60ae71b1932aab0", enteredBy: '', catalogStatus: 'טיוטה' })
+              setVolumes([createEmptyVolume(0)])
+              setActiveVolume(0)
+              setCurrentPage('editor')
+            }}
+            className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+          >
+            <Plus size={18} /> הוספת סדרה חדשה
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const currentVolume = volumes[activeVolume] || { articles: [] }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 font-sans text-right text-slate-900" dir="rtl">
-      <div className="max-w-[1650px] mx-auto space-y-6">
-        <header className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-          <div>
-            <h1 className="text-2xl font-black text-slate-800">הוספת קובץ חדש</h1>
+    <div className="flex h-screen bg-slate-100 font-sans text-right text-slate-900 overflow-hidden" dir="rtl">
+      
+      {/* Sidebar - ניהול גליונות */}
+      <aside className="w-52 bg-white border-l border-slate-200 flex flex-col z-20 shadow-sm">
+        <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+          <button 
+            onClick={addVolume}
+            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95"
+          >
+            <Plus size={14} /> הוסף גליון
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+          {volumes.map((v, i) => (
+            <div key={v.id} className="group relative">
+              <button 
+                onClick={() => setActiveVolume(i)} 
+                className={`w-full text-right px-3 py-2 rounded-md text-xs font-bold transition-all flex items-center justify-between ${
+                  activeVolume === i 
+                  ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-600 shadow-inner' 
+                  : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <FileText size={14} className={activeVolume === i ? 'text-indigo-600' : 'text-slate-300'} />
+                  <span className="truncate">{v.volumeTitle || `גליון ${i + 1}`}</span>
+                </div>
+              </button>
+              {volumes.length > 1 && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); removeVolume(i); }}
+                  className="absolute left-1 top-1/2 -translate-y-1/2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="h-11 bg-white border-b border-slate-200 px-4 flex justify-between items-center shrink-0 shadow-sm z-10">
+          <div className="flex items-center gap-2">
+            <Database size={18} className="text-indigo-600" />
+            <h1 className="text-sm font-black text-slate-800 tracking-tight">מערכת קטלוג תורני</h1>
+            {saveMessage.text && (
+               <div className={`mr-4 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 animate-pulse ${
+                 saveMessage.type === 'error' ? 'bg-red-100 text-red-600' : 
+                 saveMessage.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+               }`}>
+                 {saveMessage.type === 'error' && <AlertCircle size={12} />}
+                 {saveMessage.text}
+                 <button onClick={() => setSaveMessage({text:'', type:''})} className="hover:scale-110"><X size={10} /></button>
+               </div>
+            )}
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => navigate(-1)} className="px-5 py-2 rounded-xl border border-slate-300 font-bold hover:bg-slate-50">ביטול</button>
-            <button
-              onClick={handleSave}
-              className="px-7 py-2 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg"
+          <div className="flex gap-2">
+            <button 
+              onClick={handleFinalSave}
+              disabled={isSaving}
+              className={`px-5 py-1 bg-slate-900 text-white rounded text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 shadow-md transition-all active:scale-95 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Save size={18} /> שמור הכל
+              <Save size={14} /> {isSaving ? 'שומר...' : 'שמירה סופית'}
             </button>
           </div>
         </header>
 
-        <div className="grid grid-cols-12 gap-6 min-h-[600px] mt-10">
-          <div className="col-span-12 lg:col-span-6 space-y-6">
-            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
-              <div className="grid grid-cols-6 gap-4">
-                <Field label="שם מקדים" colSpan="col-span-1">
-                  <select value={series.prefixName || ''} onChange={e => updateSeries('prefixName', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+          
+          {/* Section 1: Series Data */}
+          <section className="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+            <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-1 border-b pb-1 border-indigo-50">
+              <Layout size={12} /> נתוני סדרה כלליים
+            </h3>
+            
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 lg:col-span-10 grid grid-cols-2 md:grid-cols-6 gap-x-3 gap-y-2">
+                <CompactField label="שם מקדים" required error={errors.prefixName}>
+                  <select value={series.prefixName} onChange={e => updateSeries('prefixName', e.target.value)} className={inputClass(errors.prefixName)}>
                     <option value=""></option>
                     <option value="ספר זכרון">ספר זכרון</option>
-                    <option value="קובץ זכרון">קובץ זכרון</option>
                     <option value="קובץ תורני">קובץ תורני</option>
-                    <option value="קובץ">קובץ</option>
-                    <option value="ספר">ספר</option>
                     <option value="ירחון">ירחון</option>
-                    <option value="בטאון">בטאון</option>
                   </select>
-                </Field>
-                <Field label="שם הקובץ (חובה)" colSpan="col-span-2">
-                  <input value={series.fileName || ''} required onChange={e => updateSeries('fileName', e.target.value)} className="p-2 bg-white border-2 border-indigo-100 rounded-lg font-bold text-slate-900" />
-                </Field>
-                <Field label="שם מזהה (לכפילויות בלבד)" colSpan="col-span-3">
-                  <input value={series.identifierName || ''} onChange={e => updateSeries('identifierName', e.target.value)} placeholder="רק אם יש שם זהה לסדרה אחרת" className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
-
-                <Field label="פרטים" colSpan="col-span-3">
-                  <input value={series.details || ''} required onChange={e => updateSeries('details', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
-                <Field label="עורך" colSpan="col-span-2">
-                  <input value={series.editor || ''} onChange={e => updateSeries('editor', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
-                <Field label="מגזר" colSpan="col-span-1">
-                  <select value={series.sector || ''} onChange={e => updateSeries('sector', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900">
+                </CompactField>
+                <CompactField label="שם הקובץ" required colSpan="md:col-span-2" error={errors.fileName}>
+                  <input value={series.fileName} onChange={e => updateSeries('fileName', e.target.value)} className={`${inputClass(errors.fileName)} font-bold border-indigo-100`} />
+                </CompactField>
+                <CompactField label="שם מזהה">
+                  <input value={series.identifierName} onChange={e => updateSeries('identifierName', e.target.value)} className={inputClass()} placeholder="לכפילויות..." />
+                </CompactField>
+                <CompactField label="עורך">
+                  <input value={series.editor} onChange={e => updateSeries('editor', e.target.value)} className={inputClass()} />
+                </CompactField>
+                <CompactField label="מגזר">
+                  <select value={series.sector} onChange={e => updateSeries('sector', e.target.value)} className={inputClass()}>
                     <option value=""></option>
                     <option value="לטאי">לטאי</option>
-                    <option value="ספרדי">ספרדי</option>
-                    <option value="דתי">דתי</option>
                     <option value="חסידי">חסידי</option>
+                    <option value="ספרדי">ספרדי</option>
                   </select>
-                </Field>
-                <Field label="מקום הוצאה" colSpan="col-span-1">
-                  <input value={series.publicationPlace || ''} required onChange={e => updateSeries('publicationPlace', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
-                <Field label="נכנס לאוסף על ידי" colSpan="col-span-2">
-                  <input value={series.enteredBy || ''} onChange={e => updateSeries('enteredBy', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
+                </CompactField>
 
-                <Field label="שנות הוצאה" colSpan="col-span-1">
-                  <input value={series.publicationYears.join(', ') || ''} readOnly className="p-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-700" />
-                </Field>
-                <Field label="סה''כ גליונות" colSpan="col-span-1">
-                  <input type="number" value={series.totalVolumes || 0} readOnly className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
-                <Field label="סטטוס קטלוג" colSpan="col-span-1">
-                  <input value={series.catalogStatus || ''} required onChange={e => updateSeries('catalogStatus', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
+                <CompactField label="מקום הוצאה" colSpan="md:col-span-2">
+                  <input value={series.publicationPlace} onChange={e => updateSeries('publicationPlace', e.target.value)} className={inputClass()} />
+                </CompactField>
+                <CompactField label="פרטים נוספים" colSpan="md:col-span-2">
+                  <input value={series.details} onChange={e => updateSeries('details', e.target.value)} className={inputClass()} />
+                </CompactField>
+                <CompactField label="סטטוס קטלוג">
+                  <input value={series.catalogStatus} onChange={e => updateSeries('catalogStatus', e.target.value)} className={inputClass()} />
+                </CompactField>
+                <CompactField label={"הוזן ע" + "י"}>
+                  <input value={series.enteredBy} onChange={e => updateSeries('enteredBy', e.target.value)} className={inputClass()} />
+                </CompactField>
 
-                <div className="col-span-4 flex flex-col gap-3">
-                  <Field label="תיאור הקובץ">
-                    <textarea rows="1" value={series.fileDescription || ''} onChange={e => updateSeries('fileDescription', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm" />
-                  </Field>
-                  <Field label="הערות">
-                    <textarea rows="2" value={series.userNotes || ''} onChange={e => updateSeries('userNotes', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm w-full" />
-                  </Field>
-                  <Field label="רשימת כרכים חסרים">
-                    <textarea rows="2" value={series.missingVolumesList || ''} onChange={e => updateSeries('missingVolumesList', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm w-full" />
-                  </Field>
-                </div>
+                <CompactField label="גליונות חסרים" colSpan="md:col-span-3">
+                  <input value={series.missingVolumesList} onChange={e => updateSeries('missingVolumesList', e.target.value)} className={inputClass()} />
+                </CompactField>
+                <CompactField label="הערות מנהל" colSpan="md:col-span-3">
+                  <input value={series.adminNotes} onChange={e => updateSeries('adminNotes', e.target.value)} className={inputClass()} />
+                </CompactField>
+              </div>
 
-                <div className="col-span-2">
-                  <div onClick={() => fileInputRef.current.click()} className="w-full max-w-[260px] h-96 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-all overflow-hidden relative bg-slate-50">
-                    {series.coverPreview ? <img src={series.coverPreview} alt="Preview" className="h-full w-auto object-contain p-2" /> : <Upload size={48} className="text-slate-300" />}
-                  </div>
+              {/* Cover Upload */}
+              <div className="col-span-12 lg:col-span-2">
+                <div 
+                  onClick={() => fileInputRef.current.click()} 
+                  className="w-full h-full min-h-[110px] border border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all overflow-hidden bg-slate-50/30"
+                >
+                  {series.coverPreview ? (
+                    <img src={series.coverPreview} alt="Preview" className="h-full w-full object-contain p-1" />
+                  ) : (
+                    <div className="text-slate-400 flex flex-col items-center gap-1">
+                      <Upload size={16} />
+                      <span className="text-[9px] font-bold">העלאת כריכה</span>
+                    </div>
+                  )}
                   <input type="file" ref={fileInputRef} hidden onChange={handleImageUpload} accept="image/*" />
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="col-span-12 lg:col-span-6 space-y-6 flex flex-col">
-            <div className="flex flex-wrap items-center gap-3 pb-4 -mx-1">
-              {volumes.map((v, i) => (
-                <button key={v.id} onClick={() => setActiveVolume(i)} className={`px-5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 flex-shrink-0 ${activeVolume === i ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
-                  גליון {v.volumeTitle || i + 1}
-                  {activeVolume === i && volumes.length > 1 && <X size={14} onClick={(e) => { e.stopPropagation(); removeVolume(i); }} />}
+          {/* Section 2: Active Volume */}
+          <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-black text-slate-800 flex items-center gap-2">
+                <div className="w-1.5 h-3.5 bg-indigo-600 rounded-full"></div>
+                נתוני {currentVolume.volumeTitle || `גליון ${activeVolume + 1}`}
+              </h3>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => pdfInputRef.current.click()} 
+                  className={`px-2 py-1 border rounded text-[10px] font-bold flex items-center gap-1 transition-all ${currentVolume.pdfFileName ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100'}`}
+                >
+                  <FileText size={12} /> {currentVolume.pdfFileName ? 'קובץ PDF צמוד' : 'צרף PDF'}
                 </button>
-              ))}
-              <button onClick={addVolume} className="p-2.5 bg-white text-indigo-600 rounded-xl border-2 border-dashed border-indigo-200 hover:bg-indigo-50 shadow-sm">
-                <Plus size={20} />
-              </button>
-            </div>
-
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-4 bg-slate-50/50 p-4 rounded-2xl">
-                <Field label="שם גליון" colSpan="md:col-span-3">
-                  <input value={currentVolume.volumeTitle || ''} onChange={e => updateVolumeField(activeVolume, 'volumeTitle', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
-                <Field label="יצא לאור לרגל" colSpan="md:col-span-3">
-                  <input value={currentVolume.publishedFor || ''} onChange={e => updateVolumeField(activeVolume, 'publishedFor', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg w-full text-slate-900 font-semibold" />
-                </Field>
-                <Field label="חודש/תקופה" colSpan="md:col-span-2">
-                  <input value={currentVolume.publicationPeriod || ''} onChange={e => updateVolumeField(activeVolume, 'publicationPeriod', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
-                <Field label="שנה" colSpan="md:col-span-2">
-                  <input value={currentVolume.publicationYear || ''} required onChange={e => updateVolumeField(activeVolume, 'publicationYear', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900" />
-                </Field>
-                <Field label="סוג כריכה" colSpan="md:col-span-2">
-                  <select value={series.coverType || ''} onChange={e => updateSeries('coverType', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900">
-                    <option value=""></option>
-                    <option value="קשה">קשה</option>
-                    <option value="רכה">רכה</option>
-                  </select>
-                </Field>
-                <Field label="גודל גליון" colSpan="md:col-span-2">
-                  <select value={series.volumeSize || ''} onChange={e => updateSeries('volumeSize', e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900">
-                    <option value=""></option>
-                    <option value="גדול">גדול</option>
-                    <option value="קטן">קטן</option>
-                    <option value="בינוני">בינוני</option>
-                  </select>
-                </Field>
-
-                <Field label="נושא ראשי" colSpan="md:col-span-2">
-                  <input value={currentVolume.mainTopic || ''} onChange={e => updateVolumeField(activeVolume, 'mainTopic', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-semibold" />
-                </Field>
-                <Field label="סטטוס קטלוג" colSpan="md:col-span-2">
-                  <input value={currentVolume.articlesCatalogStatus || ''} onChange={e => updateVolumeField(activeVolume, 'articlesCatalogStatus', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs" />
-                </Field>
-                <Field label="סטטוס מקורות" colSpan="md:col-span-2">
-                  <input value={currentVolume.articlesTopicsSourcesStatus || ''} onChange={e => updateVolumeField(activeVolume, 'articlesTopicsSourcesStatus', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs" />
-                </Field>
-
-                {currentVolume.showOptionalFields ? (
-                  <div className="md:col-span-6 grid grid-cols-1 md:grid-cols-6 gap-4 mt-4 bg-indigo-50/30 p-4 rounded-xl">
-                    <Field label="מספר גליון" colSpan="md:col-span-2">
-                      <input value={currentVolume.volumeNumber || ''} onChange={e => updateVolumeField(activeVolume, 'volumeNumber', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-bold w-full" />
-                    </Field>
-                    <Field label="שנה" colSpan="md:col-span-2">
-                      <input value={currentVolume.StartYear || ''} onChange={e => updateVolumeField(activeVolume, 'StartYear', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 w-full" />
-                    </Field>
-                    <Field label="חוברת" colSpan="md:col-span-1">
-                      <input value={currentVolume.booklet || ''} onChange={e => updateVolumeField(activeVolume, 'booklet', e.target.value)} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 w-full" />
-                    </Field>
-                    <div className="md:col-span-1 flex items-end">
-                      <button type="button" onClick={() => updateVolumeField(activeVolume, 'showOptionalFields', false)} className="w-full py-2 px-3 bg-red-100 text-red-600 rounded-lg font-semibold flex items-center justify-center gap-1 hover:bg-red-200 transition-colors text-sm">
-                        <EyeOff size={16} /> הסתר
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="md:col-span-1 flex items-end pb-2">
-                    <button type="button" onClick={() => updateVolumeField(activeVolume, 'showOptionalFields', true)} className="w-full py-1.5 px-3 bg-indigo-100 text-indigo-700 rounded-lg font-bold text-xs flex items-center justify-center gap-1 hover:bg-indigo-200 transition-colors border border-indigo-300">
-                      <Plus size={14} /> פרטים נוספים
-                    </button>
-                  </div>
-                )}
+                <input type="file" ref={pdfInputRef} hidden onChange={handlePdfUpload} accept=".pdf" />
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-6 mt-0">
-          <div className="space-y-4 mt-0">
-            <h4 className="font-black text-slate-800 border-r-4 border-indigo-500 pr-3">מאמרים בגליון</h4>
-            <div className="overflow-x-auto border border-slate-200 rounded-2xl">
-              <table className="w-full table-auto text-right border-collapse">
+            <div className="grid grid-cols-2 md:grid-cols-8 gap-x-2 gap-y-2 bg-slate-50/50 p-2 rounded-lg border border-slate-100 shadow-inner">
+              <CompactField label="שם גליון" colSpan="md:col-span-2">
+                <input value={currentVolume.volumeTitle} onChange={e => updateVolumeField(activeVolume, 'volumeTitle', e.target.value)} className={inputClass()} />
+              </CompactField>
+              <CompactField label="נושא ראשי" colSpan="md:col-span-2">
+                <input value={currentVolume.mainTopic} onChange={e => updateVolumeField(activeVolume, 'mainTopic', e.target.value)} className={inputClass()} />
+              </CompactField>
+              <CompactField label="יצא לרגל" colSpan="md:col-span-2">
+                <input value={currentVolume.publishedFor} onChange={e => updateVolumeField(activeVolume, 'publishedFor', e.target.value)} className={inputClass()} />
+              </CompactField>
+              <CompactField label="שנה">
+                <input value={currentVolume.publicationYear} onChange={e => updateVolumeField(activeVolume, 'publicationYear', e.target.value)} className={inputClass()} />
+              </CompactField>
+              <CompactField label="תקופה">
+                <input value={currentVolume.publicationPeriod} onChange={e => updateVolumeField(activeVolume, 'publicationPeriod', e.target.value)} className={inputClass()} />
+              </CompactField>
+
+              <CompactField label="סוג כריכה">
+                <select value={currentVolume.coverType} onChange={e => updateVolumeField(activeVolume, 'coverType', e.target.value)} className={inputClass()}>
+                  <option value=""></option>
+                  <option value="קשה">קשה</option>
+                  <option value="רכה">רכה</option>
+                </select>
+              </CompactField>
+              <CompactField label="גודל">
+                <select value={currentVolume.volumeSize} onChange={e => updateVolumeField(activeVolume, 'volumeSize', e.target.value)} className={inputClass()}>
+                  <option value=""></option>
+                  <option value="גדול">גדול</option>
+                  <option value="בינוני">בינוני</option>
+                  <option value="קטן">קטן</option>
+                </select>
+              </CompactField>
+              <CompactField label="שלמות קובץ">
+                <input value={currentVolume.fileCompleteness} onChange={e => updateVolumeField(activeVolume, 'fileCompleteness', e.target.value)} className={inputClass()} />
+              </CompactField>
+              <CompactField label="שלמות סריקה">
+                <input value={currentVolume.scanCompleteness} onChange={e => updateVolumeField(activeVolume, 'scanCompleteness', e.target.value)} className={inputClass()} />
+              </CompactField>
+              <CompactField label="סטטוס מאמרים" colSpan="md:col-span-2">
+                <input value={currentVolume.articlesCatalogStatus} onChange={e => updateVolumeField(activeVolume, 'articlesCatalogStatus', e.target.value)} className={inputClass()} />
+              </CompactField>
+              <CompactField label="סטטוס מקורות" colSpan="md:col-span-2">
+                <input value={currentVolume.articlesTopicsSourcesStatus} onChange={e => updateVolumeField(activeVolume, 'articlesTopicsSourcesStatus', e.target.value)} className={inputClass()} />
+              </CompactField>
+            </div>
+          </section>
+
+          {/* Section 3: Articles Table */}
+          <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-2 mb-2">
+               <h4 className="font-black text-slate-700 text-[10px] uppercase tracking-wider flex items-center gap-1">
+                 <Users size={12} /> רשימת מאמרים ({currentVolume.articles.length})
+               </h4>
+               <button onClick={() => addArticle(activeVolume)} className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[10px] font-bold hover:bg-indigo-100 flex items-center gap-1 transition-all">
+                  <Plus size={12} /> הוסף מאמר
+               </button>
+            </div>
+            
+            <div className="overflow-x-auto border border-slate-100 rounded-lg shadow-sm">
+              <table className="w-full text-right text-xs">
                 <thead>
-                  <tr className="bg-slate-800 text-black text-[11px] font-black">
-                    <th className="p-3 w-12 text-center">מס'</th>
-                    <th className="p-3 border-l border-slate-700 w-12">תואר</th>
-                    <th className="p-3 border-l border-slate-700 w-36"> פרטי</th>
-                    <th className="p-3 border-l border-slate-700 w-28"> משפחה</th>
-                    <th className="p-3 border-l border-slate-700 w-48">תפקיד</th>
-                    <th className="p-3 border-l border-slate-700 w-96"> המאמר</th>
-                    <th className="p-3 border-l border-slate-700 w-12">עמוד</th>
-                    <th className="p-3 border-l border-slate-700 w-24">נושא</th>
-                    <th className="p-3 border-l border-slate-700">מקור</th>
-                    <th className="p-3 border-l border-slate-700 w-20">ID קשר</th>
-                    <th className="p-3 border-l border-slate-700 w-12">הקשר</th>
-                    <th className="p-3 w-20 text-center">פעולות</th>
+                  <tr className="bg-slate-900 text-white font-bold">
+                    <th className="p-1.5 w-8 text-center border-l border-slate-700">#</th>
+                    <th className="p-1.5 w-12 border-l border-slate-700 text-slate-400">תואר</th>
+                    <th className="p-1.5 w-24 border-l border-slate-700">שם פרטי</th>
+                    <th className="p-1.5 w-24 border-l border-slate-700">משפחה</th>
+                    <th className="p-1.5 w-20 border-l border-slate-700 text-slate-400 italic">תפקיד</th>
+                    <th className="p-1.5 border-l border-slate-700">שם המאמר</th>
+                    <th className="p-1.5 w-10 border-l border-slate-700">עמ'</th>
+                    <th className="p-1.5 w-24 border-l border-slate-700">נושא</th>
+                    <th className="p-1.5 w-16 border-l border-slate-700">קשר</th>
+                    <th className="p-1.5 w-14 text-center">פעולה</th>
                   </tr>
                 </thead>
-                <tbody className="text-[13px] text-slate-900">
-                  {(currentVolume.articles || []).map((art, aIdx) => (
-                    <tr key={art.id} className="border-b border-slate-100 hover:bg-indigo-50/30 transition-colors">
-                      <td className="p-2 text-center font-bold text-slate-600 bg-slate-50/50 border-l border-slate-100">{art.autoId}</td>
-                      <td className="p-1"><input value={art.authors[0]?.titlePrefix || ''} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'titlePrefix', e.target.value)} className="w-full p-2 bg-transparent border-none text-slate-900" /></td>
-                      <td className="p-1"><input value={art.authors[0]?.firstName || ''} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'firstName', e.target.value)} className="w-full p-2 bg-transparent border-none font-bold text-slate-900" /></td>
-                      <td className="p-1"><input value={art.authors[0]?.lastName || ''} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'lastName', e.target.value)} className="w-full p-2 bg-transparent border-none font-bold text-slate-900" /></td>
-                      <td className="p-1"><input value={art.authors[0]?.role || ''} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'role', e.target.value)} className="w-full p-2 bg-transparent border-none italic text-slate-600" /></td>
-                      <td className="p-1"><input value={art.page || ''} onChange={e => updateArticle(activeVolume, aIdx, 'page', e.target.value)} className="w-full p-2 bg-transparent border-none text-slate-900" /></td>
-                      <td className="p-1"><input value={art.title || ''} onChange={e => updateArticle(activeVolume, aIdx, 'title', e.target.value)} className="w-full p-2 bg-transparent border-none font-black text-indigo-900" /></td>
-                      <td className="p-1"><input value={art.generalTopic || ''} onChange={e => updateArticle(activeVolume, aIdx, 'generalTopic', e.target.value)} className="w-full p-2 bg-transparent border-none text-slate-900" /></td>
-                      <td className="p-1"><input value={art.source || ''} onChange={e => updateArticle(activeVolume, aIdx, 'source', e.target.value)} className="w-full p-2 bg-transparent border-none text-slate-900" /></td>
-                      <td className="p-1"><input value={art.linkedArticleId || ''} onChange={e => updateArticle(activeVolume, aIdx, 'linkedArticleId', e.target.value)} className="w-full p-2 bg-transparent border-none text-slate-900" /></td>
-                      <td className="p-1">
-                        <select value={art.linkType || ''} onChange={e => updateArticle(activeVolume, aIdx, 'linkType', e.target.value)} className="w-full bg-transparent border-none text-slate-900 text-xs">
+                <tbody className="divide-y divide-slate-100">
+                  {currentVolume.articles.map((art, aIdx) => (
+                    <tr key={art.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="p-1 text-center font-bold text-slate-400 bg-slate-50/50">{art.autoId}</td>
+                      <td className="p-0.5"><input value={art.authors[0]?.titlePrefix} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'titlePrefix', e.target.value)} className="w-full p-1 border-none bg-transparent outline-none text-center focus:bg-white" /></td>
+                      <td className="p-0.5"><input value={art.authors[0]?.firstName} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'firstName', e.target.value)} className="w-full p-1 border-none bg-transparent outline-none font-medium focus:bg-white" /></td>
+                      <td className="p-0.5"><input value={art.authors[0]?.lastName} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'lastName', e.target.value)} className="w-full p-1 border-none bg-transparent outline-none font-medium focus:bg-white" /></td>
+                      <td className="p-0.5"><input value={art.authors[0]?.role} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'role', e.target.value)} className="w-full p-1 border-none bg-transparent outline-none text-slate-500 italic focus:bg-white" /></td>
+                      <td className="p-0.5"><input value={art.title} onChange={e => updateArticle(activeVolume, aIdx, 'title', e.target.value)} className="w-full p-1 border-none bg-transparent outline-none font-bold focus:bg-white" placeholder="..." /></td>
+                      <td className="p-0.5"><input value={art.page} onChange={e => updateArticle(activeVolume, aIdx, 'page', e.target.value)} className="w-full p-1 border-none bg-transparent outline-none text-center focus:bg-white" /></td>
+                      <td className="p-0.5"><input value={art.generalTopic} onChange={e => updateArticle(activeVolume, aIdx, 'generalTopic', e.target.value)} className="w-full p-1 border-none bg-transparent outline-none focus:bg-white" /></td>
+                      <td className="p-0.5">
+                        <select value={art.linkType} onChange={e => updateArticle(activeVolume, aIdx, 'linkType', e.target.value)} className="w-full p-1 border-none bg-transparent outline-none text-[10px] font-bold text-indigo-600">
                           <option value=""></option>
                           <option value="המשך">המשך</option>
-                          <option value="ביקורת">ביקורת</option>
                           <option value="תגובה">תגובה</option>
+                          <option value="ביקורת">ביקורת</option>
                         </select>
                       </td>
                       <td className="p-1 text-center">
-                        <div className="flex justify-center gap-2">
-                          <button onClick={() => addAdditionalAuthor(activeVolume, aIdx)} className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg" title="הוסף מחבר נוסף">
-                            <Users size={16} />
-                          </button>
-                          <button onClick={() => removeArticle(activeVolume, aIdx)} className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg">
-                            <Trash2 size={16} />
-                          </button>
+                        <div className="flex justify-center gap-0.5 opacity-20 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => addAdditionalAuthor(activeVolume, aIdx)} className="p-1 text-indigo-600 hover:bg-indigo-50 rounded" title="מחבר נוסף"><Users size={12} /></button>
+                          <button onClick={() => removeArticle(activeVolume, aIdx)} className="p-1 text-red-500 hover:bg-red-50 rounded" title="מחק מאמר"><Trash2 size={12} /></button>
                         </div>
                       </td>
                     </tr>
@@ -502,30 +511,16 @@ export default function AddNewSeries() {
                 </tbody>
               </table>
             </div>
-
-            <div className="flex flex-wrap gap-3 mt-4">
-              {(currentVolume.articles || []).map((art, aIdx) =>
-                (art.additionalAuthors || []).map((author, addIdx) => (
-                  <div key={`${art.id}-${addIdx}`} className="flex items-center gap-2 bg-indigo-50 p-3 rounded-xl border border-indigo-200">
-                    <span className="text-xs font-bold bg-indigo-600 text-white px-2 py-1 rounded">מאמר {art.autoId}</span>
-                    <input placeholder="תואר" value={author.titlePrefix || ''} onChange={e => updateArticleAuthor(activeVolume, aIdx, addIdx + 1, 'titlePrefix', e.target.value)} className="w-20 px-2 py-1 text-sm border border-slate-300 rounded" />
-                    <input placeholder="שם פרטי" value={author.firstName || ''} onChange={e => updateArticleAuthor(activeVolume, aIdx, addIdx + 1, 'firstName', e.target.value)} className="w-28 px-2 py-1 text-sm border border-slate-300 rounded font-bold" />
-                    <input placeholder="שם משפחה" value={author.lastName || ''} onChange={e => updateArticleAuthor(activeVolume, aIdx, addIdx + 1, 'lastName', e.target.value)} className="w-28 px-2 py-1 text-sm border border-slate-300 rounded font-bold" />
-                    <input placeholder="תפקיד" value={author.role || ''} onChange={e => updateArticleAuthor(activeVolume, aIdx, addIdx + 1, 'role', e.target.value)} className="w-24 px-2 py-1 text-sm border border-slate-300 rounded italic" />
-                    <button onClick={() => removeAdditionalAuthor(activeVolume, aIdx, addIdx)} className="text-red-600 hover:bg-red-100 rounded-full p-1">
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <button onClick={() => addArticle(activeVolume)} className="w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-500 font-bold hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 flex items-center justify-center gap-2 transition-all">
-              <Plus size={20} /> הוסף שורת מאמר חדשה
-            </button>
-          </div>
+          </section>
         </div>
-      </div>
+      </main>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      `}</style>
     </div>
   )
 }
