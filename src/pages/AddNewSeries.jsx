@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Plus, Trash2, Users, Save, X, Upload, FileText, Layout, Database, CheckCircle2 } from 'lucide-react'
+import { Plus, Trash2, Users, Save, X, Upload, FileText, Layout, Database, CheckCircle2, Link2 } from 'lucide-react'
 
 const CompactField = ({ label, children, colSpan = 'col-span-1', required = false, error = false }) => (
   <div className={`flex flex-col gap-0.5 ${colSpan}`}>
@@ -16,22 +16,22 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState({ text: '', type: '' })
   const [errors, setErrors] = useState({})
-  
+
   const fileInputRef = useRef(null)
   const pdfInputRef = useRef(null)
   const [activeVolume, setActiveVolume] = useState(0)
-  
+
   const [series, setSeries] = useState({
     id: null, prefixName: '', fileName: '', identifierName: '', details: '',
-    editor: '', publicationPlace: '', publicationYears: [], sector: '', 
-    missingVolumesList: '', userNotes: '', adminNotes: '', fileDescription: '', 
+    editor: '', publicationPlace: '', publicationYears: [], sector: '',
+    missingVolumesList: '', userNotes: '', adminNotes: '', fileDescription: '',
     coverImage: null, coverPreview: null, createdBy: "691f8b89e60ae71b1932aab0",
     enteredBy: '', catalogStatus: 'טיוטה'
   })
 
   const createEmptyVolume = (index) => ({
     id: Math.random().toString(36).substr(2, 9),
-    volumeTitle: '', volumeNumber: (index + 1).toString(), booklet: '', 
+    volumeTitle: '', volumeNumber: (index + 1).toString(), booklet: '',
     showOptionalFields: false, mainTopic: '', publishedFor: '', publicationYear: '',
     StartYear: '', publicationPeriod: '', coverType: '', volumeSize: '',
     articlesCount: 0, fileCompleteness: '', scanCompleteness: '',
@@ -40,12 +40,28 @@ export default function App() {
     articles: [{
       id: Math.random().toString(36).substr(2, 9), autoId: 1,
       authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-      additionalAuthors: [], page: '', title: '', generalTopic: '', source: '', 
+      additionalAuthors: [], page: '', title: '', generalTopic: '', source: '',
       linkedArticleId: '', linkType: ''
     }]
   })
 
   const [volumes, setVolumes] = useState([createEmptyVolume(0)])
+
+  // פונקציית עזר להוצאת כל המאמרים הקיימים בסדרה לצורך קישור
+  const getAllArticlesInSeries = () => {
+    const all = []
+    volumes.forEach((v, vIdx) => {
+      v.articles.forEach((a) => {
+        if (a.title) {
+          all.push({
+            id: a.id,
+            display: `${a.title} (${v.volumeTitle || 'גליון ' + (vIdx + 1)})`
+          })
+        }
+      })
+    })
+    return all
+  }
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
@@ -66,7 +82,7 @@ export default function App() {
     setSeries(prev => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: false }))
   }
-  
+
   const updateVolumeField = (vIdx, field, value) => {
     const newVolumes = [...volumes]
     newVolumes[vIdx][field] = value
@@ -77,13 +93,6 @@ export default function App() {
     const newVol = createEmptyVolume(volumes.length)
     setVolumes([...volumes, newVol])
     setActiveVolume(volumes.length)
-  }
-
-  const removeVolume = (idx) => {
-    if (volumes.length <= 1) return
-    const newVolumes = volumes.filter((_, i) => i !== idx)
-    setVolumes(newVolumes)
-    setActiveVolume(Math.max(0, idx - 1))
   }
 
   const updateArticle = (vIdx, aIdx, field, value) => {
@@ -107,7 +116,7 @@ export default function App() {
     const newArt = {
       id: Math.random().toString(36).substr(2, 9), autoId: newVolumes[vIdx].articles.length + 1,
       authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-      additionalAuthors: [], page: '', title: '', generalTopic: '', source: '', 
+      additionalAuthors: [], page: '', title: '', generalTopic: '', source: '',
       linkedArticleId: '', linkType: ''
     }
     newVolumes[vIdx].articles.push(newArt)
@@ -155,13 +164,14 @@ export default function App() {
         <div className="bg-white p-10 rounded-3xl shadow-xl border border-slate-200 text-center space-y-6 max-w-md w-full">
           <CheckCircle2 size={60} className="text-green-500 mx-auto" />
           <h1 className="text-2xl font-black text-black">הנתונים נשמרו!</h1>
-          <button onClick={() => { setSeries({...series, fileName: ''}); setVolumes([createEmptyVolume(0)]); setCurrentPage('editor'); }} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">הוספת סדרה חדשה</button>
+          <button onClick={() => { setSeries({ ...series, fileName: '' }); setVolumes([createEmptyVolume(0)]); setCurrentPage('editor'); }} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">הוספת סדרה חדשה</button>
         </div>
       </div>
     )
   }
 
   const currentVolume = volumes[activeVolume] || { articles: [] }
+  const allArticlesOptions = getAllArticlesInSeries()
 
   return (
     <div className="flex flex-col h-screen bg-slate-100 font-sans text-right text-black overflow-hidden" dir="rtl">
@@ -179,26 +189,55 @@ export default function App() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-        
+
         {/* Row 1: Series Info & Sidebar */}
-        <div className="flex gap-3 items-start">
-          {/* Sidebar - מקובע בגובה כדי שלא ידחוף את המאמרים למטה */}
-          <aside className="w-44 bg-white border border-slate-200 rounded-xl flex flex-col shrink-0 shadow-sm overflow-hidden" style={{ maxHeight: '430px' }}>
-            <div className="p-1.5 bg-slate-50 border-b border-slate-200">
-              <button onClick={addVolume} className="w-full py-1 bg-indigo-600 text-white rounded text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700 transition-all"><Plus size={12} /> הוסף גליון</button>
+        <div className="flex gap-3 items-start h-[430px]">
+          {/* Sidebar - נשאר בגובה השדות כדי לא לדחוף את הטבלה */}
+          <aside
+            className="w-44 bg-white border border-slate-200 rounded-xl flex flex-col shrink-0 shadow-sm overflow-hidden"
+            style={{ height: '425px' }} // זה נועל את הגובה של הסרגל
+          >
+            <div className="p-1.5 bg-slate-50 border-b border-slate-200 shrink-0">
+              <button
+                onClick={addVolume}
+                className="w-full py-1 bg-indigo-600 text-white rounded text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700 transition-all"
+              >
+                <Plus size={12} /> הוסף גליון
+              </button>
             </div>
+
+            {/* רשימת הגליונות - גדלה למקסימום המקום הפנוי ומייצרת גלילה */}
             <div className="flex-1 overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
               {volumes.map((v, i) => (
-                <button key={v.id} onClick={() => setActiveVolume(i)} className={`w-full text-right px-2 py-1.5 rounded text-[10px] font-bold truncate flex items-center gap-2 ${activeVolume === i ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-600' : 'text-black hover:bg-slate-50'}`}>
-                  <FileText size={12} /> {v.volumeTitle || `גליון ${i + 1}`}
-                </button>
+                <div key={v.id} className="relative group">
+                  <button
+                    onClick={() => setActiveVolume(i)}
+                    className={`w-full text-right px-2 py-1.5 rounded text-[10px] font-bold truncate flex items-center gap-2 transition-all ${activeVolume === i
+                        ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-600'
+                        : 'text-black hover:bg-slate-50'
+                      }`}
+                  >
+                    <FileText size={12} className={activeVolume === i ? 'text-indigo-600' : 'text-slate-400'} />
+                    <span className="truncate">{v.volumeTitle || `גליון ${i + 1}`}</span>
+                  </button>
+
+                  {/* כפתור מחיקה מהיר שמופיע בריחוף */}
+                  {volumes.length > 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeVolume(i); }}
+                      className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-opacity"
+                    >
+                      <Trash2 size={10} />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </aside>
 
           {/* Series & Volume Data Content */}
-          <div className="flex-1 space-y-3">
-            {/* Section 1: Series Data Full */}
+          <div className="flex-1 space-y-3 h-full">
+            {/* Section 1: Series Data */}
             <section className="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
               <h3 className="text-[10px] font-black text-indigo-600 uppercase mb-2 border-b pb-1">נתוני סדרה כלליים</h3>
               <div className="grid grid-cols-12 gap-3">
@@ -224,7 +263,7 @@ export default function App() {
               </div>
             </section>
 
-            {/* Section 2: Volume Data Full */}
+            {/* Section 2: Volume Data */}
             <section className="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
               <h3 className="text-[10px] font-black text-black mb-2">נתוני גליון פעיל</h3>
               <div className="grid grid-cols-8 gap-x-2 gap-y-2 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
@@ -239,7 +278,7 @@ export default function App() {
                 <CompactField label="שלמות סריקה"><input value={currentVolume.scanCompleteness} onChange={e => updateVolumeField(activeVolume, 'scanCompleteness', e.target.value)} className={inputClass()} /></CompactField>
                 <CompactField label="סטטוס מאמרים" colSpan="col-span-2"><input value={currentVolume.articlesCatalogStatus} onChange={e => updateVolumeField(activeVolume, 'articlesCatalogStatus', e.target.value)} className={inputClass()} /></CompactField>
                 <CompactField label="PDF" colSpan="col-span-2">
-                  <button onClick={() => pdfInputRef.current.click()} className="w-full p-1.5 border rounded text-[10px] bg-white font-bold text-black truncate flex items-center gap-1"><FileText size={12}/> {currentVolume.pdfFileName || 'צרף קובץ PDF'}</button>
+                  <button onClick={() => pdfInputRef.current.click()} className="w-full p-1.5 border rounded text-[10px] bg-white font-bold text-black truncate flex items-center gap-1"><FileText size={12} /> {currentVolume.pdfFileName || 'צרף PDF'}</button>
                   <input type="file" ref={pdfInputRef} hidden onChange={handlePdfUpload} accept=".pdf" />
                 </CompactField>
               </div>
@@ -247,27 +286,28 @@ export default function App() {
           </div>
         </div>
 
-        {/* Row 2: Full Width Articles Table - עכשיו היא תמיד תתחיל מתחת לשדות הנתונים ולא תידחף מטה */}
+        {/* Row 2: Articles Table */}
         <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 w-full">
           <div className="flex items-center justify-between mb-2 px-1">
             <h4 className="font-black text-black text-[11px] flex items-center gap-1"><Users size={14} /> רשימת מאמרים ({currentVolume.articles.length})</h4>
-            <button onClick={() => addArticle(activeVolume)} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded text-[10px] font-bold hover:bg-indigo-100 flex items-center gap-1 transition-all"><Plus size={12} /> הוסף מאמר למערכת</button>
+            <button onClick={() => addArticle(activeVolume)} className="px-3 py-1 bg-indigo-600 text-white rounded text-[10px] font-bold hover:bg-indigo-700 flex items-center gap-1 transition-all"><Plus size={12} /> הוסף מאמר למערכת</button>
           </div>
-          
+
           <div className="w-full overflow-x-auto border border-slate-100 rounded-lg">
-            <table className="w-full text-right text-xs table-fixed">
+            <table className="w-full text-right text-[11px] table-fixed min-w-[1000px]">
               <thead>
                 <tr className="bg-black text-white font-bold">
-                  <th className="p-2 w-10 text-center border-l border-slate-800">#</th>
-                  <th className="p-2 w-16 border-l border-slate-800">תואר</th>
-                  <th className="p-2 w-32 border-l border-slate-800">שם פרטי</th>
-                  <th className="p-2 w-32 border-l border-slate-800">משפחה</th>
-                  <th className="p-2 w-28 border-l border-slate-800">תפקיד</th>
+                  <th className="p-2 w-8 text-center border-l border-slate-800">#</th>
+                  <th className="p-2 w-14 border-l border-slate-800">תואר</th>
+                  <th className="p-2 w-24 border-l border-slate-800">שם פרטי</th>
+                  <th className="p-2 w-24 border-l border-slate-800">משפחה</th>
+                  <th className="p-2 w-24 border-l border-slate-800">תפקיד</th>
                   <th className="p-2 border-l border-slate-800">שם המאמר</th>
-                  <th className="p-2 w-14 border-l border-slate-800 text-center">עמ'</th>
-                  <th className="p-2 w-40 border-l border-slate-800">נושא</th>
-                  <th className="p-2 w-20 border-l border-slate-800">קשר</th>
-                  <th className="p-2 w-14 text-center">פעולה</th>
+                  <th className="p-2 w-10 border-l border-slate-800 text-center">עמ'</th>
+                  <th className="p-2 w-32  text-center border-l border-slate-800">נושא</th>
+                  <th className="p-2 w-44 border-l border-slate-800">קישור למאמר אחר </th>
+                  <th className="p-2 w-24 border-l border-slate-800">סוג קשר</th>
+                  <th className="p-2 w-16 text-center">פעולה</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -283,14 +323,26 @@ export default function App() {
                       <td className="p-1"><input value={art.page} onChange={e => updateArticle(activeVolume, aIdx, 'page', e.target.value)} className="w-full bg-transparent border-none text-black text-center" /></td>
                       <td className="p-1"><input value={art.generalTopic} onChange={e => updateArticle(activeVolume, aIdx, 'generalTopic', e.target.value)} className="w-full bg-transparent border-none text-black" /></td>
                       <td className="p-1">
+                        <select
+                          value={art.linkedArticleId}
+                          onChange={e => updateArticle(activeVolume, aIdx, 'linkedArticleId', e.target.value)}
+                          className="w-full bg-transparent border-none text-[10px] text-indigo-700 truncate"
+                        >
+                          <option value="">-- בחר מאמר לקישור --</option>
+                          {allArticlesOptions.filter(opt => opt.id !== art.id).map(opt => (
+                            <option key={opt.id} value={opt.id}>{opt.display}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="p-1">
                         <select value={art.linkType} onChange={e => updateArticle(activeVolume, aIdx, 'linkType', e.target.value)} className="w-full bg-transparent border-none text-[10px] text-indigo-600 font-bold">
                           <option value=""></option><option value="המשך">המשך</option><option value="תגובה">תגובה</option>
                         </select>
                       </td>
                       <td className="p-1">
                         <div className="flex justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => addAdditionalAuthor(activeVolume, aIdx)} className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"><Users size={14} /></button>
-                          <button onClick={() => removeArticle(activeVolume, aIdx)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
+                          <button onClick={() => addAdditionalAuthor(activeVolume, aIdx)} className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"><Users size={14} title="הוסף מחבר" /></button>
+                          <button onClick={() => removeArticle(activeVolume, aIdx)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} title="מחק מאמר" /></button>
                         </div>
                       </td>
                     </tr>
@@ -300,7 +352,7 @@ export default function App() {
                         <td className="p-1"><input value={author.titlePrefix} onChange={e => updateArticleAuthor(activeVolume, aIdx, addIdx + 1, 'titlePrefix', e.target.value)} className="w-full bg-transparent border-none text-black text-center" /></td>
                         <td className="p-1"><input value={author.firstName} onChange={e => updateArticleAuthor(activeVolume, aIdx, addIdx + 1, 'firstName', e.target.value)} className="w-full bg-transparent border-none text-indigo-700 font-bold" /></td>
                         <td className="p-1"><input value={author.lastName} onChange={e => updateArticleAuthor(activeVolume, aIdx, addIdx + 1, 'lastName', e.target.value)} className="w-full bg-transparent border-none text-indigo-700 font-bold" /></td>
-                        <td colSpan="5" className="p-1 text-[10px] text-indigo-800 font-bold italic">מחבר שותף נוסף</td>
+                        <td colSpan="6" className="p-1 text-[10px] text-indigo-800 font-bold italic">מחבר שותף נוסף</td>
                         <td className="p-1 text-center"><button onClick={() => removeAdditionalAuthor(activeVolume, aIdx, addIdx)} className="text-red-400 hover:text-red-600"><Trash2 size={12} /></button></td>
                       </tr>
                     ))}
