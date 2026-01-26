@@ -16,6 +16,9 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState({ text: '', type: '' })
   const [errors, setErrors] = useState({})
+  
+  // State למאמרים מה-DB (Subtitles)
+  const [dbArticles, setDbArticles] = useState([])
 
   const fileInputRef = useRef(null)
   const pdfInputRef = useRef(null)
@@ -47,7 +50,27 @@ export default function App() {
 
   const [volumes, setVolumes] = useState([createEmptyVolume(0)])
 
-  // פונקציית עזר להוצאת כל המאמרים הקיימים בסדרה לצורך קישור
+  // שליפת מאמרים (Subtitles) מהשרת
+  useEffect(() => {
+    fetch('http://localhost:5000/api/articles')
+      .then(res => res.json())
+      .then(result => {
+        // התאמה למבנה הנתונים של subtitle
+        const articles = result.data?.articles || result.data || [];
+        if (Array.isArray(articles)) setDbArticles(articles);
+      })
+      .catch(err => console.error('Error fetching subtitles:', err));
+  }, []);
+
+  // פונקציית תמונה משופרת עם ברירת מחדל
+  const getImageUrl = (source) => {
+    const placeholder = "https://via.placeholder.com/150?text=העלה+כריכה";
+    if (!source) return placeholder;
+    if (typeof source === 'string' && (source.startsWith('blob:') || source.startsWith('http'))) return source;
+    if (source instanceof File) return URL.createObjectURL(source);
+    return `http://localhost:5000/${source.replace(/\\/g, '/')}`;
+  };
+
   const getAllArticlesInSeries = () => {
     const all = []
     volumes.forEach((v, vIdx) => {
@@ -80,7 +103,6 @@ export default function App() {
 
   const updateSeries = (field, value) => {
     setSeries(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: false }))
   }
 
   const updateVolumeField = (vIdx, field, value) => {
@@ -144,17 +166,55 @@ export default function App() {
   }
 
   const handleFinalSave = async () => {
-    const newErrors = {}
-    if (!series.fileName) newErrors.fileName = true
-    if (!series.prefixName) newErrors.prefixName = true
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); setSaveMessage({ text: 'נא למלא שדות חובה', type: 'error' }); return; }
     setIsSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSaveMessage({ text: 'נשמר בהצלחה!', type: 'success' });
-      setTimeout(() => setCurrentPage('home'), 1000);
-    } catch (error) { setIsSaving(false); setSaveMessage({ text: 'שגיאה בשמירה', type: 'error' }); }
-  }
+      const formData = new FormData();
+      const seriesData = {
+        ...series,
+        volumes: volumes.map((v, vIdx) => ({
+          volumeNumber: v.volumeNumber,
+          title: v.volumeTitle,
+          mainTopic: v.mainTopic,
+          publicationYear: v.publicationYear,
+          publicationMonth: v.publicationPeriod,
+          occasion: v.publishedFor,
+          volumeSize: v.volumeSize,
+          coverType: v.coverType,
+          fileCompleteness: v.fileCompleteness,
+          scanCompleteness: v.scanCompleteness,
+          articlesCatalogStatus: v.articlesCatalogStatus,
+          articles: v.articles
+            .filter(art => art.title.trim() !== '')
+            .map((art, aIdx) => ({
+              serialNumber: String(aIdx + 1).padStart(3, '0'),
+              contentTitle: art.title,
+              startPage: parseInt(art.page) || 0,
+              generalTopic: art.generalTopic,
+              source: art.source,
+              authors: [...art.authors, ...art.additionalAuthors],
+              linkedArticleId: art.linkedArticleId || null,
+              linkType: art.linkType
+            }))
+        }))
+      };
+
+      delete seriesData.coverImage;
+      delete seriesData.coverPreview;
+
+      formData.append('seriesData', JSON.stringify(seriesData));
+      if (series.coverImage) formData.append('coverImage', series.coverImage);
+      volumes.forEach((v, i) => { if (v.pdfFile) formData.append(`pdf_vol_${i}`, v.pdfFile); });
+
+      const response = await fetch('http://localhost:5000/api/series', { method: 'POST', body: formData });
+      const result = await response.json();
+      if (result.status === 'success') setCurrentPage('home');
+      else throw new Error(result.message);
+    } catch (error) {
+      setSaveMessage({ text: 'שגיאה: ' + error.message, type: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const inputClass = (error) => `w-full p-1.5 bg-white border ${error ? 'border-red-400' : 'border-slate-200'} rounded text-sm text-black outline-none focus:ring-1 focus:ring-indigo-100 transition-all`
 
@@ -175,7 +235,6 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-100 font-sans text-right text-black overflow-hidden" dir="rtl">
-      {/* Header */}
       <header className="h-11 bg-white border-b border-slate-200 px-4 flex justify-between items-center shrink-0 z-30 shadow-sm">
         <div className="flex items-center gap-2">
           <Database size={18} className="text-indigo-600" />
@@ -187,57 +246,22 @@ export default function App() {
         </button>
       </header>
 
-      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-
-        {/* Row 1: Series Info & Sidebar */}
         <div className="flex gap-3 items-start h-[430px]">
-          {/* Sidebar - נשאר בגובה השדות כדי לא לדחוף את הטבלה */}
-          <aside
-            className="w-44 bg-white border border-slate-200 rounded-xl flex flex-col shrink-0 shadow-sm overflow-hidden"
-            style={{ height: '425px' }} // זה נועל את הגובה של הסרגל
-          >
-            <div className="p-1.5 bg-slate-50 border-b border-slate-200 shrink-0">
-              <button
-                onClick={addVolume}
-                className="w-full py-1 bg-indigo-600 text-white rounded text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700 transition-all"
-              >
-                <Plus size={12} /> הוסף גליון
-              </button>
+          <aside className="w-44 bg-white border border-slate-200 rounded-xl flex flex-col shrink-0 shadow-sm overflow-hidden h-full">
+            <div className="p-1.5 bg-slate-50 border-b border-slate-200">
+              <button onClick={addVolume} className="w-full py-1 bg-indigo-600 text-white rounded text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700 transition-all"><Plus size={12} /> הוסף גליון</button>
             </div>
-
-            {/* רשימת הגליונות - גדלה למקסימום המקום הפנוי ומייצרת גלילה */}
             <div className="flex-1 overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
               {volumes.map((v, i) => (
-                <div key={v.id} className="relative group">
-                  <button
-                    onClick={() => setActiveVolume(i)}
-                    className={`w-full text-right px-2 py-1.5 rounded text-[10px] font-bold truncate flex items-center gap-2 transition-all ${activeVolume === i
-                        ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-600'
-                        : 'text-black hover:bg-slate-50'
-                      }`}
-                  >
-                    <FileText size={12} className={activeVolume === i ? 'text-indigo-600' : 'text-slate-400'} />
-                    <span className="truncate">{v.volumeTitle || `גליון ${i + 1}`}</span>
-                  </button>
-
-                  {/* כפתור מחיקה מהיר שמופיע בריחוף */}
-                  {volumes.length > 1 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeVolume(i); }}
-                      className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-opacity"
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                  )}
-                </div>
+                <button key={v.id} onClick={() => setActiveVolume(i)} className={`w-full text-right px-2 py-1.5 rounded text-[10px] font-bold truncate flex items-center gap-2 ${activeVolume === i ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-600' : 'text-black hover:bg-slate-50'}`}>
+                  <FileText size={12} /> {v.volumeTitle || `גליון ${i + 1}`}
+                </button>
               ))}
             </div>
           </aside>
 
-          {/* Series & Volume Data Content */}
           <div className="flex-1 space-y-3 h-full">
-            {/* Section 1: Series Data */}
             <section className="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
               <h3 className="text-[10px] font-black text-indigo-600 uppercase mb-2 border-b pb-1">נתוני סדרה כלליים</h3>
               <div className="grid grid-cols-12 gap-3">
@@ -254,16 +278,21 @@ export default function App() {
                   <CompactField label="גליונות חסרים" colSpan="col-span-3"><input value={series.missingVolumesList} onChange={e => updateSeries('missingVolumesList', e.target.value)} className={inputClass()} /></CompactField>
                   <CompactField label="הערות מנהל" colSpan="col-span-3"><input value={series.adminNotes} onChange={e => updateSeries('adminNotes', e.target.value)} className={inputClass()} /></CompactField>
                 </div>
+                {/* תמונה עם גירסת תצוגה חסינה */}
                 <div className="col-span-2">
-                  <div onClick={() => fileInputRef.current.click()} className="h-full min-h-[110px] border border-dashed border-slate-300 rounded flex flex-col items-center justify-center cursor-pointer bg-slate-50 overflow-hidden">
-                    {series.coverPreview ? <img src={series.coverPreview} className="h-full w-full object-contain" /> : <div className="flex flex-col items-center text-black"><Upload size={16} /><span className="text-[9px] font-bold">העלאת כריכה</span></div>}
+                  <div onClick={() => fileInputRef.current.click()} className="h-full min-h-[110px] border border-dashed border-slate-300 rounded flex flex-col items-center justify-center cursor-pointer bg-slate-50 overflow-hidden relative">
+                    <img 
+                      src={getImageUrl(series.coverPreview || series.coverImage)} 
+                      className="h-full w-full object-contain" 
+                      alt="" 
+                      onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=Error"; }}
+                    />
                     <input type="file" ref={fileInputRef} hidden onChange={handleImageUpload} accept="image/*" />
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Section 2: Volume Data */}
             <section className="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
               <h3 className="text-[10px] font-black text-black mb-2">נתוני גליון פעיל</h3>
               <div className="grid grid-cols-8 gap-x-2 gap-y-2 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
@@ -286,7 +315,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Row 2: Articles Table */}
         <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 w-full">
           <div className="flex items-center justify-between mb-2 px-1">
             <h4 className="font-black text-black text-[11px] flex items-center gap-1"><Users size={14} /> רשימת מאמרים ({currentVolume.articles.length})</h4>
@@ -294,7 +322,7 @@ export default function App() {
           </div>
 
           <div className="w-full overflow-x-auto border border-slate-100 rounded-lg">
-            <table className="w-full text-right text-[11px] table-fixed min-w-[1000px]">
+            <table className="w-full text-right text-[11px] table-fixed min-w-[1100px]">
               <thead>
                 <tr className="bg-black text-white font-bold">
                   <th className="p-2 w-8 text-center border-l border-slate-800">#</th>
@@ -304,8 +332,8 @@ export default function App() {
                   <th className="p-2 w-24 border-l border-slate-800">תפקיד</th>
                   <th className="p-2 border-l border-slate-800">שם המאמר</th>
                   <th className="p-2 w-10 border-l border-slate-800 text-center">עמ'</th>
-                  <th className="p-2 w-32  text-center border-l border-slate-800">נושא</th>
-                  <th className="p-2 w-44 border-l border-slate-800">קישור למאמר אחר </th>
+                  <th className="p-2 w-32 border-l border-slate-800">נושא</th>
+                  <th className="p-2 w-44 border-l border-slate-800 text-indigo-400 font-black">קישור למאמר (חיפוש ב-DB)</th>
                   <th className="p-2 w-24 border-l border-slate-800">סוג קשר</th>
                   <th className="p-2 w-16 text-center">פעולה</th>
                 </tr>
@@ -315,34 +343,39 @@ export default function App() {
                   <React.Fragment key={art.id}>
                     <tr className="hover:bg-slate-50 group">
                       <td className="p-1.5 text-center font-bold text-black bg-slate-50/30">{art.autoId}</td>
-                      <td className="p-1"><input value={art.authors[0]?.titlePrefix} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'titlePrefix', e.target.value)} className="w-full bg-transparent border-none text-black text-center" /></td>
-                      <td className="p-1"><input value={art.authors[0]?.firstName} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'firstName', e.target.value)} className="w-full bg-transparent border-none text-black font-medium" /></td>
-                      <td className="p-1"><input value={art.authors[0]?.lastName} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'lastName', e.target.value)} className="w-full bg-transparent border-none text-black font-medium" /></td>
-                      <td className="p-1"><input value={art.authors[0]?.role} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'role', e.target.value)} className="w-full bg-transparent border-none text-black italic" /></td>
-                      <td className="p-1"><input value={art.title} onChange={e => updateArticle(activeVolume, aIdx, 'title', e.target.value)} className="w-full bg-transparent border-none text-black font-bold" /></td>
-                      <td className="p-1"><input value={art.page} onChange={e => updateArticle(activeVolume, aIdx, 'page', e.target.value)} className="w-full bg-transparent border-none text-black text-center" /></td>
-                      <td className="p-1"><input value={art.generalTopic} onChange={e => updateArticle(activeVolume, aIdx, 'generalTopic', e.target.value)} className="w-full bg-transparent border-none text-black" /></td>
+                      <td className="p-1"><input value={art.authors[0]?.titlePrefix} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'titlePrefix', e.target.value)} className="w-full bg-transparent border-none text-black text-center outline-none" /></td>
+                      <td className="p-1"><input value={art.authors[0]?.firstName} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'firstName', e.target.value)} className="w-full bg-transparent border-none text-black outline-none" /></td>
+                      <td className="p-1"><input value={art.authors[0]?.lastName} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'lastName', e.target.value)} className="w-full bg-transparent border-none text-black outline-none" /></td>
+                      <td className="p-1"><input value={art.authors[0]?.role} onChange={e => updateArticleAuthor(activeVolume, aIdx, 0, 'role', e.target.value)} className="w-full bg-transparent border-none text-black italic outline-none" /></td>
+                      <td className="p-1"><input value={art.title} onChange={e => updateArticle(activeVolume, aIdx, 'title', e.target.value)} className="w-full bg-transparent border-none text-black font-bold outline-none" /></td>
+                      <td className="p-1"><input value={art.page} onChange={e => updateArticle(activeVolume, aIdx, 'page', e.target.value)} className="w-full bg-transparent border-none text-black text-center outline-none" /></td>
+                      <td className="p-1"><input value={art.generalTopic} onChange={e => updateArticle(activeVolume, aIdx, 'generalTopic', e.target.value)} className="w-full bg-transparent border-none text-black outline-none" /></td>
+                      
+                      {/* בחירת subtitle גלובלית */}
                       <td className="p-1">
                         <select
                           value={art.linkedArticleId}
                           onChange={e => updateArticle(activeVolume, aIdx, 'linkedArticleId', e.target.value)}
-                          className="w-full bg-transparent border-none text-[10px] text-indigo-700 truncate"
+                          className="w-full bg-transparent border-none text-[10px] text-indigo-700 outline-none font-bold"
                         >
-                          <option value="">-- בחר מאמר לקישור --</option>
+                          <option value="">-- בחר מאמר --</option>
+                          {/* תצוגה מותאמת לסכימת Subtitle */}
+                          {dbArticles.map(dbArt => (
+                            <option key={dbArt._id} value={dbArt._id}>
+                              {dbArt.subtitleTitle || dbArt.contentTitle} 
+                            </option>
+                          ))}
                           {allArticlesOptions.filter(opt => opt.id !== art.id).map(opt => (
-                            <option key={opt.id} value={opt.id}>{opt.display}</option>
+                            <option key={opt.id} value={opt.id}>{opt.display} (חדש)</option>
                           ))}
                         </select>
                       </td>
-                      <td className="p-1">
-                        <select value={art.linkType} onChange={e => updateArticle(activeVolume, aIdx, 'linkType', e.target.value)} className="w-full bg-transparent border-none text-[10px] text-indigo-600 font-bold">
-                          <option value=""></option><option value="המשך">המשך</option><option value="תגובה">תגובה</option>
-                        </select>
-                      </td>
+
+                      <td className="p-1"><select value={art.linkType} onChange={e => updateArticle(activeVolume, aIdx, 'linkType', e.target.value)} className="w-full bg-transparent border-none text-[10px] text-indigo-600 font-bold outline-none"><option value=""></option><option value="המשך">המשך</option><option value="תגובה">תגובה</option></select></td>
                       <td className="p-1">
                         <div className="flex justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => addAdditionalAuthor(activeVolume, aIdx)} className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"><Users size={14} title="הוסף מחבר" /></button>
-                          <button onClick={() => removeArticle(activeVolume, aIdx)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} title="מחק מאמר" /></button>
+                          <button onClick={() => addAdditionalAuthor(activeVolume, aIdx)} className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"><Users size={14} /></button>
+                          <button onClick={() => removeArticle(activeVolume, aIdx)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>
@@ -363,7 +396,6 @@ export default function App() {
           </div>
         </section>
       </div>
-
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

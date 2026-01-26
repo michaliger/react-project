@@ -7,9 +7,8 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchScope, setSearchScope] = useState("all");
 
-  // פונקציית ניווט חסרה שהוספתי
   const navigate = (path) => {
-    window.location.href = path; // או שימוש ב-useNavigate אם יש לך Router
+    window.location.href = path;
   };
 
   useEffect(() => {
@@ -76,7 +75,7 @@ export default function App() {
     <div className="min-h-screen bg-[#0a0a0a] text-gray-300 p-3 md:p-6 font-sans selection:bg-amber-500/30" dir="rtl">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header - Minimalist */}
+        {/* Header */}
         <header className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
@@ -88,69 +87,61 @@ export default function App() {
             </p>
           </div>
           <div className="flex gap-1.5">
-            <button 
-              onClick={() => navigate('/add-series')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-md transition-all text-[12px] font-bold"
-            >
+            <button onClick={() => navigate('/add-series')} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded-md transition-all text-[12px] font-bold">
               <Plus size={14} /> סדרה
             </button>
-            <button 
-              onClick={() => navigate('/add-volume')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded-md transition-all text-[12px] font-bold"
-            >
+            <button onClick={() => navigate('/add-volume')} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded-md transition-all text-[12px] font-bold">
               <Plus size={14} /> כרך
             </button>
           </div>
         </header>
 
-        {/* Search Section - Ultra Slim */}
+        {/* Search */}
         <div className="sticky top-2 z-10 bg-[#0a0a0a]/80 backdrop-blur-md mb-4">
           <div className="bg-gray-900/40 border border-gray-800/60 p-1.5 rounded-xl shadow-2xl flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
               <input
                 type="text"
-                placeholder="חפש הכל (שנה, כריכה, סדרה...)"
+                placeholder="חפש הכל..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="w-full bg-transparent pr-8 pl-3 py-1.5 outline-none text-sm text-white placeholder:text-gray-700"
               />
             </div>
             <div className="flex bg-black/40 p-0.5 rounded-lg border border-gray-800/40">
-              {[
-                { id: 'all', label: 'הכל' },
-                { id: 'series', label: 'סדרה' },
-                { id: 'volume', label: 'גיליון' },
-                { id: 'article', label: 'מאמר' }
-              ].map(opt => (
+              {['all', 'series', 'volume', 'article'].map(opt => (
                 <button
-                  key={opt.id}
-                  onClick={() => setSearchScope(opt.id)}
+                  key={opt}
+                  onClick={() => setSearchScope(opt)}
                   className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
-                    searchScope === opt.id ? 'bg-gray-700 text-amber-400' : 'text-gray-600 hover:text-gray-400'
+                    searchScope === opt ? 'bg-gray-700 text-amber-400' : 'text-gray-600 hover:text-gray-400'
                   }`}
                 >
-                  {opt.label}
+                  {opt === 'all' ? 'הכל' : opt === 'series' ? 'סדרה' : opt === 'volume' ? 'גיליון' : 'מאמר'}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Series List - Compressed Version */}
+        {/* Series List */}
         <div className="space-y-1">
           {filteredSeries.map((s, i) => (
             <div
               key={s._id}
               className="group flex items-center gap-3 p-1.5 bg-gray-900/20 border border-gray-800/40 hover:bg-gray-800/30 hover:border-gray-700 rounded-lg transition-all"
             >
-              {/* Thumbnail - Very Small */}
+              {/* Thumbnail - FIXED PATH */}
               <div className="w-8 h-10 bg-gray-800 rounded sm:rounded-md overflow-hidden flex-shrink-0 border border-gray-700/50">
                 <img
-                  src={s.coverImage || "https://images.unsplash.com/photo-1543004629-141a44562ee1?w=50&h=70&fit=crop"}
-                  className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all"
+                  src={s.coverImage ? `http://localhost:5000/${s.coverImage}` : "https://via.placeholder.com/50x70?text=No+Cover"}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   alt=""
-                  onError={e => e.target.src = 'https://via.placeholder.com/50x70?text=B'}
+                  onError={e => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/50x70?text=Error';
+                  }}
                 />
               </div>
 
@@ -164,7 +155,6 @@ export default function App() {
                     </h3>
                   </div>
                   
-                  {/* Meta Tags - Horizontal & Small */}
                   <div className="flex items-center gap-3 mt-0.5 overflow-hidden">
                     {s.author && (
                       <span className="flex items-center gap-1 text-[10px] text-gray-500 truncate max-w-[100px]">
@@ -180,9 +170,9 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Counter & Action */}
                 <div className="flex items-center gap-4 flex-shrink-0">
                   <div className="hidden sm:flex flex-col items-center">
+                    {/* FIXED CALCULATION - אם המערך בשרת נקי, לא צריך לחלק ב-2 */}
                     <span className="text-xs font-bold text-gray-400 leading-none">{s.volumes?.length || 0}</span>
                     <span className="text-[8px] text-gray-600 uppercase font-black">כרכים</span>
                   </div>
@@ -191,7 +181,6 @@ export default function App() {
                     <button 
                       onClick={() => deleteSeries(s._id, s.prefixName || s.fileName)}
                       className="p-1.5 text-gray-600 hover:text-red-500 transition-colors"
-                      title="מחיקה"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -205,7 +194,6 @@ export default function App() {
           ))}
         </div>
 
-        {/* Empty State */}
         {filteredSeries.length === 0 && (
           <div className="text-center py-12 border border-dashed border-gray-800 rounded-xl mt-4">
             <p className="text-gray-600 text-xs font-medium uppercase tracking-widest">לא נמצאו תוצאות</p>
