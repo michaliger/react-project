@@ -16,7 +16,7 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState({ text: '', type: '' })
   const [errors, setErrors] = useState({})
-  
+
   // State למאמרים מה-DB (Subtitles)
   const [dbArticles, setDbArticles] = useState([])
 
@@ -52,12 +52,16 @@ export default function App() {
 
   // שליפת מאמרים (Subtitles) מהשרת
   useEffect(() => {
-    fetch('http://localhost:5000/api/articles')
+    fetch('http://localhost:5000/api/subtitle') // וודא שהנתיב הוא subtitle ולא articles אם זה שם המודל
       .then(res => res.json())
       .then(result => {
-        // התאמה למבנה הנתונים של subtitle
-        const articles = result.data?.articles || result.data || [];
-        if (Array.isArray(articles)) setDbArticles(articles);
+        // בדיקה עמוקה יותר של מבנה התשובה
+        const articles = result?.data?.subtitles || result?.data || result || [];
+        if (Array.isArray(articles)) {
+          setDbArticles(articles);
+        } else {
+          console.error('Data received is not an array:', result);
+        }
       })
       .catch(err => console.error('Error fetching subtitles:', err));
   }, []);
@@ -247,15 +251,30 @@ export default function App() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-        <div className="flex gap-3 items-start h-[430px]">
-          <aside className="w-44 bg-white border border-slate-200 rounded-xl flex flex-col shrink-0 shadow-sm overflow-hidden h-full">
+        <div className="flex gap-3 items-start">
+          <aside className="w-44 bg-white border border-slate-200 rounded-xl flex flex-col shrink-0 shadow-sm overflow-hidden">
             <div className="p-1.5 bg-slate-50 border-b border-slate-200">
-              <button onClick={addVolume} className="w-full py-1 bg-indigo-600 text-white rounded text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700 transition-all"><Plus size={12} /> הוסף גליון</button>
+              <button
+                onClick={addVolume}
+                className="w-full py-1 bg-indigo-600 text-white rounded text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700 transition-all"
+              >
+                <Plus size={12} /> הוסף גליון
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
+
+            <div className="flex-1 max-h-[190px]  overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
               {volumes.map((v, i) => (
-                <button key={v.id} onClick={() => setActiveVolume(i)} className={`w-full text-right px-2 py-1.5 rounded text-[10px] font-bold truncate flex items-center gap-2 ${activeVolume === i ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-600' : 'text-black hover:bg-slate-50'}`}>
-                  <FileText size={12} /> {v.volumeTitle || `גליון ${i + 1}`}
+                <button
+                  key={v.id}
+                  onClick={() => setActiveVolume(i)}
+                  className={`w-full text-right px-2 py-1.5 rounded text-[10px] font-bold truncate flex items-center gap-2
+          ${activeVolume === i
+                      ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-600'
+                      : 'text-black hover:bg-slate-50'
+                    }`}
+                >
+                  <FileText size={12} />
+                  {v.volumeTitle || `גליון ${i + 1}`}
                 </button>
               ))}
             </div>
@@ -281,10 +300,10 @@ export default function App() {
                 {/* תמונה עם גירסת תצוגה חסינה */}
                 <div className="col-span-2">
                   <div onClick={() => fileInputRef.current.click()} className="h-full min-h-[110px] border border-dashed border-slate-300 rounded flex flex-col items-center justify-center cursor-pointer bg-slate-50 overflow-hidden relative">
-                    <img 
-                      src={getImageUrl(series.coverPreview || series.coverImage)} 
-                      className="h-full w-full object-contain" 
-                      alt="" 
+                    <img
+                      src={getImageUrl(series.coverPreview || series.coverImage)}
+                      className="h-full w-full object-contain"
+                      alt=""
                       onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=Error"; }}
                     />
                     <input type="file" ref={fileInputRef} hidden onChange={handleImageUpload} accept="image/*" />
@@ -350,7 +369,7 @@ export default function App() {
                       <td className="p-1"><input value={art.title} onChange={e => updateArticle(activeVolume, aIdx, 'title', e.target.value)} className="w-full bg-transparent border-none text-black font-bold outline-none" /></td>
                       <td className="p-1"><input value={art.page} onChange={e => updateArticle(activeVolume, aIdx, 'page', e.target.value)} className="w-full bg-transparent border-none text-black text-center outline-none" /></td>
                       <td className="p-1"><input value={art.generalTopic} onChange={e => updateArticle(activeVolume, aIdx, 'generalTopic', e.target.value)} className="w-full bg-transparent border-none text-black outline-none" /></td>
-                      
+
                       {/* בחירת subtitle גלובלית */}
                       <td className="p-1">
                         <select
@@ -362,7 +381,7 @@ export default function App() {
                           {/* תצוגה מותאמת לסכימת Subtitle */}
                           {dbArticles.map(dbArt => (
                             <option key={dbArt._id} value={dbArt._id}>
-                              {dbArt.subtitleTitle || dbArt.contentTitle} 
+                              {dbArt.subtitleTitle || dbArt.contentTitle}
                             </option>
                           ))}
                           {allArticlesOptions.filter(opt => opt.id !== art.id).map(opt => (
