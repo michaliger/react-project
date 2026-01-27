@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, Search, Plus, BookOpen, ChevronLeft, FileText, ExternalLink, Calendar, User, Hash, Edit3, ChevronDown, List } from 'lucide-react';
+import { Trash2, Search, Plus, BookOpen, FileText, ExternalLink, Edit3, Eye, User, Calendar, Layers, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-export default function App() {
+export default function LibraryApp() {
   const [allSeries, setAllSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSeries, setSelectedSeries] = useState(null);
-  const [activeVolIdx, setActiveVolIdx] = useState(0); // שליטה על איזה כרך פתוח כרגע
+  const [activeVolIdx, setActiveVolIdx] = useState(0);
+  
+  const navigate = useNavigate();
 
-  const navigate = (path) => { window.location.href = path; };
-
+  // שליפת הנתונים מהשרת
   useEffect(() => {
     fetch('http://localhost:5000/api/series')
       .then(res => res.json())
@@ -21,120 +23,242 @@ export default function App() {
       }).catch(() => setLoading(false));
   }, []);
 
-  // כשמחליפים סדרה, מאפסים את הכרך המוצג לראשון
+  // איפוס הכרך הנבחר כשמחליפים סדרה
   useEffect(() => { setActiveVolIdx(0); }, [selectedSeries]);
 
+  // פילטר חיפוש
   const filteredSeries = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
-    return allSeries.filter(s => (s.prefixName + s.fileName + (s.author || "")).toLowerCase().includes(term));
+    return allSeries.filter(s => 
+      (s.prefixName + s.fileName + (s.author || "")).toLowerCase().includes(term)
+    );
   }, [searchTerm, allSeries]);
 
-  if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-amber-500"></div></div>;
+  if (loading) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+      <p className="text-gray-500 font-medium italic">טוען את הספרייה הדיגיטלית...</p>
+    </div>
+  );
 
   const currentVol = selectedSeries?.volumes?.[activeVolIdx];
 
   return (
-    <div className="h-screen bg-[#050505] text-gray-300 font-sans flex overflow-hidden selection:bg-amber-500/30" dir="rtl">
+    <div className="h-screen bg-gray-100 text-gray-800 font-sans flex overflow-hidden" dir="rtl">
       
-      {/* --- Sidebar קומפקטי --- */}
-      <aside className="w-72 border-l border-white/5 flex flex-col bg-[#0a0a0a] shrink-0 z-20">
-        <div className="p-4 border-b border-white/5 bg-[#0d0d0d] flex items-center justify-between">
-          <h1 className="text-sm font-black text-white flex items-center gap-2"><BookOpen size={16} className="text-amber-500" /> הספרייה</h1>
-          <button onClick={() => navigate('/add-series')} className="p-1.5 bg-amber-500 hover:bg-amber-600 text-black rounded-md transition-all"><Plus size={16} /></button>
-        </div>
-        <div className="p-3 border-b border-white/5">
-          <div className="relative">
-            <Search className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-600" size={12} />
-            <input type="text" placeholder="חיפוש..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white/5 border border-white/10 pr-7 pl-2 py-1.5 rounded-lg text-[11px] outline-none focus:border-amber-500/50" />
+      {/* --- סרגל ימני: רשימת סדרות --- */}
+      <aside className="w-80 border-l border-gray-200 flex flex-col bg-white shrink-0 shadow-xl z-10">
+        <div className="p-5 border-b border-gray-100 bg-white">
+          <button 
+            onClick={() => navigate('/add-series')}
+            className="w-full mb-5 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-200"
+          >
+            <Plus size={20} />
+            הוספת סדרה חדשה
+          </button>
+          
+          <div className="relative group">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+            <input 
+              type="text" 
+              placeholder="חיפוש מהיר בספרייה..." 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+              className="w-full bg-gray-50 border border-gray-200 pr-10 pl-3 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+            />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
           {filteredSeries.map((s) => (
-            <button key={s._id} onClick={() => setSelectedSeries(s)} className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all border ${selectedSeries?._id === s._id ? 'bg-amber-500/10 border-amber-500/20' : 'border-transparent hover:bg-white/5'}`}>
-              <div className="w-8 h-10 bg-gray-800 rounded border border-white/10 shrink-0 overflow-hidden">
-                <img src={s.coverImage ? `http://localhost:5000/${s.coverImage}` : "https://via.placeholder.com/50x70"} className="w-full h-full object-cover" />
+            <button 
+              key={s._id} 
+              onClick={() => setSelectedSeries(s)} 
+              className={`w-full flex items-center gap-4 p-3 rounded-2xl transition-all border-2 ${
+                selectedSeries?._id === s._id 
+                ? 'bg-blue-50 border-blue-500 shadow-md transform scale-[1.02]' 
+                : 'border-transparent bg-gray-50/50 hover:bg-gray-100'
+              }`}
+            >
+              <div className="w-12 h-16 bg-white rounded-lg shadow-sm border border-gray-200 shrink-0 overflow-hidden">
+                <img 
+                  src={s.coverImage ? `http://localhost:5000/${s.coverImage}` : "https://via.placeholder.com/50x70?text=No+Cover"} 
+                  className="w-full h-full object-cover" 
+                  alt="" 
+                />
               </div>
-              <div className="text-right min-w-0"><h3 className={`text-[11px] font-bold truncate ${selectedSeries?._id === s._id ? 'text-amber-500' : 'text-gray-300'}`}>{s.prefixName} {s.fileName}</h3></div>
+              <div className="text-right overflow-hidden">
+                <h3 className={`font-black text-sm truncate ${selectedSeries?._id === s._id ? 'text-blue-700' : 'text-gray-800'}`}>
+                  {s.prefixName} {s.fileName}
+                </h3>
+                <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1 italic">
+                  <User size={10} /> {s.author || 'מחבר לא צוין'}
+                </p>
+              </div>
             </button>
           ))}
         </div>
       </aside>
 
-      {/* --- אזור תצוגה מרכזי חסכוני --- */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-[#050505]">
+      {/* --- אזור תצוגה מרכזי --- */}
+      <main className="flex-1 flex flex-col overflow-hidden bg-white">
         {selectedSeries ? (
           <>
-            {/* Header קומפקטי */}
-            <header className="h-16 bg-[#0d0d0d] border-b border-white/5 px-6 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4">
-                <h2 className="text-lg font-black text-white">{selectedSeries.prefixName} {selectedSeries.fileName}</h2>
-                <span className="text-[10px] bg-white/5 px-2 py-1 rounded text-gray-500 border border-white/10">{selectedSeries.author} | {selectedSeries.year}</span>
+            {/* כותרת עליונה */}
+            <header className="h-20 bg-white border-b border-gray-200 px-8 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-6">
+                <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-100">
+                   <BookOpen size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900">{selectedSeries.prefixName} {selectedSeries.fileName}</h2>
+                  <div className="flex gap-4 mt-1">
+                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">{selectedSeries.sector}</span>
+                    <span className="text-xs text-gray-400 font-medium">עורך: {selectedSeries.editor} | {selectedSeries.year}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} className="flex items-center gap-2 px-3 py-1.5 bg-white text-black rounded-lg text-[11px] font-black hover:bg-amber-500 transition-all"><Edit3 size={14} /> עדכון נתונים</button>
-                <button className="p-1.5 text-gray-500 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} 
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+                >
+                  <Edit3 size={18} />
+                  עדכון פרטי סדרה
+                </button>
+                <button className="p-2.5 text-gray-300 hover:text-red-500 transition-colors">
+                  <Trash2 size={22} />
+                </button>
               </div>
             </header>
 
             <div className="flex-1 flex overflow-hidden">
-              {/* רשימת כרכים בצד (Sub-Sidebar) */}
-              <div className="w-56 border-l border-white/5 bg-[#080808] overflow-y-auto custom-scrollbar">
-                <div className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5 flex items-center gap-2"><List size={12}/> כרכים בסדרה</div>
+              {/* רשימת כרכים (סרגל ניווט פנימי) */}
+              <div className="w-64 border-l border-gray-100 bg-gray-50/30 overflow-y-auto">
+                <div className="p-5 text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 flex items-center gap-2">
+                  <Layers size={14} /> כרכים זמינים
+                </div>
                 {selectedSeries.volumes?.map((v, idx) => (
-                  <button key={idx} onClick={() => setActiveVolIdx(idx)} className={`w-full text-right p-3 border-b border-white/5 transition-all ${activeVolIdx === idx ? 'bg-amber-500/5 text-amber-500 border-r-2 border-r-amber-500' : 'hover:bg-white/5 text-gray-400'}`}>
-                    <div className="text-[11px] font-bold">{v.volumeTitle || `כרך ${idx + 1}`}</div>
-                    <div className="text-[9px] opacity-60 mt-1">{v.articles?.length || 0} מאמרים</div>
+                  <button 
+                    key={idx} 
+                    onClick={() => setActiveVolIdx(idx)} 
+                    className={`w-full text-right p-5 border-b border-gray-100 transition-all relative ${
+                      activeVolIdx === idx 
+                      ? 'bg-white text-blue-600 font-black shadow-sm' 
+                      : 'text-gray-500 hover:bg-gray-100/50'
+                    }`}
+                  >
+                    {activeVolIdx === idx && <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-blue-600" />}
+                    <div className="text-sm leading-tight">{v.volumeTitle || `כרך ${idx + 1}`}</div>
+                    <div className="text-[10px] opacity-60 mt-1 font-medium italic">לחץ לצפייה במאמרים</div>
                   </button>
                 ))}
               </div>
 
-              {/* תוכן הכרך הפתוח - המאמרים */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#050505] p-6">
+              {/* גוף התוכן: מאמרים + PDF */}
+              <div className="flex-1 flex overflow-hidden">
                 {currentVol ? (
-                  <div className="max-w-4xl mx-auto">
-                    <div className="flex justify-between items-center mb-6">
-                      <div>
-                        <h3 className="text-2xl font-black text-white">{currentVol.volumeTitle}</h3>
-                        <p className="text-sm text-amber-500/70 font-medium">{currentVol.mainTopic}</p>
-                      </div>
-                      {currentVol.pdfFileName && (
-                        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/20"><ExternalLink size={14}/> פתח PDF</button>
-                      )}
+                  <div className="flex-1 flex">
+                    {/* מאמרים - צד ימין */}
+                    <div className="w-[45%] border-l border-gray-100 overflow-y-auto p-6 bg-white custom-scrollbar">
+                       <div className="sticky top-0 bg-white z-10 pb-4 mb-2 border-b border-gray-50 flex justify-between items-end">
+                         <h3 className="text-xl font-black text-gray-800">מאמרי הכרך</h3>
+                         <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                           {currentVol.articles?.length || 0} מאמרים נמצאו
+                         </span>
+                       </div>
+                       
+                       <div className="space-y-3 mt-4">
+                        {currentVol.articles && currentVol.articles.length > 0 ? (
+                          currentVol.articles.map((art, aIdx) => (
+                            <div key={aIdx} className="group p-5 rounded-2xl border border-gray-100 bg-gray-50/30 hover:bg-white hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all cursor-pointer">
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className="text-sm font-black text-gray-800 group-hover:text-blue-600 transition-colors flex-1 ml-4 leading-relaxed">
+                                  {art.contentTitle || art.title}
+                                </h4>
+                                <div className="bg-white border border-gray-100 text-gray-400 text-[10px] px-2 py-1 rounded-lg font-mono font-bold shadow-sm shrink-0">
+                                  עמ' {art.startPage || art.page}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium">
+                                <User size={12} className="opacity-50" />
+                                {art.authors?.[0]?.firstName} {art.authors?.[0]?.lastName || 'מחבר לא צוין'}
+                                {art.generalTopic && (
+                                  <>
+                                    <span className="mx-1">•</span>
+                                    <span className="text-blue-500/70"># {art.generalTopic}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="h-64 flex flex-col items-center justify-center text-gray-300 italic border-2 border-dashed border-gray-50 rounded-3xl mt-10">
+                            <FileText size={40} className="mb-2 opacity-10" />
+                            <p className="text-sm">אין מאמרים רשומים לכרך זה</p>
+                          </div>
+                        )}
+                       </div>
                     </div>
 
-                    <div className="grid gap-3">
-                      <div className="grid grid-cols-12 px-4 py-2 text-[10px] font-black text-gray-600 uppercase border-b border-white/5">
-                        <div className="col-span-1">#</div>
-                        <div className="col-span-7">שם המאמר ומחבר</div>
-                        <div className="col-span-2 text-center">עמוד</div>
-                        <div className="col-span-2">נושא</div>
-                      </div>
-                      {currentVol.articles?.map((art, aIdx) => (
-                        <div key={aIdx} className="grid grid-cols-12 items-center bg-[#0d0d0d] border border-white/5 p-4 rounded-xl hover:border-white/20 transition-all group">
-                          <div className="col-span-1 text-xs font-mono text-gray-600">{(aIdx + 1).toString().padStart(2, '0')}</div>
-                          <div className="col-span-7">
-                            <div className="text-sm font-bold text-gray-200 group-hover:text-amber-500 transition-colors">{art.title}</div>
-                            <div className="text-[10px] text-gray-500 mt-1">{art.authors?.[0]?.firstName} {art.authors?.[0]?.lastName}</div>
+                    {/* תצוגת PDF - צד שמאל (ממשק אוצר החכמה) */}
+                    <div className="flex-1 bg-gray-200 relative shadow-inner overflow-hidden">
+                      {currentVol.pdfPath ? (
+                        <div className="h-full flex flex-col">
+                          <div className="bg-gray-800 p-2 flex justify-between items-center text-white px-4">
+                            <span className="text-[10px] font-bold opacity-80 uppercase tracking-widest">תצוגת קובץ PDF</span>
+                            <a 
+                              href={`http://localhost:5000/${currentVol.pdfPath}`} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="text-[10px] bg-white/10 hover:bg-white/20 p-1.5 px-3 rounded-lg transition-all flex items-center gap-2"
+                            >
+                              <ExternalLink size={12} /> פתח בחלון מלא
+                            </a>
                           </div>
-                          <div className="col-span-2 text-center text-xs font-bold text-gray-400 bg-white/5 py-1 rounded-md">עמ' {art.page}</div>
-                          <div className="col-span-2 text-[10px] text-gray-500 pr-2">{art.generalTopic || '---'}</div>
+                          <iframe 
+                            src={`http://localhost:5000/${currentVol.pdfPath}#view=FitH&toolbar=0`} 
+                            className="w-full h-full border-none shadow-2xl"
+                            title="Preview"
+                          />
                         </div>
-                      ))}
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-400 p-12 text-center">
+                          <div className="bg-white/50 p-6 rounded-full mb-4">
+                            <Eye size={48} className="opacity-20" />
+                          </div>
+                          <h4 className="font-bold text-gray-500">קובץ ה-PDF לא נמצא</h4>
+                          <p className="text-xs mt-2 max-w-[200px] leading-relaxed opacity-60">הסדרה רשומה במערכת אך טרם הועלה קובץ סרוק לכרך זה.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-gray-600 italic">אין נתוני כרכים להצגה</div>
+                  <div className="h-full w-full flex items-center justify-center text-gray-400 italic">אנא בחר כרך מהרשימה</div>
                 )}
               </div>
             </div>
           </>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-gray-700">
-             <BookOpen size={40} className="mb-4 opacity-10" />
-             <p className="text-sm">בחר סדרה מהרשימה בצד</p>
+          <div className="h-full flex flex-col items-center justify-center bg-gray-50/50 text-gray-300">
+             <div className="relative mb-8">
+                <BookOpen size={100} className="opacity-5" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                   <Plus size={32} className="opacity-10" />
+                </div>
+             </div>
+             <p className="text-xl font-black text-gray-400 tracking-tight">בחר סדרה מהספרייה כדי להתחיל</p>
+             <p className="text-sm mt-2 opacity-50">ניתן לחפש לפי שם סדרה, מחבר או נושא</p>
           </div>
         )}
       </main>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+      `}</style>
     </div>
   );
 }
