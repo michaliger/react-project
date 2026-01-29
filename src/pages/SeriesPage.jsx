@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, Search, Plus, BookOpen, FileText, ExternalLink, Edit3, Eye, User, Calendar, Layers, ChevronRight } from 'lucide-react';
+import { Trash2, Search, Plus, BookOpen, FileText, ExternalLink, Edit3, Eye, User, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function LibraryApp() {
@@ -12,16 +12,41 @@ export default function LibraryApp() {
   const navigate = useNavigate();
 
   // שליפת הנתונים מהשרת
-  useEffect(() => {
+  const fetchSeries = () => {
+    setLoading(true);
     fetch('http://localhost:5000/api/series')
       .then(res => res.json())
       .then(result => {
         const seriesArray = result?.data?.series || [];
         setAllSeries(seriesArray);
-        if (seriesArray.length > 0) setSelectedSeries(seriesArray[0]);
+        if (seriesArray.length > 0 && !selectedSeries) setSelectedSeries(seriesArray[0]);
         setLoading(false);
       }).catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchSeries();
   }, []);
+
+  // פונקציית מחיקה
+  const handleDeleteSeries = async (id) => {
+    if (window.confirm("האם את בטוחה שברצונך למחוק את כל הסדרה וכל תוכן הכרכים שלה? פעולה זו אינה הפיכה.")) {
+      try {
+        const response = await fetch(`http://localhost:5000/api/series/id/${id}`, {
+          method: 'DELETE',
+        });
+        if (response.ok) {
+          setAllSeries(prev => prev.filter(s => s._id !== id));
+          setSelectedSeries(null);
+          alert("הסדרה נמחקה בהצלחה");
+        } else {
+          throw new Error();
+        }
+      } catch (err) {
+        alert("שגיאה במחיקת הסדרה. וודאי שהשרת פועל.");
+      }
+    }
+  };
 
   // איפוס הכרך הנבחר כשמחליפים סדרה
   useEffect(() => { setActiveVolIdx(0); }, [selectedSeries]);
@@ -37,7 +62,7 @@ export default function LibraryApp() {
   if (loading) return (
     <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-      <p className="text-gray-500 font-medium italic">טוען את הספרייה הדיגיטלית...</p>
+      <p className="text-gray-500 font-medium italic">טוען את הספרייה התורנית...</p>
     </div>
   );
 
@@ -92,7 +117,7 @@ export default function LibraryApp() {
                   {s.prefixName} {s.fileName}
                 </h3>
                 <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1 italic">
-                  <User size={10} /> {s.author || 'מחבר לא צוין'}
+                  <User size={10} /> {s.editor || 'עורך לא צוין'}
                 </p>
               </div>
             </button>
@@ -114,7 +139,7 @@ export default function LibraryApp() {
                   <h2 className="text-2xl font-black text-gray-900">{selectedSeries.prefixName} {selectedSeries.fileName}</h2>
                   <div className="flex gap-4 mt-1">
                     <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">{selectedSeries.sector}</span>
-                    <span className="text-xs text-gray-400 font-medium">עורך: {selectedSeries.editor} | {selectedSeries.year}</span>
+                    <span className="text-xs text-gray-400 font-medium">עורך: {selectedSeries.editor} | {selectedSeries.publicationPlace}</span>
                   </div>
                 </div>
               </div>
@@ -126,52 +151,66 @@ export default function LibraryApp() {
                   <Edit3 size={18} />
                   עדכון פרטי סדרה
                 </button>
-                <button className="p-2.5 text-gray-300 hover:text-red-500 transition-colors">
+                <button 
+                  onClick={() => handleDeleteSeries(selectedSeries._id)}
+                  className="p-2.5 text-gray-300 hover:text-red-500 transition-colors"
+                >
                   <Trash2 size={22} />
                 </button>
               </div>
             </header>
 
             <div className="flex-1 flex overflow-hidden">
-              {/* רשימת כרכים (סרגל ניווט פנימי) */}
-              <div className="w-64 border-l border-gray-100 bg-gray-50/30 overflow-y-auto">
+              {/* רשימת כרכים */}
+              <div className="w-64 border-l border-gray-100 bg-gray-50/30 flex flex-col">
                 <div className="p-5 text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 flex items-center gap-2">
                   <Layers size={14} /> כרכים זמינים
                 </div>
-                {selectedSeries.volumes?.map((v, idx) => (
+                <div className="flex-1 overflow-y-auto">
+                  {selectedSeries.volumes?.map((v, idx) => (
+                    <button 
+                      key={idx} 
+                      onClick={() => setActiveVolIdx(idx)} 
+                      className={`w-full text-right p-5 border-b border-gray-100 transition-all relative ${
+                        activeVolIdx === idx 
+                        ? 'bg-white text-blue-600 font-black shadow-sm' 
+                        : 'text-gray-500 hover:bg-gray-100/50'
+                      }`}
+                    >
+                      {activeVolIdx === idx && <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-blue-600" />}
+                      <div className="text-sm leading-tight">{v.volumeTitle || v.title || `גליון ${v.volumeNumber || idx + 1}`}</div>
+                      <div className="text-[10px] opacity-60 mt-1 font-medium italic">לחץ לצפייה במאמרים</div>
+                    </button>
+                  ))}
+                </div>
+                {/* כפתור הוספת כרך חדש */}
+                <div className="p-4 bg-white border-t border-gray-100">
                   <button 
-                    key={idx} 
-                    onClick={() => setActiveVolIdx(idx)} 
-                    className={`w-full text-right p-5 border-b border-gray-100 transition-all relative ${
-                      activeVolIdx === idx 
-                      ? 'bg-white text-blue-600 font-black shadow-sm' 
-                      : 'text-gray-500 hover:bg-gray-100/50'
-                    }`}
+                    onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=volume`)}
+                    className="w-full py-2.5 bg-blue-50 text-blue-700 rounded-xl text-xs font-black hover:bg-blue-100 transition-all flex items-center justify-center gap-2 border border-blue-200"
                   >
-                    {activeVolIdx === idx && <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-blue-600" />}
-                    <div className="text-sm leading-tight">{v.volumeTitle || `כרך ${idx + 1}`}</div>
-                    <div className="text-[10px] opacity-60 mt-1 font-medium italic">לחץ לצפייה במאמרים</div>
+                    <Plus size={14} /> הוספת כרך לסדרה
                   </button>
-                ))}
+                </div>
               </div>
 
-              {/* גוף התוכן: מאמרים + PDF */}
+              {/* גוף התוכן */}
               <div className="flex-1 flex overflow-hidden">
                 {currentVol ? (
                   <div className="flex-1 flex">
-                    {/* מאמרים - צד ימין */}
-                    <div className="w-[45%] border-l border-gray-100 overflow-y-auto p-6 bg-white custom-scrollbar">
-                       <div className="sticky top-0 bg-white z-10 pb-4 mb-2 border-b border-gray-50 flex justify-between items-end">
+                    {/* מאמרים */}
+                    <div className="w-[45%] border-l border-gray-100 flex flex-col bg-white">
+                       <div className="p-6 pb-4 border-b border-gray-50 flex justify-between items-end bg-white">
                          <h3 className="text-xl font-black text-gray-800">מאמרי הכרך</h3>
                          <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                           {currentVol.articles?.length || 0} מאמרים נמצאו
+                           {currentVol.articles?.length || 0} מאמרים
                          </span>
                        </div>
                        
-                       <div className="space-y-3 mt-4">
+                       <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
                         {currentVol.articles && currentVol.articles.length > 0 ? (
                           currentVol.articles.map((art, aIdx) => (
-                            <div key={aIdx} className="group p-5 rounded-2xl border border-gray-100 bg-gray-50/30 hover:bg-white hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all cursor-pointer">
+                            <div key={aIdx} className="group p-5 rounded-2xl border border-gray-100 bg-gray-50/30 hover:bg-white hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all">
                               <div className="flex justify-between items-start mb-2">
                                 <h4 className="text-sm font-black text-gray-800 group-hover:text-blue-600 transition-colors flex-1 ml-4 leading-relaxed">
                                   {art.contentTitle || art.title}
@@ -193,15 +232,25 @@ export default function LibraryApp() {
                             </div>
                           ))
                         ) : (
-                          <div className="h-64 flex flex-col items-center justify-center text-gray-300 italic border-2 border-dashed border-gray-50 rounded-3xl mt-10">
+                          <div className="h-64 flex flex-col items-center justify-center text-gray-300 italic border-2 border-dashed border-gray-50 rounded-3xl">
                             <FileText size={40} className="mb-2 opacity-10" />
                             <p className="text-sm">אין מאמרים רשומים לכרך זה</p>
                           </div>
                         )}
                        </div>
+                       
+                       {/* כפתור הוספת מאמר חדש */}
+                       <div className="p-4 bg-gray-50 border-t border-gray-100">
+                         <button 
+                           onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=article&volId=${currentVol._id || activeVolIdx}`)}
+                           className="w-full py-3 bg-white border-2 border-dashed border-blue-400 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+                         >
+                           <Plus size={18} /> הוספת מאמרים לכרך זה
+                         </button>
+                       </div>
                     </div>
 
-                    {/* תצוגת PDF - צד שמאל (ממשק אוצר החכמה) */}
+                    {/* תצוגת PDF */}
                     <div className="flex-1 bg-gray-200 relative shadow-inner overflow-hidden">
                       {currentVol.pdfPath ? (
                         <div className="h-full flex flex-col">
@@ -241,14 +290,14 @@ export default function LibraryApp() {
           </>
         ) : (
           <div className="h-full flex flex-col items-center justify-center bg-gray-50/50 text-gray-300">
-             <div className="relative mb-8">
+              <div className="relative mb-8">
                 <BookOpen size={100} className="opacity-5" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                   <Plus size={32} className="opacity-10" />
+                    <Plus size={32} className="opacity-10" />
                 </div>
-             </div>
-             <p className="text-xl font-black text-gray-400 tracking-tight">בחר סדרה מהספרייה כדי להתחיל</p>
-             <p className="text-sm mt-2 opacity-50">ניתן לחפש לפי שם סדרה, מחבר או נושא</p>
+              </div>
+              <p className="text-xl font-black text-gray-400 tracking-tight">בחר סדרה מהספרייה כדי להתחיל</p>
+              <p className="text-sm mt-2 opacity-50">ניתן לחפש לפי שם סדרה, עורך או מגזר</p>
           </div>
         )}
       </main>
