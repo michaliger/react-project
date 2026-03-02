@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { Plus, Trash2, Users, FileText, Database, CheckCircle2, Link2, Upload, X, UserPlus, Info } from 'lucide-react'
+import { useNavigate } from 'react-router-dom';
 
 const CompactField = ({ label, children, colSpan = 'col-span-1', required = false }) => (
   <div className={`flex flex-col gap-0.5 ${colSpan}`}>
@@ -17,6 +18,8 @@ export default function App() {
   const [activeVolume, setActiveVolume] = useState(0)
   const fileInputRef = useRef(null)
   const pdfInputRef = useRef(null)
+  const navigate = useNavigate();
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const [series, setSeries] = useState({
     prefixName: '', fileName: '', identifierName: '', details: '',
@@ -97,6 +100,47 @@ export default function App() {
 
   if (currentPage === 'home') return <div className="h-screen flex items-center justify-center bg-slate-50" dir="rtl"><div className="text-center p-10 bg-white rounded-2xl shadow-lg border"><CheckCircle2 size={48} className="text-green-500 mx-auto mb-4" /><h1 className="text-xl font-bold">הנתונים נשמרו בהצלחה!</h1><button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg">חזרה</button></div></div>;
 
+  const handleFinalSave = async () => {
+    setIsSaving(true);
+    try {
+      const formData = new FormData();
+
+      formData.append('seriesData', JSON.stringify(series));
+      formData.append('volumes', JSON.stringify(volumes));
+
+      if (series.coverFile) {
+        formData.append('coverImage', series.coverFile);
+      }
+
+      volumes.forEach((vol, index) => {
+        if (vol.pdfFile) {
+          formData.append(`pdfFile_${index}`, vol.pdfFile);
+        }
+      });
+
+      const response = await fetch('http://localhost:5000/api/series/save-full-catalog', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        // 1. מציגים את הודעת ההצלחה
+        setShowSuccessMessage(true);
+
+        // 2. מגדירים טיימר (למשל 2 שניות) ואז עוברים לדף
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+          navigate('/series'); // נתיב ה-URL של העמוד אליו תרצה לעבור
+        }, 1000); // 2000 אלפיות השנייה = 2 שניות
+      }
+    } catch (error) {
+      console.error("Save Error:", error);
+      // מומלץ להוסיף כאן גם State להודעת שגיאה למשתמש
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-slate-100 font-sans text-right overflow-hidden" dir="rtl">
       {/* Header */}
@@ -105,7 +149,11 @@ export default function App() {
           <Database size={18} className="text-indigo-600" />
           <span className="font-black text-sm text-slate-800">מערכת קטלוג תורני מאוחדת</span>
         </div>
-        <button onClick={() => { setIsSaving(true); setTimeout(() => setCurrentPage('home'), 800); }} className="px-6 py-1.5 bg-black text-white rounded text-xs font-bold hover:bg-slate-800 transition-colors">
+        <button
+          onClick={handleFinalSave}
+          className="px-6 py-1.5 bg-black text-white rounded text-xs font-bold hover:bg-slate-800 transition-colors disabled:bg-slate-400"
+          disabled={isSaving}
+        >
           {isSaving ? 'שומר נתונים...' : 'שמירה סופית'}
         </button>
       </header>
@@ -168,8 +216,32 @@ export default function App() {
               </div>
               <div className="col-span-2 flex items-center justify-center border-r pr-3">
                 <div onClick={() => fileInputRef.current.click()} className="h-28 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all overflow-hidden">
-                  {series.coverPreview ? <img src={series.coverPreview} className="h-full w-full object-contain" /> : <div className="text-center text-slate-400"><Upload size={20} className="mx-auto" /><span className="text-[9px] block mt-1">העלה כריכה</span></div>}
-                  <input type="file" ref={fileInputRef} hidden onChange={(e) => setSeries({ ...series, coverPreview: URL.createObjectURL(e.target.files[0]) })} />
+                  {series.coverPreview || series.coverImage ? (
+                    <img
+                      src={series.coverPreview || `http://localhost:5000/uploads/${series.coverImage}`}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <div className="text-center text-slate-400">
+                      <Upload size={20} className="mx-auto" />
+                      <span className="text-[9px] block mt-1">העלה כריכה</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    hidden
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setSeries({
+                          ...series,
+                          coverPreview: URL.createObjectURL(file), // לתצוגה במסך
+                          coverFile: file // לשליחה לשרת
+                        });
+                      }
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -196,7 +268,20 @@ export default function App() {
               <CompactField label="שלמות סריקה"><input value={currentVolume.scanCompleteness} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="קובץ PDF" colSpan="col-span-2">
                 <button onClick={() => pdfInputRef.current.click()} className="w-full p-1 border rounded text-[10px] bg-slate-50 font-bold flex items-center gap-2 truncate shadow-inner hover:bg-slate-100 transition-all"><Link2 size={12} className="text-indigo-600" /> {currentVolume.pdfFileName || 'צרף קובץ PDF'}</button>
-                <input type="file" ref={pdfInputRef} hidden onChange={(e) => updateVolume('pdfFileName', e.target.files[0]?.name)} />
+                <input
+                  type="file"
+                  ref={pdfInputRef}
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      // עדכון שם הקובץ לתצוגה
+                      updateVolume('pdfFileName', file.name);
+                      // שמירת אובייקט הקובץ עצמו לצורך שליחה
+                      updateVolume('pdfFile', file);
+                    }
+                  }}
+                />
               </CompactField>
             </div>
           </section>
@@ -329,6 +414,22 @@ export default function App() {
           </section>       </div>
       </div>
       <style>{`.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }`}</style>
+      {showSuccessMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#4CAF50',
+          color: 'white',
+          padding: '15px 20px',
+          borderRadius: '5px',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          zIndex: 1000
+        }}>
+          השמירה בוצעה בהצלחה! מעביר אותך לדף הסדרה...
+        </div>
+      )}
     </div>
   )
 }
