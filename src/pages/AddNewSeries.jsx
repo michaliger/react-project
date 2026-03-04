@@ -54,13 +54,18 @@ export default function App() {
   }, [volumes]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/subtitle')
+    fetch('http://localhost:5000/api/subtitles')
       .then(res => res.json())
       .then(result => {
+        // הוספנו שורות הדפסה כדי לראות מה באמת חוזר מהשרת
+        console.log("1. Raw data from server:", result);
+
         const articles = result?.data?.subtitles || result?.data || result || [];
+        console.log("2. Extracted articles array:", articles);
+
         setDbArticles(Array.isArray(articles) ? articles : []);
       })
-      .catch(err => console.error('Error fetching:', err));
+      .catch(err => console.error('Error fetching articles:', err));
   }, []);
 
   const addNewVolume = () => {
