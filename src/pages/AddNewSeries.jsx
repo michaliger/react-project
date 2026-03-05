@@ -12,89 +12,19 @@ const CompactField = ({ label, children, colSpan = 'col-span-1', required = fals
 )
 
 export default function App() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+
+  // 1. קודם כל מגדירים את כל ה-States! (חוק ברזל בריאקט)
   const [currentPage, setCurrentPage] = useState('editor')
   const [isSaving, setIsSaving] = useState(false)
   const [dbArticles, setDbArticles] = useState([])
   const [activeVolume, setActiveVolume] = useState(0)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
   const fileInputRef = useRef(null)
   const pdfInputRef = useRef(null)
-  const navigate = useNavigate();
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [searchParams] = useSearchParams();
-  const editId = searchParams.get('edit');
-
-  // הלוגיקה של משיכת הנתונים לעריכה
-  useEffect(() => {
-    if (editId) {
-      fetch(`http://localhost:5000/api/series/id/${editId}`)
-        .then(res => res.json())
-        .then(result => {
-          const data = result.data?.series || result.data;
-          if (data) {
-            // 1. מילוי פרטי הסדרה (שימי לב שאנחנו שומרים את ה-_id כדי שהשרת ידע לעדכן!)
-            setSeries({
-              _id: data._id,
-              prefixName: data.prefixName || '',
-              fileName: data.fileName || '',
-              identifierName: data.identifierName || '',
-              details: data.details || '',
-              editor: data.editor || '',
-              publicationPlace: data.publicationPlace || '',
-              sector: data.sector || '',
-              missingVolumesList: data.missingVolumesList || '',
-              adminNotes: data.adminNotes || '',
-              catalogStatus: data.catalogStatus || 'טיוטה',
-              enteredBy: data.enteredBy || '',
-              coverPreview: data.coverImage ? `http://localhost:5000/uploads/${data.coverImage}` : null,
-              coverImage: data.coverImage // שומרים את השם של התמונה הקיימת
-            });
-
-            // 2. מילוי הכרכים והמאמרים
-            if (data.volumes && data.volumes.length > 0) {
-              const mappedVolumes = data.volumes.map((v, vIdx) => ({
-                _id: v._id, // ה-ID של הכרך במונגו
-                id: v._id,  // מזהה ל-React
-                volumeTitle: v.volumeTitle || v.title || '',
-                volumeNumber: v.volumeNumber || (vIdx + 1).toString(),
-                booklet: v.booklet || '',
-                mainTopic: v.mainTopic || '',
-                publishedFor: v.publishedFor || '',
-                publicationYear: v.publicationYear || '',
-                publicationPeriod: v.publicationPeriod || '',
-                coverType: v.coverType || '',
-                volumeSize: v.volumeSize || '',
-                fileCompleteness: v.fileCompleteness || '',
-                scanCompleteness: v.scanCompleteness || '',
-                articlesCatalogStatus: v.articlesCatalogStatus || 'ממתין',
-                pdfFileName: v.pdfPath ? v.pdfPath.split('/').pop() : '', // מציג רק את שם הקובץ בלי הנתיב
-                pdfPath: v.pdfPath,
-
-                // מילוי המאמרים בתוך הכרך
-                articles: v.articles && v.articles.length > 0 ? v.articles.map((art, aIdx) => ({
-                  _id: art._id, // ה-ID של המאמר במונגו
-                  id: art._id,
-                  autoId: aIdx + 1,
-                  authors: art.authors && art.authors.length > 0 ? art.authors : [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-                  page: art.startPage || art.page || '',
-                  title: art.contentTitle || art.title || '',
-                  generalTopic: art.generalTopic || '',
-                  source: art.source || '',
-                  linkedArticleId: art.linkedArticleId || '',
-                  linkExplanation: art.linkExplanation || ''
-                })) : [{
-                  id: Math.random().toString(36).substr(2, 9), autoId: 1,
-                  authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-                  page: '', title: '', generalTopic: '', source: '', linkedArticleId: '', linkType: ''
-                }]
-              }));
-
-              setVolumes(mappedVolumes);
-            }
-          }
-        })
-        .catch(err => console.error('Error fetching series for edit:', err));
-    }
-  }, [editId]);
 
   const [series, setSeries] = useState({
     _id: '', prefixName: '', fileName: '', identifierName: '', details: '',
@@ -120,7 +50,102 @@ export default function App() {
 
   const [volumes, setVolumes] = useState([createEmptyVolume(0)])
 
-  // חישוב שנות הוצאה אוטומטי
+  // 2. רק אחרי שהגדרנו את ה-States, אפשר להשתמש ב-useEffect
+  useEffect(() => {
+    if (editId) {
+      fetch(`http://localhost:5000/api/series/id/${editId}`)
+        .then(res => res.json())
+        .then(result => {
+          const data = result.data?.series || result.data;
+          if (data) {
+            setSeries({
+              _id: data._id,
+              prefixName: data.prefixName || '',
+              fileName: data.fileName || '',
+              identifierName: data.identifierName || '',
+              details: data.details || '',
+              editor: data.editor || '',
+              publicationPlace: data.publicationPlace || '',
+              sector: data.sector || '',
+              missingVolumesList: data.missingVolumesList || '',
+              adminNotes: data.adminNotes || '',
+              catalogStatus: data.catalogStatus || 'טיוטה',
+              enteredBy: data.enteredBy || '',
+              coverPreview: data.coverImage ? `http://localhost:5000/uploads/${data.coverImage}` : null,
+              coverImage: data.coverImage
+            });
+
+            if (data.volumes && data.volumes.length > 0) {
+              const mappedVolumes = data.volumes.map((v, vIdx) => ({
+                _id: v._id,
+                id: v._id,
+                volumeTitle: v.volumeTitle || v.title || '',
+                volumeNumber: v.volumeNumber || (vIdx + 1).toString(),
+                booklet: v.booklet || '',
+                mainTopic: v.mainTopic || '',
+                publishedFor: v.publishedFor || '',
+                publicationYear: v.publicationYear || '',
+                publicationPeriod: v.publicationPeriod || '',
+                coverType: v.coverType || '',
+                volumeSize: v.volumeSize || '',
+                fileCompleteness: v.fileCompleteness || '',
+                scanCompleteness: v.scanCompleteness || '',
+                articlesCatalogStatus: v.articlesCatalogStatus || 'ממתין',
+                pdfFileName: v.pdfPath ? v.pdfPath.split('/').pop() : '',
+                pdfPath: v.pdfPath,
+                articles: v.articles && v.articles.length > 0 ? v.articles.map((art, aIdx) => ({
+                  _id: art._id,
+                  id: art._id,
+                  autoId: aIdx + 1,
+                  authors: art.authors && art.authors.length > 0 ? art.authors : [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
+                  page: art.startPage || art.page || '',
+                  title: art.contentTitle || art.title || '',
+                  generalTopic: art.generalTopic || '',
+                  source: art.source || '',
+                  linkedArticleId: art.linkedArticleId || '',
+                  linkExplanation: art.linkExplanation || ''
+                })) : [{
+                  id: Math.random().toString(36).substr(2, 9), autoId: 1,
+                  authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
+                  page: '', title: '', generalTopic: '', source: '', linkedArticleId: '', linkType: ''
+                }]
+              }));
+
+              // 🌟 --- כאן מתחיל הקסם שלנו --- 🌟
+              const target = searchParams.get('target');
+              const targetVolId = searchParams.get('volId');
+
+              if (target === 'volume') {
+                // אם ביקשו להוסיף כרך, נוסיף אחד ריק בסוף
+                const newIdx = mappedVolumes.length;
+                mappedVolumes.push(createEmptyVolume(newIdx));
+                setTimeout(() => setActiveVolume(newIdx), 100); // מעביר את הפוקוס לכרך החדש
+
+              } else if (target === 'article') {
+                // אם ביקשו להוסיף מאמר, נמצא את הכרך הרלוונטי ונוסיף לו מאמר ריק
+                let vIdx = mappedVolumes.findIndex(v => v._id === targetVolId || v.id === targetVolId);
+                if (vIdx === -1 && !isNaN(targetVolId)) vIdx = parseInt(targetVolId); // מקרה גיבוי
+
+                if (vIdx >= 0 && vIdx < mappedVolumes.length) {
+                  mappedVolumes[vIdx].articles.push({
+                    id: Math.random().toString(36).substr(2, 9),
+                    autoId: mappedVolumes[vIdx].articles.length + 1,
+                    authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
+                    page: '', title: '', generalTopic: '', source: '', linkedArticleId: '', linkType: ''
+                  });
+                  setTimeout(() => setActiveVolume(vIdx), 100); // מעביר את הפוקוס לכרך הזה
+                }
+              }
+              // 🌟 --- סוף הקסם --- 🌟
+
+              setVolumes(mappedVolumes);
+            }
+          }
+        })
+        .catch(err => console.error('Error fetching series for edit:', err));
+    }
+  }, [editId]);
+
   const displayYears = useMemo(() => {
     const years = volumes.map(v => v.publicationYear).filter(y => y !== '');
     if (years.length === 0) return 'טרם הוזנו שנים';
@@ -132,12 +157,7 @@ export default function App() {
     fetch('http://localhost:5000/api/subtitles')
       .then(res => res.json())
       .then(result => {
-        // הוספנו שורות הדפסה כדי לראות מה באמת חוזר מהשרת
-        console.log("1. Raw data from server:", result);
-
         const articles = result?.data?.subtitles || result?.data || result || [];
-        console.log("2. Extracted articles array:", articles);
-
         setDbArticles(Array.isArray(articles) ? articles : []);
       })
       .catch(err => console.error('Error fetching articles:', err));
@@ -180,19 +200,24 @@ export default function App() {
 
   if (currentPage === 'home') return <div className="h-screen flex items-center justify-center bg-slate-50" dir="rtl"><div className="text-center p-10 bg-white rounded-2xl shadow-lg border"><CheckCircle2 size={48} className="text-green-500 mx-auto mb-4" /><h1 className="text-xl font-bold">הנתונים נשמרו בהצלחה!</h1><button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg">חזרה</button></div></div>;
 
+  // פונקציית השמירה חסינת התקלות (לוקחת ID מהכתובת ליתר ביטחון)
   const handleFinalSave = async () => {
-    console.log("ה-ID של הסדרה שנשלחת עכשיו הוא:", series._id); // השורה הזו
+    const safeId = editId || series._id;
+    console.log("ה-ID הבטוח שנשלח עכשיו הוא:", safeId);
     setIsSaving(true);
+
     try {
       const formData = new FormData();
 
-      formData.append('seriesData', JSON.stringify(series));
+      const dataToSave = { ...series };
+      if (safeId) dataToSave._id = safeId; // מזריקים את ה-ID בכוח!
+
+      formData.append('seriesData', JSON.stringify(dataToSave));
       formData.append('volumes', JSON.stringify(volumes));
 
       if (series.coverFile) {
         formData.append('coverImage', series.coverFile);
       }
-
       volumes.forEach((vol, index) => {
         if (vol.pdfFile) {
           formData.append(`pdfFile_${index}`, vol.pdfFile);
@@ -205,22 +230,23 @@ export default function App() {
       });
 
       if (response.ok) {
-        // 1. מציגים את הודעת ההצלחה
         setShowSuccessMessage(true);
-
-        // 2. מגדירים טיימר (למשל 2 שניות) ואז עוברים לדף
         setTimeout(() => {
           setShowSuccessMessage(false);
-          navigate('/series'); // נתיב ה-URL של העמוד אליו תרצה לעבור
-        }, 1000); // 2000 אלפיות השנייה = 2 שניות
+          navigate('/series');
+        }, 1500);
       }
     } catch (error) {
       console.error("Save Error:", error);
-      // מומלץ להוסיף כאן גם State להודעת שגיאה למשתמש
     } finally {
       setIsSaving(false);
     }
   };
+
+  const updateSeriesField = (field, value) => {
+    setSeries(prev => ({ ...prev, [field]: value }));
+  };
+
 
   return (
     <div className="flex flex-col h-screen bg-slate-100 font-sans text-right overflow-hidden" dir="rtl">
@@ -283,7 +309,13 @@ export default function App() {
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-10 grid grid-cols-5 gap-3">
                 <CompactField label="שם מקדים"><select value={series.prefixName} onChange={e => setSeries({ ...series, prefixName: e.target.value })} className={inputClass}><option value=""></option><option>ספר זכרון</option><option>קובץ תורני</option><option>ירחון</option></select></CompactField>
-                <CompactField label="שם הקובץ" colSpan="col-span-2"><input value={series.fileName} onChange={e => setSeries({ ...series, fileName: e.target.value })} className={`${inputClass} font-bold`} /></CompactField>
+                <CompactField label="שם הקובץ" colSpan="col-span-2">
+                  <input
+                    value={series.fileName}
+                    onChange={e => updateSeriesField('fileName', e.target.value)}
+                    className={`${inputClass} font-bold`}
+                  />
+                </CompactField>
                 <CompactField label="שם מזהה"><input value={series.identifierName} onChange={e => setSeries({ ...series, identifierName: e.target.value })} className={inputClass} /></CompactField>
                 <CompactField label="שנות הוצאה (אוטומטי)"><input value={displayYears} readOnly className={`${inputClass} bg-slate-50 font-bold text-indigo-600 cursor-not-allowed`} /></CompactField>
                 <CompactField label="עורך"><input value={series.editor} onChange={e => setSeries({ ...series, editor: e.target.value })} className={inputClass} /></CompactField>
