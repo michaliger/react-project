@@ -12,6 +12,10 @@ const CompactField = ({ label, children, colSpan = 'col-span-1', required = fals
 )
 
 export default function App() {
+  // שולפים את המשתמש מהזיכרון
+  const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
+  // בודקים אם הוא הרשאות צפייה/אורח בלבד
+  const isGuest = loggedInUser.role === 'viewer';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
@@ -292,7 +296,8 @@ export default function App() {
                 <div className="flex items-center gap-2 truncate">
                   <FileText size={12} /> {v.volumeTitle || `גליון ${i + 1}`}
                 </div>
-                {volumes.length > 1 && (
+                {/* התנאי: מראה את ה-X רק אם יש יותר מגליון אחד, ובתנאי שזה לא "גם אורח וגם גליון ישן" */}
+                {volumes.length > 1 && !(isGuest && v._id) && (
                   <X size={12} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600" onClick={(e) => removeVolume(e, i)} />
                 )}
               </div>
@@ -312,20 +317,21 @@ export default function App() {
                 <CompactField label="שם הקובץ" colSpan="col-span-2">
                   <input
                     value={series.fileName}
+                    disabled={isGuest}
                     onChange={e => updateSeriesField('fileName', e.target.value)}
                     className={`${inputClass} font-bold`}
                   />
                 </CompactField>
-                <CompactField label="שם מזהה"><input value={series.identifierName} onChange={e => setSeries({ ...series, identifierName: e.target.value })} className={inputClass} /></CompactField>
-                <CompactField label="שנות הוצאה (אוטומטי)"><input value={displayYears} readOnly className={`${inputClass} bg-slate-50 font-bold text-indigo-600 cursor-not-allowed`} /></CompactField>
-                <CompactField label="עורך"><input value={series.editor} onChange={e => setSeries({ ...series, editor: e.target.value })} className={inputClass} /></CompactField>
-                <CompactField label="מקום הוצאה"><input value={series.publicationPlace} onChange={e => setSeries({ ...series, publicationPlace: e.target.value })} className={inputClass} /></CompactField>
-                <CompactField label="מגזר"><select value={series.sector} onChange={e => setSeries({ ...series, sector: e.target.value })} className={inputClass}><option value=""></option><option>ליטאי</option><option>חסידי</option><option>ספרדי</option></select></CompactField>
-                <CompactField label="סטטוס קטלוג"><input value={series.catalogStatus} onChange={e => setSeries({ ...series, catalogStatus: e.target.value })} className={inputClass} /></CompactField>
-                <CompactField label="הוזן ע״י"><input value={series.enteredBy} onChange={e => setSeries({ ...series, enteredBy: e.target.value })} className={inputClass} /></CompactField>
-                <CompactField label="גליונות חסרים" colSpan="col-span-2"><input value={series.missingVolumesList} onChange={e => setSeries({ ...series, missingVolumesList: e.target.value })} className={inputClass} /></CompactField>
-                <CompactField label="הערות מנהל" colSpan="col-span-2"><input value={series.adminNotes} onChange={e => setSeries({ ...series, adminNotes: e.target.value })} className={inputClass} /></CompactField>
-                <CompactField label="פרטים נוספים"><input value={series.details} onChange={e => setSeries({ ...series, details: e.target.value })} className={inputClass} /></CompactField>
+                <CompactField label="שם מזהה"><input value={series.identifierName} disabled={isGuest} onChange={e => setSeries({ ...series, identifierName: e.target.value })} className={inputClass} /></CompactField>
+                <CompactField label="שנות הוצאה (אוטומטי)"><input value={displayYears} disabled={isGuest} readOnly className={`${inputClass} bg-slate-50 font-bold text-indigo-600 cursor-not-allowed`} /></CompactField>
+                <CompactField label="עורך"><input value={series.editor} disabled={isGuest} onChange={e => setSeries({ ...series, editor: e.target.value })} className={inputClass} /></CompactField>
+                <CompactField label="מקום הוצאה"><input value={series.publicationPlace} disabled={isGuest} onChange={e => setSeries({ ...series, publicationPlace: e.target.value })} className={inputClass} /></CompactField>
+                <CompactField label="מגזר"><select value={series.sector} disabled={isGuest} onChange={e => setSeries({ ...series, sector: e.target.value })} className={inputClass}><option value=""></option><option>ליטאי</option><option>חסידי</option><option>ספרדי</option></select></CompactField>
+                <CompactField label="סטטוס קטלוג"><input value={series.catalogStatus} disabled={isGuest} onChange={e => setSeries({ ...series, catalogStatus: e.target.value })} className={inputClass} /></CompactField>
+                <CompactField label="הוזן ע״י"><input value={series.enteredBy} disabled={isGuest} onChange={e => setSeries({ ...series, enteredBy: e.target.value })} className={inputClass} /></CompactField>
+                <CompactField label="גליונות חסרים" colSpan="col-span-2"><input value={series.missingVolumesList} disabled={isGuest} onChange={e => setSeries({ ...series, missingVolumesList: e.target.value })} className={inputClass} /></CompactField>
+                <CompactField label="הערות מנהל" colSpan="col-span-2"><input value={series.adminNotes} disabled={isGuest} onChange={e => setSeries({ ...series, adminNotes: e.target.value })} className={inputClass} /></CompactField>
+                <CompactField label="פרטים נוספים"><input value={series.details} disabled={isGuest} onChange={e => setSeries({ ...series, details: e.target.value })} className={inputClass} /></CompactField>
               </div>
               <div className="col-span-2 flex items-center justify-center border-r pr-3">
                 <div onClick={() => fileInputRef.current.click()} className="h-28 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all overflow-hidden">
@@ -369,16 +375,16 @@ export default function App() {
               </div>
             </div>
             <div className="grid grid-cols-8 gap-2">
-              <CompactField label="שם גליון" colSpan="col-span-2"><input value={currentVolume.volumeTitle} onChange={e => updateVolume('volumeTitle', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="נושא ראשי" colSpan="col-span-2"><input value={currentVolume.mainTopic} onChange={e => updateVolume('mainTopic', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="יצא לרגל"><input value={currentVolume.publishedFor} onChange={e => updateVolume('publishedFor', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="שנה"><input value={currentVolume.publicationYear} onChange={e => updateVolume('publicationYear', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="תקופה"><input value={currentVolume.publicationPeriod} onChange={e => updateVolume('publicationPeriod', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="סטטוס קטלוג"><select value={currentVolume.articlesCatalogStatus} onChange={e => updateVolume('articlesCatalogStatus', e.target.value)} className={inputClass}><option>ממתין</option><option>בתהליך</option><option>הושלם</option></select></CompactField>
-              <CompactField label="כריכה"><select value={currentVolume.coverType} onChange={e => updateVolume('coverType', e.target.value)} className={inputClass}><option value=""></option><option>קשה</option><option>רכה</option></select></CompactField>
-              <CompactField label="גודל"><select value={currentVolume.volumeSize} onChange={e => updateVolume('volumeSize', e.target.value)} className={inputClass}><option value=""></option><option>גדול</option><option>בינוני</option><option>קטן</option></select></CompactField>
-              <CompactField label="שלמות קובץ"><input value={currentVolume.fileCompleteness} onChange={e => updateVolume('fileCompleteness', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="שלמות סריקה"><input value={currentVolume.scanCompleteness} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="שם גליון" colSpan="col-span-2"><input value={currentVolume.volumeTitle} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('volumeTitle', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="נושא ראשי" colSpan="col-span-2"><input value={currentVolume.mainTopic} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('mainTopic', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="יצא לרגל"><input value={currentVolume.publishedFor} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('publishedFor', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="שנה"><input value={currentVolume.publicationYear} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('publicationYear', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="תקופה"><input value={currentVolume.publicationPeriod} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('publicationPeriod', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="סטטוס קטלוג"><select value={currentVolume.articlesCatalogStatus} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('articlesCatalogStatus', e.target.value)} className={inputClass}><option>ממתין</option><option>בתהליך</option><option>הושלם</option></select></CompactField>
+              <CompactField label="כריכה"><select value={currentVolume.coverType} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('coverType', e.target.value)} className={inputClass}><option value=""></option><option>קשה</option><option>רכה</option></select></CompactField>
+              <CompactField label="גודל"><select value={currentVolume.volumeSize} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('volumeSize', e.target.value)} className={inputClass}><option value=""></option><option>גדול</option><option>בינוני</option><option>קטן</option></select></CompactField>
+              <CompactField label="שלמות קובץ"><input value={currentVolume.fileCompleteness} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('fileCompleteness', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="שלמות סריקה"><input value={currentVolume.scanCompleteness} disabled={isGuest && !!currentVolume._id} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="קובץ PDF" colSpan="col-span-2">
                 <button onClick={() => pdfInputRef.current.click()} className="w-full p-1 border rounded text-[10px] bg-slate-50 font-bold flex items-center gap-2 truncate shadow-inner hover:bg-slate-100 transition-all"><Link2 size={12} className="text-indigo-600" /> {currentVolume.pdfFileName || 'צרף קובץ PDF'}</button>
                 <input
@@ -388,9 +394,7 @@ export default function App() {
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      // עדכון שם הקובץ לתצוגה
                       updateVolume('pdfFileName', file.name);
-                      // שמירת אובייקט הקובץ עצמו לצורך שליחה
                       updateVolume('pdfFile', file);
                     }
                   }}
@@ -445,23 +449,23 @@ export default function App() {
 
                       <td className="p-1 border-l align-middle">
                         {art.authors.map((auth, authIdx) => (
-                          <input key={authIdx} value={auth.titlePrefix} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'titlePrefix', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate" placeholder="תואר" />
+                          <input key={authIdx} value={auth.titlePrefix} disabled={isGuest && !!art._id} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'titlePrefix', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate" placeholder="תואר" />
                         ))}
                       </td>
                       <td className="p-1 border-l align-middle">
                         {art.authors.map((auth, authIdx) => (
-                          <input key={authIdx} value={auth.firstName} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'firstName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate" placeholder="פרטי" />
+                          <input key={authIdx} value={auth.firstName} disabled={isGuest && !!art._id} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'firstName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate" placeholder="פרטי" />
                         ))}
                       </td>
                       <td className="p-1 border-l align-middle">
                         {art.authors.map((auth, authIdx) => (
-                          <input key={authIdx} value={auth.lastName} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'lastName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate" placeholder="משפחה" />
+                          <input key={authIdx} value={auth.lastName} disabled={isGuest && !!art._id} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'lastName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate" placeholder="משפחה" />
                         ))}
                       </td>
                       <td className="p-1 border-l align-middle">
                         {art.authors.map((auth, authIdx) => (
                           <div key={authIdx} className="flex gap-1 items-center mb-1 last:mb-0">
-                            <input value={auth.role} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'role', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate" placeholder="תפקיד" />
+                            <input value={auth.role} disabled={isGuest && !!art._id} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'role', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate" placeholder="תפקיד" />
                             {authIdx > 0 && <button onClick={() => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].authors.splice(authIdx, 1); setVolumes(nv) }} className="text-red-400 hover:text-red-600 px-1 font-bold">×</button>}
                           </div>
                         ))}
@@ -470,6 +474,7 @@ export default function App() {
                       <td className="p-1 border-l align-middle">
                         <input
                           value={art.title}
+                          disabled={isGuest && !!art._id}
                           className="w-full border border-slate-200 rounded h-8 px-2 font-bold text-[11px] focus:border-indigo-400 outline-none"
                           placeholder="כותרת המאמר..."
                           onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].title = e.target.value; setVolumes(nv) }}
@@ -477,10 +482,10 @@ export default function App() {
                       </td>
 
                       <td className="p-1 border-l align-middle">
-                        <input placeholder="נושא" value={art.generalTopic} className="w-full border rounded h-8 px-1 text-[10px] truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].generalTopic = e.target.value; setVolumes(nv) }} />
+                        <input placeholder="נושא" value={art.generalTopic} disabled={isGuest && !!art._id} className="w-full border rounded h-8 px-1 text-[10px] truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].generalTopic = e.target.value; setVolumes(nv) }} />
                       </td>
                       <td className="p-1 border-l text-center align-middle">
-                        <input value={art.page} className="w-full text-center border rounded h-8 px-1 text-[10px]" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].page = e.target.value; setVolumes(nv) }} />
+                        <input value={art.page} disabled={isGuest && !!art._id} className="w-full text-center border rounded h-8 px-1 text-[10px]" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].page = e.target.value; setVolumes(nv) }} />
                       </td>
 
                       {/* קישור למאמר מהמאגר (DB) */}
@@ -488,6 +493,7 @@ export default function App() {
                         <select
                           className="w-full bg-white border border-indigo-100 rounded h-8 px-1 text-[10px] font-medium text-indigo-800 focus:ring-1 focus:ring-indigo-400 outline-none"
                           value={art.linkedArticleId}
+                          disabled={isGuest && !!art._id}
                           onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkedArticleId = e.target.value; setVolumes(nv) }}
                         >
                           <option value="">בחר מאמר מהמאגר...</option>
@@ -504,6 +510,7 @@ export default function App() {
                         <select
                           className="w-full bg-white border border-indigo-100 rounded h-8 px-1 text-[10px] font-bold text-indigo-900"
                           value={art.linkExplanation || ''}
+                          disabled={isGuest && !!art._id}
                           onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkExplanation = e.target.value; setVolumes(nv) }}
                         >
                           <option value="">בחר...</option>
@@ -515,8 +522,19 @@ export default function App() {
 
                       <td className="p-1 text-center align-middle">
                         <div className="flex items-center justify-center gap-1">
-                          <button title="הוסף מחבר" onClick={() => addAuthorRow(activeVolume, aIdx)} className="text-indigo-600 hover:bg-indigo-100 p-1.5 rounded-full"><UserPlus size={14} /></button>
-                          <button title="מחק מאמר" onClick={() => { const nv = [...volumes]; nv[activeVolume].articles.splice(aIdx, 1); nv[activeVolume].articles.forEach((a, i) => a.autoId = i + 1); setVolumes(nv) }} className="text-red-400 hover:bg-red-50 p-1.5 rounded-full"><Trash2 size={14} /></button>
+                          {/* כפתור הוספת מחבר (מותר לאורח רק אם המאמר חדש) */}
+                          {!(isGuest && art._id) && (
+                            <button title="הוסף מחבר" onClick={() => addAuthorRow(activeVolume, aIdx)} className="text-indigo-600 hover:bg-indigo-100 p-1.5 rounded-full">
+                              <UserPlus size={14} />
+                            </button>
+                          )}
+                          
+                          {/* 🌟 חסימת הפח! הלחצן יופיע רק אם זה לא (אורח + מאמר ישן) 🌟 */}
+                          {!(isGuest && art._id) && (
+                            <button title="מחק מאמר" onClick={() => { const nv = [...volumes]; nv[activeVolume].articles.splice(aIdx, 1); nv[activeVolume].articles.forEach((a, i) => a.autoId = i + 1); setVolumes(nv) }} className="text-red-400 hover:bg-red-50 p-1.5 rounded-full">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -20,12 +20,13 @@ export default function Login() {
       })
 
       const data = await res.json()
-
       if (res.ok) {
         localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user)) // <--- הוספנו את זה
         setMessage('התחברת בהצלחה! ❤')
         setTimeout(() => window.location.href = '/series', 1500)
-      } else {
+      }
+      else {
         setMessage(data.message || 'שגיאה בהתחברות')
       }
     } catch (err) {

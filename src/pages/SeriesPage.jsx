@@ -58,6 +58,9 @@ const isSmartMatch = (textArray, query) => {
 };
 
 export default function LibraryApp() {
+  // שולפים את המשתמש ובודקים אם הוא אורח
+  const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const isGuest = loggedInUser.role === 'viewer'
   const [allSeries, setAllSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -296,12 +299,23 @@ export default function LibraryApp() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg active:scale-95">
-                  <Edit3 size={18} /> עדכון פרטי סדרה
-                </button>
-                <button onClick={() => handleDeleteSeries(selectedSeries._id)} className="p-2.5 text-gray-300 hover:text-red-500 transition-colors">
-                  <Trash2 size={22} />
-                </button>
+                {!isGuest && (
+                  <>
+                    <button
+                      onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+                    >
+                      <Edit3 size={18} />
+                      עדכון פרטי סדרה
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSeries(selectedSeries._id)}
+                      className="p-2.5 text-gray-300 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={22} />
+                    </button>
+                  </>
+                )}
               </div>
             </header>
 
