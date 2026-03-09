@@ -1,10 +1,26 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom';
+import { UserCircle, LogOut } from 'lucide-react'; // הוספנו אייקונים למראה מקצועי
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  
+  // שולפים את נתוני המשתמש מהזיכרון
+  const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const hasUser = Object.keys(loggedInUser).length > 0;
+
+  // פונקציית התנתקות
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.reload(); // רענון העמוד כדי לעדכן את התצוגה
+  };
+
   return (
     <>
-      {/* ========= חלק 1 – פתיחה עם תמונה על כל המסך ========= */}
-      <section className="relative h-screen w-full relative overflow-hidden">
+      {/* Container ראשי שעוטף הכל בגובה המסך בדיוק */}
+      <section className="relative h-screen w-full overflow-hidden" dir="rtl">
+        
+        {/* תמונת רקע */}
         <img
           src="books.jpg"
           alt="ספרי קודש"
@@ -12,121 +28,87 @@ export default function HomePage() {
         />
         <div className="absolute inset-0 bg-black/60" />
 
-        {/* כפתורים למעלה ימין */}
-        <div className="absolute top-8 right-8 z-30 flex gap-4">
-          <Link to="/login" className="px-8 py-4 bg-white/20 backdrop-blur-lg hover:bg-white/30 text-white font-medium rounded-full border border-white/40 transition-all hover:scale-105 shadow-2xl">
-            התחברות
-          </Link>
-          <Link to="/register" className="px-8 py-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold rounded-full transition-all hover:scale-105 shadow-2xl shadow-amber-600/60">
-            הרשמה
-          </Link>
+        {/* שורת משתמש עליונה (Header) */}
+        <div className="absolute top-6 right-6 left-6 z-30 flex justify-between items-center">
+          <div className="flex gap-4 items-center">
+            {hasUser ? (
+              // תצוגה למשתמש מחובר
+              <>
+                <div className="flex items-center gap-2 text-white bg-white/10 px-5 py-2.5 rounded-full border border-white/20 backdrop-blur-md shadow-lg">
+                  <UserCircle size={20} className="text-amber-400" />
+                  <span className="font-medium text-sm md:text-base">שלום, {loggedInUser.name || 'משתמש'}</span>
+                  {loggedInUser.role === 'admin' && (
+                    <span className="bg-blue-600 text-[10px] px-2 py-0.5 rounded font-bold ml-1">מנהל</span>
+                  )}
+                </div>
+                <button 
+                  onClick={handleLogout} 
+                  className="px-5 py-2.5 bg-red-500/80 hover:bg-red-600/90 text-white text-sm md:text-base font-medium rounded-full backdrop-blur-md transition-all shadow-lg flex items-center gap-1.5"
+                >
+                  <LogOut size={16} /> התנתקות
+                </button>
+              </>
+            ) : (
+              // תצוגה לאורח
+              <>
+                <Link to="/login" className="px-6 py-2.5 bg-white/20 backdrop-blur-lg hover:bg-white/30 text-white text-sm md:text-base font-medium rounded-full border border-white/40 transition-all shadow-lg">
+                  התחברות
+                </Link>
+                <Link to="/register" className="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-sm md:text-base font-bold rounded-full transition-all shadow-lg shadow-amber-600/50">
+                  הרשמה
+                </Link>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* כיתוב ראשי באמצע */}
-        <div className="relative h-full flex items-center justify-center text-center px-6">
-          <div className="animate-fadeIn">
+        {/* כיתוב ראשי וכפתור כניסה (הכל יחד באמצע) */}
+        <div className="relative h-full flex flex-col items-center justify-center text-center px-6 z-20">
+          
+          <div className="animate-fadeIn mb-10">
             <h1
-              className="text-6xl md:text-8xl lg:text-9xl font-black text-white drop-shadow-3xl leading-tight"
+              className="text-6xl md:text-7xl lg:text-9xl font-black text-white drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] leading-tight"
               style={{ fontFamily: 'Frank Ruhl Libre, serif' }}
             >
               קבצים תורניים
             </h1>
+            <p className="text-amber-400 text-lg md:text-2xl mt-4 font-medium drop-shadow-md">
+              מאגר סדרות, גליונות ומאמרים תורניים
+            </p>
           </div>
-        </div>
 
-        {/* חץ למטה עם אנימציה */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
-          <svg className="w-12 h-12 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
+          {/* כפתור כניסה בפרופורציה נכונה בתוך הדף */}
+          <div className="animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+            <Link
+              to="/series"
+              className="inline-flex items-center gap-4 px-10 py-4 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 hover:from-amber-700 hover:via-amber-600 hover:to-yellow-700 text-white text-xl md:text-2xl font-black rounded-full shadow-[0_10px_25px_rgba(217,119,6,0.4)] transition-all transform hover:scale-105"
+            >
+              כניסה לאוסף המלא
+              <svg className="w-7 h-7 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+
         </div>
       </section>
 
-      {/* ========= חלק 2 – פירוט יפהפה על האוסף ========= */}
-      <section className="py-24 px-6 bg-gradient-to-b from-slate-950 via-black to-slate-950">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-5xl md:text-7xl font-bold text-white mb-16 animate-fadeInUp">
-            אוסף נדיר שנבנה באהבה ובקדושה
-          </h2>
-
-          <div className="grid md:grid-cols-3 gap-12 mb-20">
-            {/* קלף 1 */}
-            <div className="group transform transition-all duration-500 hover:-translate-y-6">
-              <div className="bg-gradient-to-br from-amber-900/30 to-amber-950/50 backdrop-blur-md rounded-3xl p-10 border border-amber-700/30 shadow-2xl">
-                <div className="text-7xl font-black text-amber-400 mb- mb-6">150+</div>
-                <h3 className="text-3xl font-bold text-white mb-4">סדרות קלאסיות</h3>
-                <p className="text-amber-200 text-lg leading-relaxed">
-                  תניא • ליקוטי מוהר״ן • משנה ברורה • אור החיים • חזון איש • שפת אמת • אגרות משה • ועוד ענקים
-                </p>
-              </div>
-            </div>
-
-            {/* קלף 2 */}
-            <div className="group transform transition-all duration-500 hover:-translate-y-6">
-              <div className="bg-gradient-to-br from-amber-900/30 to-amber-950/50 backdrop-blur-md rounded-3xl p-10 border border-amber-700/30 shadow-2xl">
-                <div className="text-7xl font-black text-amber-400 mb-6">10,000+</div>
-                <h3 className="text-3xl font-bold text-white mb-4">כרכים דיגיטליים</h3>
-                <p className="text-amber-200 text-lg leading-relaxed">
-                  כל כרך סרוק באיכות גבוהה, נקי, עם סימניות וחיפוש פנימי
-                </p>
-              </div>
-            </div>
-
-            {/* קלף 3 */}
-            <div className="group transform transition-all duration-500 hover:-translate-y-6">
-              <div className="bg-gradient-to-br from-amber-900/30 to-amber-950/50 backdrop-blur-md rounded-3xl p-10 border border-amber-700/30 shadow-2xl">
-                <div className="text-7xl font-black text-amber-400 mb-6">בחינם</div>
-                <h3 className="text-3xl font-bold text-white mb-4">לכל עם ישראל</h3>
-                <p className="text-amber-200 text-lg leading-relaxed">
-                  נבנה מתוך אהבת התורה והרצון להפיץ אור לכל בית יהודי
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* כפתור כניסה גדול */}
-          <Link
-            to="/series"
-            className="inline-flex items-center gap-6 px-24 py-8 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 hover:from-amber-700 hover:via-amber-600 hover:to-yellow-700 text-white text-4xl font-black rounded-full shadow-2xl transition-all transform hover:scale-110 hover:shadow-amber-500/70"
-          >
-            כניסה לאוסף המלא
-            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
-      </section>
-
-      {/* ========= Footer קטן ומרגש ========= */}
-      <footer className="py-12 px-6 bg-white border-t border-amber-900/50">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-2xl text-amber-300 italic mb-4" style={{ fontFamily: 'Frank Ruhl Libre, serif' }}>
-            "כי מציון תצא תורה ודבר ה' מירושלים"
-          </p>
-          <p className="text-amber-100 text-lg">
-            בברכה ובאהבה גדולה • מיכלי
-          </p>
-          <p className="text-amber-200/60 text-sm mt-6">
-            © {new Date().getFullYear()} קבצים תורניים • כל הזכויות שמורות בקדושה
-          </p>
-        </div>
-      </footer>
-
-      {/* אנימציות קטנות ויפות */}
+      {/* אנימציות */}
       <style jsx>{`
         @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(40px); }
+          from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
         }
         .animate-fadeInUp {
-          animation: fadeInUp 1s ease-out forwards;
-        }
-        .animate-fadeIn {
-          animation: fadeIn 1.5s ease-out;
+          opacity: 0;
+          animation: fadeInUp 0.8s ease-out forwards;
         }
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 1.2s ease-out;
         }
       `}</style>
     </>
