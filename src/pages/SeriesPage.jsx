@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, Search, Plus, BookOpen, FileText, ExternalLink, Edit3, Eye, User, Layers, Book, LogOut, LogIn, ShieldAlert, ShieldCheck, UserCircle } from 'lucide-react';
+import { Trash2, Search, Plus, BookOpen, FileText, ExternalLink, Edit3, Eye, User, Layers, Book, LogOut, LogIn, ShieldAlert, ShieldCheck, UserCircle, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // ==========================================
@@ -49,7 +49,6 @@ const isSmartMatch = (textArray, query) => {
 };
 
 export default function LibraryApp() {
-  // 🌟 מנגנון ההרשאות החכם 🌟
   const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
   const hasUser = Object.keys(loggedInUser).length > 0;
   
@@ -66,8 +65,8 @@ export default function LibraryApp() {
   const [activeVolIdx, setActiveVolIdx] = useState(0);
   const [activeTab, setActiveTab] = useState('series');
   
-  // 🌟 שמירת המאמר הספציפי שנבחר לצורך הדגשה וגלילה 🌟
   const [activeArticleId, setActiveArticleId] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ show: false, seriesId: null, seriesName: '' });
 
   const fetchSeries = () => {
     setLoading(true);
@@ -85,7 +84,6 @@ export default function LibraryApp() {
     fetchSeries();
   }, []);
 
-  // 🌟 גלילה אוטומטית למאמר ברגע שנבחר 🌟
   useEffect(() => {
     if (activeArticleId) {
       setTimeout(() => {
@@ -97,16 +95,28 @@ export default function LibraryApp() {
     }
   }, [activeArticleId, activeVolIdx]);
 
-  const handleDeleteSeries = async (id) => {
-    if (window.confirm("האם את בטוחה שברצונך למחוק את כל הסדרה וכל תוכן הגליונות שלה? פעולה זו אינה הפיכה.")) {
-      try {
-        const response = await fetch(`http://localhost:5000/api/series/id/${id}`, { method: 'DELETE' });
-        if (response.ok) {
-          setAllSeries(prev => prev.filter(s => s._id !== id));
-          setSelectedSeries(null);
-          alert("הסדרה נמחקה בהצלחה");
-        } else throw new Error();
-      } catch (err) { alert("שגיאה במחיקת הסדרה. וודאי שהשרת פועל."); }
+  const confirmDelete = (series) => {
+    setDeleteModal({
+      show: true,
+      seriesId: series._id,
+      seriesName: `${series.prefixName || ''} ${series.fileName || ''}`.trim()
+    });
+  };
+
+  const executeDelete = async () => {
+    const id = deleteModal.seriesId;
+    if (!id) return;
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/series/id/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        setAllSeries(prev => prev.filter(s => s._id !== id));
+        setSelectedSeries(null);
+        setDeleteModal({ show: false, seriesId: null, seriesName: '' });
+      } else throw new Error();
+    } catch (err) { 
+      alert("שגיאה במחיקת הסדרה. וודאי שהשרת פועל."); 
+      setDeleteModal({ show: false, seriesId: null, seriesName: '' });
     }
   };
 
@@ -164,12 +174,10 @@ export default function LibraryApp() {
     return [];
   }, [searchTerm, allSeries, activeTab]);
 
-  // 🌟 הפונקציה שמעדכנת את התצוגה המרכזית בלחיצה 🌟
   const handleResultClick = (item) => {
     setSelectedSeries(item.originalSeries || item);
     setActiveVolIdx(item.volIndex || 0);
     
-    // אם נלחץ מאמר - שומרים אותו כדי שהתצוגה תדגיש אותו
     if (item.type === 'article') {
       setActiveArticleId(item._id || item.id);
     } else {
@@ -186,14 +194,16 @@ export default function LibraryApp() {
 
   const currentVol = selectedSeries?.volumes?.[activeVolIdx];
 
-  // 🌟 קפיצה חכמה לעמוד ב-PDF אם נבחר מאמר ספציפי 🌟
+  // 🌟 קפיצה חכמה לעמוד ב-PDF 🌟
   let pdfFinalUrl = '';
   if (currentVol && currentVol.pdfPath) {
     let pageParam = '#';
     if (activeArticleId && currentVol.articles) {
       const activeArt = currentVol.articles.find(a => (a._id || a.id) === activeArticleId);
-      if (activeArt && activeArt.startPage) {
-        const pageNum = String(activeArt.startPage).match(/\d+/);
+      // תומך גם ב-page וגם ב-startPage תלוי איך זה נשמר במסד שלך
+      const targetPage = activeArt?.startPage || activeArt?.page; 
+      if (targetPage) {
+        const pageNum = String(targetPage).match(/\d+/); // מחלץ רק את המספר (למקרה שנכתב "עמ' 5")
         if (pageNum) {
           pageParam = `#page=${pageNum[0]}&`;
         }
@@ -205,7 +215,36 @@ export default function LibraryApp() {
   return (
     <div className="h-screen bg-gray-200 text-gray-900 font-sans flex flex-col overflow-hidden selection:bg-blue-200" dir="rtl">
       
-      {/* 🌟🌟 שורת משתמש עליונה (User Bar) 🌟🌟 */}
+      {deleteModal.show && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4">
+            <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-black text-gray-900 mb-2">אזהרת מחיקה!</h3>
+            <p className="text-gray-700 mb-6 text-[15px]">
+              האם אתה בטוח שברצונך למחוק לחלוטין את הסדרה:<br/>
+              <strong className="text-red-600 text-lg">{deleteModal.seriesName}</strong> ?<br/>
+              <span className="text-[13px] text-gray-500 block mt-2 font-bold bg-gray-100 p-2 rounded">שימו לב: פעולה זו תמחק גם את כל הגליונות והמאמרים שבתוכה, ולא ניתנת לביטול.</span>
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button 
+                onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} 
+                className="px-6 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors"
+              >
+                ביטול
+              </button>
+              <button 
+                onClick={executeDelete} 
+                className="px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors"
+              >
+                כן, מחק סדרה
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="h-12 bg-gray-900 text-white flex items-center justify-between px-5 shrink-0 shadow-lg z-20">
         <div className="flex items-center gap-5">
           {isAdmin && (
@@ -246,10 +285,8 @@ export default function LibraryApp() {
         </div>
       </div>
 
-      {/* גוף האפליקציה המרכזי */}
       <div className="flex-1 flex overflow-hidden">
         
-        {/* עמודה 1: סרגל ימני נעול בברזל ל-320px לעולם לא ישתנה */}
         <aside className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 overflow-hidden shadow-lg z-10" style={{ width: '320px', minWidth: '320px', maxWidth: '320px' }}>
           <div className="p-3 border-b border-gray-300 bg-gray-100 shrink-0">
             {canAddNew && (
@@ -273,7 +310,6 @@ export default function LibraryApp() {
             </div>
           </div>
 
-          {/* הוספת overflow-y-scroll כדי למנוע קפיצות כשהגלילה מופיעה או נעלמת */}
           <div className="flex-1 overflow-y-scroll overflow-x-hidden custom-scrollbar bg-white min-w-0">
             {filteredData.length > 0 ? filteredData.map((item, idx) => {
               if (item.type === 'series') {
@@ -285,7 +321,7 @@ export default function LibraryApp() {
                     </div>
                     <div className="text-right flex-1 min-w-0">
                       <h3 className={`font-bold text-[14px] truncate leading-tight w-full ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>{item.prefixName} {item.fileName}</h3>
-                      <p className="text-[11px] text-gray-600 mt-1 flex items-center gap-1 font-medium truncate w-full"><User size={11} className="shrink-0" /> {item.editor || 'ללא עורך'}</p>
+                      {/* הוסר כאן כיתוב העורך */}
                     </div>
                   </button>
                 );
@@ -316,11 +352,9 @@ export default function LibraryApp() {
           </div>
         </aside>
 
-        {/* תצוגה מרכזית */}
         <main className="flex-1 flex flex-col min-w-0 bg-gray-100 overflow-hidden">
           {selectedSeries ? (
             <>
-              {/* כותרת הסדרה */}
               <header className="h-16 bg-white border-b border-gray-300 px-6 flex items-center justify-between shrink-0 shadow-sm z-0">
                 <div className="flex items-center gap-4 truncate min-w-0">
                   <div className="bg-blue-800 p-2.5 rounded-lg text-white shadow shrink-0"><BookOpen size={22} /></div>
@@ -328,7 +362,8 @@ export default function LibraryApp() {
                     <h2 className="text-[18px] font-black text-gray-900 leading-none truncate">{selectedSeries.prefixName} {selectedSeries.fileName}</h2>
                     <div className="flex gap-3 mt-1.5 truncate">
                       {selectedSeries.sector && <span className="text-[11px] font-bold text-blue-800 bg-blue-100 px-2 rounded border border-blue-200 shrink-0">{selectedSeries.sector}</span>}
-                      <span className="text-[12px] text-gray-600 font-bold truncate">עורך: <span className="text-gray-900">{selectedSeries.editor || 'לא צויין'}</span> | {selectedSeries.publicationPlace}</span>
+                      {/* הוסר מפה כיתוב העורך */}
+                      {selectedSeries.publicationPlace && <span className="text-[12px] text-gray-600 font-bold truncate">{selectedSeries.publicationPlace}</span>}
                     </div>
                   </div>
                 </div>
@@ -339,7 +374,7 @@ export default function LibraryApp() {
                       <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-400 text-gray-800 rounded-lg text-[13px] font-bold hover:bg-gray-100 transition-colors shadow-sm">
                         <Edit3 size={16} className="text-gray-600" /> עריכת סדרה
                       </button>
-                      <button onClick={() => handleDeleteSeries(selectedSeries._id)} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors shadow-sm">
+                      <button onClick={() => confirmDelete(selectedSeries)} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors shadow-sm">
                         <Trash2 size={16} /> מחיקה
                       </button>
                     </>
@@ -349,7 +384,6 @@ export default function LibraryApp() {
 
               <div className="flex-1 flex overflow-hidden">
                 
-                {/* עמודה 2: רשימת גליונות קבועה ונוקשה ל-220px לעולם לא משתנה */}
                 <div className="border-l border-gray-300 bg-white flex flex-col shrink-0 shadow-sm z-0" style={{ width: '220px', minWidth: '220px', maxWidth: '220px' }}>
                   <div className="p-3 text-[12px] font-black text-gray-700 uppercase border-b border-gray-300 flex items-center gap-2 bg-gray-100 shrink-0">
                     <Layers size={14} className="text-gray-500" /> רשימת גליונות
@@ -372,11 +406,9 @@ export default function LibraryApp() {
                   )}
                 </div>
 
-                {/* עמודה 3: מאמרים (360px נוקשה) וה-PDF שלוקח את השאר */}
                 <div className="flex-1 flex overflow-hidden min-w-0">
                   {currentVol ? (
                     <>
-                      {/* רשימת המאמרים נעולה ל-360px */}
                       <div className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 shadow-sm z-0" style={{ width: '360px', minWidth: '360px', maxWidth: '360px' }}>
                         <div className="p-4 pb-3 border-b border-gray-300 flex justify-between items-center bg-white shrink-0">
                           <h3 className="text-[16px] font-black text-gray-900">מאמרי הגליון</h3>
@@ -387,7 +419,6 @@ export default function LibraryApp() {
                             currentVol.articles.map((art, aIdx) => {
                               const isHighlighted = activeArticleId === (art._id || art.id);
                               return (
-                                // 🌟 כאן קורה הקסם של ההדגשה הצהובה של המאמר שנבחר! 🌟
                                 <div id={`art-${art._id || art.id}`} key={aIdx} className={`p-3.5 rounded-xl border transition-all shadow-sm ${isHighlighted ? 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-200 scale-[1.02] shadow-md z-10 relative' : 'bg-white border-gray-300 hover:border-blue-400 hover:shadow-md'}`}>
                                   <div className="flex justify-between items-start mb-1.5 w-full min-w-0">
                                     <h4 className={`text-[14px] font-black leading-snug flex-1 ml-3 truncate whitespace-normal ${isHighlighted ? 'text-yellow-900' : 'text-gray-900'}`}>{art.contentTitle || art.title}</h4>
@@ -416,7 +447,6 @@ export default function LibraryApp() {
                         )}
                       </div>
                       
-                      {/* ה-PDF שתופס את שארית המסך במלואו */}
                       <div className="flex-1 bg-gray-400 relative shadow-inner overflow-hidden min-w-[300px]">
                         {currentVol.pdfPath ? (
                           <div className="h-full flex flex-col">
@@ -426,8 +456,8 @@ export default function LibraryApp() {
                                 <ExternalLink size={12} /> פתיחה בחלון נפרד
                               </a>
                             </div>
-                            {/* 🌟 טעינת ה-PDF ביחד עם מספר העמוד המדויק של המאמר! 🌟 */}
-                            <iframe src={pdfFinalUrl} className="w-full h-full border-none bg-gray-300" title="Preview" />
+                            {/* 🌟 הוספתי כאן key כדי להכריח את הדפדפן לרענן ולקפוץ לעמוד 🌟 */}
+                            <iframe key={pdfFinalUrl} src={pdfFinalUrl} className="w-full h-full border-none bg-gray-300" title="Preview" />
                           </div>
                         ) : (
                           <div className="h-full flex flex-col items-center justify-center text-gray-500 p-8 text-center bg-gray-100 border-l border-gray-300">
