@@ -72,7 +72,7 @@ export default function HomePage() {
             >
               קבצים תורניים
             </h1>
-            <p className="text-amber-400 text-lg md:text-2xl mt-4 font-medium drop-shadow-md">
+            <p className="text-white text-amber-400 text-lg md:text-2xl mt-4 font-medium drop-shadow-md">
               מאגר סדרות, גליונות ומאמרים תורניים
             </p>
           </div>
