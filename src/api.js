@@ -1,17 +1,14 @@
 import axios from 'axios';
 
-// יוצרים מופע של Axios עם כתובת הבסיס של השרת
-// דוגמה לקוד ב-Frontend
+// הגדרת כתובת השרת - משתמש במשתנה סביבה או בכתובת הישירה של Render
 const API_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com';
 
-// ואז בבקשה (fetch/axios):
-fetch(`${API_URL}/api/auth/register`, { ... });
-
-// הגדרה גלובלית: הוספת ה-Token (JWT) אוטומטית לכל בקשה שיוצאת לשרת
+// יצירת מופע של Axios
 const api = axios.create({
   baseURL: API_URL
 });
 
+// הוספת ה-Token לכל בקשה באופן אוטומטי
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
