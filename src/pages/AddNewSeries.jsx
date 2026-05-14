@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { Plus, Trash2, Users, FileText, Database, CheckCircle2, Link2, Upload, X, UserPlus, Info, AlertCircle } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import api from '../api';
+import { useSelector } from 'react-redux';
 
-// הוספנו widthClass כדי לשלוט ברוחב באחוזים בשורה של הגליון
 const CompactField = ({ label, children, colSpan = '', widthClass = '', required = false }) => (
   <div className={`flex flex-col gap-0.5 ${colSpan} ${widthClass}`}>
     <label className="text-[11px] font-bold text-black mr-1 flex items-center gap-1">
@@ -12,15 +13,16 @@ const CompactField = ({ label, children, colSpan = '', widthClass = '', required
   </div>
 )
 
-export default function AddSeriesForm() {
-  const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const hasUser = Object.keys(loggedInUser).length > 0; 
-  
-  const isNotLoggedIn = !hasUser; 
-  const isAdmin = hasUser && loggedInUser.role === 'admin'; 
-  const isViewer = hasUser && !isAdmin; 
-  const canAddNew = hasUser; 
-  
+export default function App() {
+  const { currentUser } = useSelector((state) => state.user);
+  const loggedInUser = currentUser || {};
+  const hasUser = Object.keys(loggedInUser).length > 0;
+
+  const isNotLoggedIn = !hasUser;
+  const isAdmin = hasUser && loggedInUser.role === 'admin';
+  const isViewer = hasUser && !isAdmin;
+  const canAddNew = hasUser;
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
@@ -38,10 +40,10 @@ export default function AddSeriesForm() {
   useEffect(() => {
     const target = searchParams.get('target');
     if (editId && (target === 'volume' || target === 'article') && (isViewer || isNotLoggedIn)) {
-      const msg = target === 'volume' 
+      const msg = target === 'volume'
         ? 'מצב משתמש: הנך מוסיף גליון חדש. נתוני העבר חסומים לעריכה.'
         : 'מצב משתמש: הנך מוסיף מאמר חדש. נתוני העבר חסומים לעריכה.';
-      
+
       setToastMessage(msg);
       const timer = setTimeout(() => setToastMessage(''), 6000);
       return () => clearTimeout(timer);
@@ -58,7 +60,7 @@ export default function AddSeriesForm() {
     enteredBy: '', coverPreview: null
   })
 
-  const isExistingSeries = !!series._id; 
+  const isExistingSeries = !!series._id;
 
   const createEmptyVolume = (index) => ({
     id: Math.random().toString(36).substr(2, 9),
@@ -79,9 +81,9 @@ export default function AddSeriesForm() {
 
   useEffect(() => {
     if (editId) {
-      fetch(`http://localhost:5000/api/series/id/${editId}`)
-        .then(res => res.json())
-        .then(result => {
+      api.get(`/series/id/${editId}`)
+        .then(res => {
+          const result = res.data;
           const data = result.data?.series || result.data;
           if (data) {
             setSeries({
@@ -147,7 +149,7 @@ export default function AddSeriesForm() {
 
               } else if (target === 'article' && canAddNew) {
                 let vIdx = mappedVolumes.findIndex(v => v._id === targetVolId || v.id === targetVolId);
-                if (vIdx === -1 && !isNaN(targetVolId)) vIdx = parseInt(targetVolId); 
+                if (vIdx === -1 && !isNaN(targetVolId)) vIdx = parseInt(targetVolId);
 
                 if (vIdx >= 0 && vIdx < mappedVolumes.length) {
                   mappedVolumes[vIdx].articles.push({
@@ -156,7 +158,7 @@ export default function AddSeriesForm() {
                     authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
                     page: '', title: '', generalTopic: '', source: '', linkedArticleId: '', linkType: ''
                   });
-                  setTimeout(() => setActiveVolume(vIdx), 100); 
+                  setTimeout(() => setActiveVolume(vIdx), 100);
                 }
               }
 
@@ -168,28 +170,73 @@ export default function AddSeriesForm() {
     }
   }, [editId]);
 
-  const displayYears = useMemo(() => {
-    const years = volumes.map(v => v.publicationYear).filter(y => y !== '');
-    if (years.length === 0) return 'טרם הוזנו שנים';
-    if (years.length === 1) return years[0];
-    return `${years[0]} - ${years[years.length - 1]}`;
+const displayYears = useMemo(() => {
+    // פונקציית עזר גאונית שהופכת שנה עברית למספר (גימטריה) כדי למיין במדויק
+    const getYearValue = (yearStr) => {
+      const str = yearStr.toString().trim();
+      
+      // אם הקלידו מספר רגיל לועזי (כמו 2024)
+      if (/^\d+$/.test(str)) return parseInt(str, 10);
+      
+      // מילון גימטריה
+      const gematria = {
+        'א':1,'ב':2,'ג':3,'ד':4,'ה':5,'ו':6,'ז':7,'ח':8,'ט':9,
+        'י':10,'כ':20,'ל':30,'מ':40,'נ':50,'ס':60,'ע':70,'פ':80,'צ':90,
+        'ק':100,'ר':200,'ש':300,'ת':400,
+        'ך':20,'ם':40,'ן':50,'ף':80,'ץ':90
+      };
+      
+      let sum = 0;
+      const cleanStr = str.replace(/[^א-ת]/g, ''); // מנקים מרכאות ופסיקים
+      
+      for (let char of cleanStr) {
+        sum += gematria[char] || 0;
+      }
+      
+      // טיפול באלפים (אם כתבו ה'תשפ"ד)
+      if (str.startsWith("ה'") || str.startsWith("ה’") || (cleanStr.length >= 4 && cleanStr.startsWith('ה'))) {
+         sum += 4995; // מוסיפים 5000 (פחות 5 של הה' שכבר חושבה)
+      }
+      
+      return sum;
+    };
+
+    // 1. אוספים את כל השנים מהגליונות ומסננים ריקים
+    const validVolumes = volumes.filter(v => v.publicationYear && v.publicationYear.trim() !== '');
+    if (validVolumes.length === 0) return 'טרם הוזנו שנים';
+
+    // 2. מסננים כפילויות (שלא יהיה פעמיים תשפ"ד)
+    const uniqueYears = [...new Set(validVolumes.map(v => v.publicationYear.trim()))];
+
+    // 3. ממיינים בעזרת כוח העל של הגימטריה שבנינו!
+    uniqueYears.sort((a, b) => getYearValue(a) - getYearValue(b));
+
+    // 4. לוקחים את הכי קטן והכי גדול
+    const minYear = uniqueYears[0];
+    const maxYear = uniqueYears[uniqueYears.length - 1];
+
+    if (uniqueYears.length === 1 || minYear === maxYear) {
+      return minYear;
+    }
+    
+    return `${minYear} - ${maxYear}`;
   }, [volumes]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/subtitles')
-      .then(res => res.json())
-      .then(result => {
+    api.get('/subtitles')
+      .then(res => {
+        const result = res.data;
         const articles = result?.data?.subtitles || result?.data || result || [];
         setDbArticles(Array.isArray(articles) ? articles : []);
       })
       .catch(err => console.error('Error fetching articles:', err));
 
-    fetch('http://localhost:5000/api/series')
-      .then(res => res.json())
-      .then(result => {
+    api.get('/series')
+      .then(res => {
+        const result = res.data;
         const seriesArray = result?.data?.series || result?.data || [];
         const uniquePlaces = [...new Set(seriesArray.map(s => s.publicationPlace).filter(Boolean))];
-        setPublicationPlaces(uniquePlaces.sort()); 
+        setPublicationPlaces(uniquePlaces.sort());
       })
       .catch(err => console.error('Error fetching places:', err));
   }, []);
@@ -206,9 +253,9 @@ export default function AddSeriesForm() {
       showToast('אינך מחובר. המערכת במצב צפייה בלבד.');
       return;
     }
-    
+
     if (isViewer && isExistingSeries) {
-        showToast('מצב משתמש: הנך מוסיף גליון חדש. שדות עבר חסומים לעריכה.');
+      showToast('מצב משתמש: הנך מוסיף גליון חדש. שדות עבר חסומים לעריכה.');
     }
 
     const newIdx = volumes.length;
@@ -218,12 +265,12 @@ export default function AddSeriesForm() {
 
   const addNewArticle = () => {
     if (!canAddNew) {
-        showToast('אינך מחובר. המערכת במצב צפייה בלבד.');
-        return;
+      showToast('אינך מחובר. המערכת במצב צפייה בלבד.');
+      return;
     }
 
     if (isViewer && !!currentVolume?._id) {
-        showToast('מצב משתמש: הנך מוסיף מאמר חדש. המאמרים הקודמים חסומים לעריכה.');
+      showToast('מצב משתמש: הנך מוסיף מאמר חדש. המאמרים הקודמים חסומים לעריכה.');
     }
 
     const nv = [...volumes];
@@ -269,10 +316,10 @@ export default function AddSeriesForm() {
     } else if (deletePrompt.type === 'article') {
       const nv = [...volumes];
       nv[deletePrompt.vIdx].articles.splice(deletePrompt.aIdx, 1);
-      nv[deletePrompt.vIdx].articles.forEach((a, i) => a.autoId = i + 1); 
+      nv[deletePrompt.vIdx].articles.forEach((a, i) => a.autoId = i + 1);
       setVolumes(nv);
     }
-    setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' }); 
+    setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' });
   }
 
   const addAuthorRow = (vIdx, aIdx) => {
@@ -298,7 +345,7 @@ export default function AddSeriesForm() {
       if (e.target.tagName === 'BUTTON' || e.target.type === 'submit' || e.target.type === 'file') {
         return;
       }
-      e.preventDefault(); 
+      e.preventDefault();
 
       if (e.target.dataset.lastArticleField === "true" && canAddNew) {
         addNewArticle();
@@ -330,7 +377,6 @@ export default function AddSeriesForm() {
     }
   };
 
-  // 🌟 הגדלנו מעט את הריווח הפנימי של השדות (p-1.5 במקום p-1) כדי שיהיו נוחים ומרווחים יותר 🌟
   const inputClass = "w-full p-1.5 border border-slate-200 rounded text-[12px] text-black outline-none focus:border-indigo-500 bg-white shadow-sm";
   const currentVolume = volumes[activeVolume];
 
@@ -338,33 +384,33 @@ export default function AddSeriesForm() {
 
   const handleFinalSave = async () => {
     if (!series.fileName || series.fileName.trim() === '') {
-        alert("שגיאה: שדה 'שם הקובץ' הינו שדה חובה! אנא מלא אותו לפני השמירה.");
-        return; 
+      alert("שגיאה: שדה 'שם הקובץ' הינו שדה חובה! אנא מלא אותו לפני השמירה.");
+      return;
     }
 
-    if (isNotLoggedIn) return; 
+    if (isNotLoggedIn) return;
 
     setIsSaving(true);
     try {
       const formData = new FormData();
       const dataToSave = { ...series };
-      
+
       if (editId) {
         dataToSave._id = editId;
       } else {
-        delete dataToSave._id; 
+        delete dataToSave._id;
       }
 
       const cleanVolumes = volumes.map(vol => {
         const cleanArticles = vol.articles.filter(art => {
-          if (art._id) return true; 
-          const hasContent = 
+          if (art._id) return true;
+          const hasContent =
             (art.title && art.title.trim() !== '') ||
             (art.generalTopic && art.generalTopic.trim() !== '') ||
             (art.page && art.page.trim() !== '') ||
             (art.linkedArticleId && art.linkedArticleId.trim() !== '') ||
-            (art.authors && art.authors.some(auth => 
-              (auth.firstName && auth.firstName.trim() !== '') || 
+            (art.authors && art.authors.some(auth =>
+              (auth.firstName && auth.firstName.trim() !== '') ||
               (auth.lastName && auth.lastName.trim() !== '') ||
               (auth.titlePrefix && auth.titlePrefix.trim() !== '')
             ));
@@ -372,9 +418,9 @@ export default function AddSeriesForm() {
         });
         return { ...vol, articles: cleanArticles };
       }).filter(vol => {
-        if (vol._id) return true; 
-        
-        const hasBasicData = 
+        if (vol._id) return true;
+
+        const hasBasicData =
           (vol.volumeTitle && vol.volumeTitle.trim() !== '') ||
           (vol.mainTopic && vol.mainTopic.trim() !== '') ||
           (vol.publishedFor && vol.publishedFor.trim() !== '') ||
@@ -400,47 +446,24 @@ export default function AddSeriesForm() {
       if (series.coverFile) {
         formData.append('coverImage', series.coverFile);
       }
-      
+
       cleanVolumes.forEach((vol, index) => {
         if (vol.pdfFile) {
           formData.append(`pdfFile_${index}`, vol.pdfFile);
         }
       });
 
-      const response = await fetch('http://localhost:5000/api/series/save-full-catalog', {
-        method: 'POST',
-        body: formData,
-      });
+      await api.post('/series/save-full-catalog', formData);
 
-      let responseData = null;
-      try {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          responseData = await response.json();
-        } else {
-          responseData = await response.text(); 
-        }
-      } catch (e) {
-        console.log("לא ניתן היה לפענח את תשובת השרת", e);
-      }
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        navigate('/series');
+      }, 1500);
 
-      if (response.ok) {
-        setShowSuccessMessage(true);
-        setTimeout(() => {
-          setShowSuccessMessage(false);
-          navigate('/series');
-        }, 1500);
-      } else {
-        console.warn("השרת דיווח על בעיה, אך ידוע לנו שהנתונים נשמרים.");
-        setShowSuccessMessage(true); 
-        setTimeout(() => {
-          setShowSuccessMessage(false);
-          navigate('/series'); 
-        }, 1500);
-      }
     } catch (error) {
       console.error("Save Error:", error);
-      alert("הפעולה התבצעה אך הייתה שגיאת תקשורת.");
+      alert("הפעולה התבצעה אך הייתה שגיאת תקשורת. נא לבדוק בספרייה.");
       navigate('/series');
     } finally {
       setIsSaving(false);
@@ -453,7 +476,7 @@ export default function AddSeriesForm() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-100 font-sans text-right relative pb-10" dir="rtl" onKeyDown={handleKeyDown}>
-      
+
       {deletePrompt.show && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-center border border-gray-200">
@@ -462,18 +485,18 @@ export default function AddSeriesForm() {
             </div>
             <h3 className="text-lg font-black text-gray-900 mb-2">אישור מחיקה</h3>
             <p className="text-gray-700 mb-6 text-[14px]">
-              האם אתה בטוח שברצונך למחוק את {deletePrompt.type === 'volume' ? 'הגליון' : 'המאמר'}:<br/>
+              האם אתה בטוח שברצונך למחוק את {deletePrompt.type === 'volume' ? 'הגליון' : 'המאמר'}:<br />
               <strong className="text-red-600 break-words">{deletePrompt.title}</strong> ?
             </p>
             <div className="flex gap-3 justify-center">
-              <button 
-                onClick={() => setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' })} 
+              <button
+                onClick={() => setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' })}
                 className="px-5 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors"
               >
                 ביטול
               </button>
-              <button 
-                onClick={executeDeleteAction} 
+              <button
+                onClick={executeDeleteAction}
                 className="px-5 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors"
               >
                 מחק
@@ -485,8 +508,8 @@ export default function AddSeriesForm() {
 
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-5 py-2.5 rounded-full shadow-lg text-[12px] font-bold flex items-center gap-2 z-50">
-            <Info size={16} />
-            {toastMessage}
+          <Info size={16} />
+          {toastMessage}
         </div>
       )}
 
@@ -505,8 +528,6 @@ export default function AddSeriesForm() {
       </header>
 
       <div className="flex flex-1 p-3 gap-3 items-start">
-        
-        {/* 🌟 הסרגל הצדדי הוצר משמעותית (w-36 במקום w-48) כדי לפנות המון מקום לשדות 🌟 */}
         <aside className="w-36 bg-white border rounded-xl flex flex-col shrink-0 shadow-sm sticky top-16" style={{ height: 'calc(100vh - 80px)' }}>
           <div className="p-2 border-b bg-slate-50 shrink-0">
             {canAddNew ? (
@@ -576,6 +597,14 @@ export default function AddSeriesForm() {
                 <CompactField label="הערות מנהל" colSpan="col-span-8">
                   <input value={series.adminNotes} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, adminNotes: e.target.value })} className={inputClass} />
                 </CompactField>
+                <CompactField label="טווח שנים (מחושב)" colSpan="col-span-2">
+                  <input
+                    value={displayYears}
+                    disabled
+                    className={`${inputClass} bg-slate-100 text-slate-500 font-bold cursor-not-allowed text-center`}
+                    dir="ltr"
+                  />
+                </CompactField>
                 <CompactField label="הוזן ע״י" colSpan="col-span-2">
                   <input value={series.enteredBy} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, enteredBy: e.target.value })} className={inputClass} />
                 </CompactField>
@@ -603,7 +632,7 @@ export default function AddSeriesForm() {
                 <span className="bg-indigo-600 text-white text-[11px] px-3 py-0.5 rounded-full font-bold">גליון #{activeVolume + 1}</span>
               </div>
             </div>
-            
+
             <div className="flex flex-row gap-2 items-end w-full">
               <CompactField label="שם גליון" widthClass="w-[8%]"><input value={currentVolume.volumeTitle} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('volumeTitle', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="נושא ראשי" widthClass="w-[16%]"><input value={currentVolume.mainTopic} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('mainTopic', e.target.value)} className={inputClass} /></CompactField>
@@ -623,7 +652,7 @@ export default function AddSeriesForm() {
             </div>
           </section>
 
-          <section className="bg-white rounded-xl border shadow-sm flex flex-col w-full overflow-hidden mb-2">
+          <section className="bg-white rounded-xl border shadow-sm flex flex-col w-full overflow-hidden">
             <div className="p-2.5 border-b bg-slate-900 flex justify-between items-center shrink-0">
               <h4 className="text-white text-[11px] font-bold flex items-center gap-2"><Users size={14} /> מאמרים בתוך הגליון</h4>
             </div>
@@ -652,18 +681,29 @@ export default function AddSeriesForm() {
                       <td className="p-1 border-l text-center font-bold text-slate-400 align-middle">{art.autoId}</td>
 
                       <td className="p-1 border-l align-middle">
-                        <input key={`auth-pfx-${art.id}`} value={art.authors[0]?.titlePrefix || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, 0, 'titlePrefix', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate" placeholder="תואר" />
+                        {art.authors.map((auth, authIdx) => (
+                          <input key={`auth-pfx-${art.id}-${authIdx}`} value={auth.titlePrefix || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'titlePrefix', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate mb-1 last:mb-0" placeholder="תואר" />
+                        ))}
                       </td>
                       <td className="p-1 border-l align-middle">
-                        <input key={`auth-fn-${art.id}`} value={art.authors[0]?.firstName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, 0, 'firstName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate" placeholder="פרטי" />
+                        {art.authors.map((auth, authIdx) => (
+                          <input key={`auth-fn-${art.id}-${authIdx}`} value={auth.firstName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'firstName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate mb-1 last:mb-0" placeholder="פרטי" />
+                        ))}
                       </td>
                       <td className="p-1 border-l align-middle">
-                        <input key={`auth-ln-${art.id}`} value={art.authors[0]?.lastName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, 0, 'lastName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate" placeholder="משפחה" />
+                        {art.authors.map((auth, authIdx) => (
+                          <input key={`auth-ln-${art.id}-${authIdx}`} value={auth.lastName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'lastName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate mb-1 last:mb-0" placeholder="משפחה" />
+                        ))}
                       </td>
                       <td className="p-1 border-l align-middle">
-                        <div className="flex gap-1 items-center mb-1 last:mb-0">
-                          <input value={art.authors[0]?.role || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, 0, 'role', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate" placeholder="תפקיד" />
-                        </div>
+                        {art.authors.map((auth, authIdx) => (
+                          <div key={`auth-role-${art.id}-${authIdx}`} className="flex gap-1 items-center mb-1 last:mb-0">
+                            <input value={auth.role || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'role', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate" placeholder="תפקיד" />
+                            {authIdx > 0 && !(isNotLoggedIn || (isViewer && !!art._id)) && (
+                              <button onClick={() => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].authors.splice(authIdx, 1); setVolumes(nv) }} className="text-red-400 hover:text-red-600 px-1 font-bold">×</button>
+                            )}
+                          </div>
+                        ))}
                       </td>
 
                       <td className="p-1 border-l align-middle">
@@ -708,8 +748,6 @@ export default function AddSeriesForm() {
                               <UserPlus size={14} />
                             </button>
                           )}
-                          
-                          {/* מסתיר את כפתור המחיקה אם זה המאמר היחיד שנותר! */}
                           {canAddNew && !(isViewer && !!art._id) && currentVolume.articles.length > 1 && (
                             <button title="מחק מאמר" onClick={() => promptRemoveArticle(activeVolume, aIdx)} className="text-red-400 hover:bg-red-50 p-1.5 rounded-full transition-colors">
                               <Trash2 size={14} />
@@ -722,7 +760,7 @@ export default function AddSeriesForm() {
                 </tbody>
               </table>
             </div>
-          </section>       
+          </section>
         </div>
       </div>
       {showSuccessMessage && (

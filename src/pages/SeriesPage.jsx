@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, Search, Plus, BookOpen, FileText, ExternalLink, Edit3, Eye, User, Layers, Book, LogOut, LogIn, ShieldAlert, ShieldCheck, UserCircle, AlertTriangle, Info, X, Link2 } from 'lucide-react';
+import { Trash2, Search, Plus, BookOpen, FileText, ExternalLink, Edit3, Eye, User, Layers, Book, LogOut, LogIn, ShieldAlert, ShieldCheck, UserCircle, AlertTriangle, Info, X, Link2, FileSpreadsheet, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import api from '../api';
+import { useSelector, useDispatch } from 'react-redux';
+import { logoutUser } from '../redux/userSlice';
+
 // ==========================================
-// 1. אלגוריתם למציאת שגיאות כתיב
+// 1. פונקציות עזר (שגיאות כתיב וגימטריה)
 // ==========================================
 const getEditDistance = (a, b) => {
   if (!a) return b?.length || 0;
@@ -24,32 +28,40 @@ const getEditDistance = (a, b) => {
   return matrix[b.length][a.length];
 };
 
-// ==========================================
-// 2. פונקציית החיפוש החכמה
-// ==========================================
 const isSmartMatch = (textArray, query) => {
   if (!query) return true;
-  const text = textArray.filter(Boolean).join(' ').toLowerCase();
-  const q = query.toString().toLowerCase().trim();
-  if (!text) return false;
-  if (text.includes(q)) return true;
-  
-  const textWords = text.split(/\s+/);
-  const queryWords = q.split(/\s+/);
-  
+  const cleanText = textArray.filter(Boolean).join(' ').toLowerCase().replace(/["'`]/g, '');
+  const cleanQuery = query.toString().toLowerCase().trim().replace(/["'`]/g, '');
+  if (!cleanText) return false;
+  if (cleanText.includes(cleanQuery)) return true;
+  const textWords = cleanText.split(/\s+/);
+  const queryWords = cleanQuery.split(/\s+/);
   return queryWords.every(qWord => {
     return textWords.some(tWord => {
       if (tWord.includes(qWord)) return true;
-      if (qWord.length >= 5) {
-        return getEditDistance(tWord, qWord) <= 1;
-      }
+      if (qWord.length >= 5) return getEditDistance(tWord, qWord) <= 1; 
       return false;
     });
   });
 };
 
+const getYearValue = (yearStr) => {
+  if (!yearStr) return 0;
+  const str = yearStr.toString().trim();
+  if (/^\d+$/.test(str)) return parseInt(str, 10);
+  const gematria = { 'א':1,'ב':2,'ג':3,'ד':4,'ה':5,'ו':6,'ז':7,'ח':8,'ט':9,'י':10,'כ':20,'ל':30,'מ':40,'נ':50,'ס':60,'ע':70,'פ':80,'צ':90,'ק':100,'ר':200,'ש':300,'ת':400,'ך':20,'ם':40,'ן':50,'ף':80,'ץ':90 };
+  let sum = 0;
+  const cleanStr = str.replace(/[^א-ת]/g, '');
+  for (let char of cleanStr) sum += gematria[char] || 0;
+  if (str.startsWith("ה'") || str.startsWith("ה’") || (cleanStr.length >= 4 && cleanStr.startsWith('ה'))) sum += 4995;
+  return sum;
+};
+
 export default function LibraryApp() {
-  const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const { currentUser } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
+  
+  const loggedInUser = currentUser || {};
   const hasUser = Object.keys(loggedInUser).length > 0;
   
   const isNotLoggedIn = !hasUser; 
@@ -60,26 +72,62 @@ export default function LibraryApp() {
   const navigate = useNavigate();
   const [allSeries, setAllSeries] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // 🌟 סטייט לחיפוש וסינונים 🌟
   const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    place: '',
+    sector: '',
+    yearFrom: '',
+    yearTo: '',
+    topic: ''
+  });
+
   const [selectedSeries, setSelectedSeries] = useState(null);
   const [activeVolIdx, setActiveVolIdx] = useState(0);
   const [activeTab, setActiveTab] = useState('series');
   
   const [activeArticleId, setActiveArticleId] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ show: false, seriesId: null, seriesName: '' });
-  
   const [infoModal, setInfoModal] = useState({ show: false, type: '', data: null });
+
+  // שאיפת נתונים דינמית לפילטרים (אוסף מקומות, מגזרים ונושאים קיימים)
+  const filterOptions = useMemo(() => {
+    const places = new Set();
+    const sectors = new Set();
+    const topics = new Set();
+
+    allSeries.forEach(s => {
+      if (s.publicationPlace) places.add(s.publicationPlace);
+      if (s.sector) sectors.add(s.sector);
+      s.volumes?.forEach(v => {
+        if (v.mainTopic) topics.add(v.mainTopic);
+        v.articles?.forEach(a => {
+          if (a.generalTopic) topics.add(a.generalTopic);
+        });
+      });
+    });
+
+    return {
+      places: [...places].sort(),
+      sectors: [...sectors].sort(),
+      topics: [...topics].sort()
+    };
+  }, [allSeries]);
 
   const fetchSeries = () => {
     setLoading(true);
-    fetch('http://localhost:5000/api/series')
-      .then(res => res.json())
-      .then(result => {
-        const seriesArray = result?.data?.series || [];
+    api.get('/series')
+      .then(res => {
+        const seriesArray = res.data?.data?.series || [];
         setAllSeries(seriesArray);
         if (seriesArray.length > 0 && !selectedSeries) setSelectedSeries(seriesArray[0]);
         setLoading(false);
-      }).catch(() => setLoading(false));
+      }).catch(err => {
+        console.error("Error fetching series:", err);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -110,52 +158,44 @@ export default function LibraryApp() {
     if (!id) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/series/id/${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        setAllSeries(prev => prev.filter(s => s._id !== id));
-        setSelectedSeries(null);
-        setDeleteModal({ show: false, seriesId: null, seriesName: '' });
-      } else throw new Error();
+      await api.delete(`/series/id/${id}`);
+      setAllSeries(prev => prev.filter(s => s._id !== id));
+      setSelectedSeries(null);
+      setDeleteModal({ show: false, seriesId: null, seriesName: '' });
     } catch (err) { 
-      alert("שגיאה במחיקת הסדרה. וודאי שהשרת פועל."); 
+      alert("שגיאה במחיקת הקובץ. וודאי שהשרת פועל ויש לך הרשאות מתאימות."); 
       setDeleteModal({ show: false, seriesId: null, seriesName: '' });
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    dispatch(logoutUser());
     window.location.reload();
   };
 
+  // 🌟 אלגוריתם הסינון המורכב (חיפוש + פילטרים) 🌟
   const filteredData = useMemo(() => {
-    const term = searchTerm;
+    let resultList = [];
 
+    // 1. קודם כל אוספים את הנתונים ומפלטרים לפי החיפוש החופשי (טקסט)
     if (activeTab === 'series') {
-      return allSeries.filter(s =>
-        isSmartMatch([
-          s.prefixName, s.fileName, s.identifierName, s.details, 
-          s.editor, s.publicationPlace, s.sector, s.adminNotes, 
-          s.missingVolumesList, s.catalogStatus, s.enteredBy
-        ], term)
+      resultList = allSeries.filter(s =>
+        isSmartMatch([s.prefixName, s.fileName, s.identifierName, s.details, s.editor, s.publicationPlace, s.sector, s.adminNotes, s.missingVolumesList, s.catalogStatus, s.enteredBy], searchTerm)
       ).map(s => ({ ...s, type: 'series' }));
 
     } else if (activeTab === 'volume') {
-      const volumesList = [];
       allSeries.forEach(s => {
         if (s.volumes && s.volumes.length > 0) {
           s.volumes.forEach((v, vIdx) => {
              const volTitle = v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`;
-             if (isSmartMatch([volTitle, v.volumeNumber, v.booklet, v.mainTopic, v.publishedFor, v.publicationYear, v.publicationPeriod, v.coverType, v.volumeSize, v.fileCompleteness, v.scanCompleteness, v.articlesCatalogStatus], term)) {
-               volumesList.push({ ...v, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, originalSeries: s, volIndex: vIdx, type: 'volume' });
+             if (isSmartMatch([volTitle, v.volumeNumber, v.booklet, v.mainTopic, v.publishedFor, v.publicationYear, v.publicationPeriod, v.coverType, v.volumeSize, v.fileCompleteness, v.scanCompleteness, v.articlesCatalogStatus], searchTerm)) {
+               resultList.push({ ...v, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, originalSeries: s, volIndex: vIdx, type: 'volume' });
              }
           });
         }
       });
-      return volumesList;
 
     } else if (activeTab === 'article') {
-      const articlesList = [];
       allSeries.forEach(s => {
         if (s.volumes && s.volumes.length > 0) {
           s.volumes.forEach((v, vIdx) => {
@@ -163,23 +203,51 @@ export default function LibraryApp() {
               v.articles.forEach(art => {
                 const artTitle = art.contentTitle || art.title || '';
                 const authorNames = art.authors ? art.authors.map(a => `${a.titlePrefix || ''} ${a.firstName || ''} ${a.lastName || ''} ${a.role || ''}`).join(' ') : '';
-                if (isSmartMatch([artTitle, authorNames, art.generalTopic, art.source, art.startPage, art.page, art.linkExplanation], term)) {
-                   articlesList.push({ ...art, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, volTitle: v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`, originalSeries: s, volIndex: vIdx, type: 'article' });
+                if (isSmartMatch([artTitle, authorNames, art.generalTopic, art.source, art.startPage, art.page, art.linkExplanation], searchTerm)) {
+                   resultList.push({ ...art, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, volTitle: v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`, originalSeries: s, volIndex: vIdx, type: 'article' });
                 }
               });
             }
           });
         }
       });
-      return articlesList;
     }
-    return [];
-  }, [searchTerm, allSeries, activeTab]);
+
+    // 2. עכשיו מפעילים את הפילטרים המתקדמים על התוצאות
+    if (activeTab === 'series') {
+      if (filters.place) resultList = resultList.filter(item => item.publicationPlace === filters.place);
+      if (filters.sector) resultList = resultList.filter(item => item.sector === filters.sector);
+    }
+    
+    if (activeTab === 'volume' || activeTab === 'article') {
+      if (filters.topic) {
+        if (activeTab === 'volume') resultList = resultList.filter(item => item.mainTopic === filters.topic);
+        if (activeTab === 'article') resultList = resultList.filter(item => item.generalTopic === filters.topic);
+      }
+      
+      // פילטר תאריכים מחושב גימטריה
+      if (filters.yearFrom || filters.yearTo) {
+        const fromVal = filters.yearFrom ? getYearValue(filters.yearFrom) : 0;
+        const toVal = filters.yearTo ? getYearValue(filters.yearTo) : Infinity;
+
+        resultList = resultList.filter(item => {
+          let yStr = '';
+          if (item.type === 'volume') yStr = item.publicationYear;
+          if (item.type === 'article') yStr = item.originalSeries?.volumes?.[item.volIndex]?.publicationYear;
+          
+          if (!yStr) return false; // אם מבקשים סינון שנים ולפריט אין שנה - נסנן אותו החוצה
+          const yVal = getYearValue(yStr);
+          return yVal >= fromVal && yVal <= toVal;
+        });
+      }
+    }
+
+    return resultList;
+  }, [searchTerm, filters, allSeries, activeTab]);
 
   const handleResultClick = (item) => {
     setSelectedSeries(item.originalSeries || item);
     setActiveVolIdx(item.volIndex || 0);
-    
     if (item.type === 'article') {
       setActiveArticleId(item._id || item.id);
     } else {
@@ -187,7 +255,6 @@ export default function LibraryApp() {
     }
   };
 
-  // 🌟 פונקציה חכמה למציאת שם המאמר המקושר מכל המערכת 🌟
   const getLinkedArticleName = (linkedId) => {
     for (const s of allSeries) {
       if (s.volumes) {
@@ -234,7 +301,6 @@ export default function LibraryApp() {
   
   if (currentVol && currentVol.pdfPath) {
     let pageParam = '';
-    
     if (activeArticleId && currentVol.articles) {
       const activeArt = currentVol.articles.find(a => (a._id || a.id) === activeArticleId);
       const targetPage = activeArt?.startPage || activeArt?.page; 
@@ -245,7 +311,6 @@ export default function LibraryApp() {
         }
       }
     }
-    
     pdfFinalUrl = `http://localhost:5000/uploads/${currentVol.pdfPath}${pageParam}${pageParam ? '&' : '#'}view=FitH&toolbar=0`;
     externalPdfUrl = `http://localhost:5000/uploads/${currentVol.pdfPath}${pageParam}`;
   }
@@ -253,7 +318,6 @@ export default function LibraryApp() {
   return (
     <div className="h-screen bg-gray-200 text-gray-900 font-sans flex flex-col overflow-hidden selection:bg-blue-200" dir="rtl">
       
-      {/* 🌟🌟 חלונית פרטים (מידע נוסף לגליון/מאמר) עם קישור חי! 🌟🌟 */}
       {infoModal.show && infoModal.data && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200">
@@ -294,14 +358,12 @@ export default function LibraryApp() {
                     {renderInfoRow("מקור", infoModal.data.source)}
                     {renderInfoRow("הסבר קישור", infoModal.data.linkExplanation)}
                     
-                    {/* 🌟 הקישור החי למאמר המקושר 🌟 */}
                     {infoModal.data.linkedArticleId && (
                       <div className="flex flex-col border-b border-gray-100 py-2 last:border-0">
                         <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">מאמר מקושר בספרייה</span>
                         <button 
                           onClick={() => {
                             let found = false;
-                            // חיפוש המאמר בכל הסדרות
                             for (let i = 0; i < allSeries.length; i++) {
                               const s = allSeries[i];
                               if (s.volumes) {
@@ -337,10 +399,7 @@ export default function LibraryApp() {
             </div>
             
             <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl shrink-0 flex justify-end">
-              <button 
-                onClick={() => setInfoModal({ show: false, type: '', data: null })} 
-                className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-colors"
-              >
+              <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-colors">
                 סגירה
               </button>
             </div>
@@ -348,7 +407,6 @@ export default function LibraryApp() {
         </div>
       )}
 
-      {/* חלונית מחיקה */}
       {deleteModal.show && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4">
@@ -357,23 +415,13 @@ export default function LibraryApp() {
             </div>
             <h3 className="text-xl font-black text-gray-900 mb-2">אזהרת מחיקה!</h3>
             <p className="text-gray-700 mb-6 text-[15px]">
-              האם אתה בטוח שברצונך למחוק לחלוטין את הסדרה:<br/>
+              האם אתה בטוח שברצונך למחוק לחלוטין את הקובץ:<br/>
               <strong className="text-red-600 text-lg">{deleteModal.seriesName}</strong> ?<br/>
               <span className="text-[13px] text-gray-500 block mt-2 font-bold bg-gray-100 p-2 rounded">שימו לב: פעולה זו תמחק גם את כל הגליונות והמאמרים שבתוכה, ולא ניתנת לביטול.</span>
             </p>
             <div className="flex gap-4 justify-center">
-              <button 
-                onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} 
-                className="px-6 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors"
-              >
-                ביטול
-              </button>
-              <button 
-                onClick={executeDelete} 
-                className="px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors"
-              >
-                כן, מחק סדרה
-              </button>
+              <button onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} className="px-6 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors">ביטול</button>
+              <button onClick={executeDelete} className="px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors">כן, מחק קובץ</button>
             </div>
           </div>
         </div>
@@ -381,21 +429,9 @@ export default function LibraryApp() {
 
       <div className="h-12 bg-gray-900 text-white flex items-center justify-between px-5 shrink-0 shadow-lg z-20">
         <div className="flex items-center gap-5">
-          {isAdmin && (
-            <span className="flex items-center gap-1.5 text-[12px] font-black bg-blue-600 px-3 py-1 rounded text-white shadow-md border border-blue-500">
-              <ShieldCheck size={14} /> מנהל מערכת ראשי
-            </span>
-          )}
-          {isViewer && (
-            <span className="flex items-center gap-1.5 text-[12px] font-black bg-teal-600 px-3 py-1 rounded text-white shadow-md border border-teal-500">
-              <UserCircle size={14} /> משתמש רשום (צפייה והוספה)
-            </span>
-          )}
-          {isNotLoggedIn && (
-            <span className="flex items-center gap-1.5 text-[12px] font-black bg-red-600 px-3 py-1 rounded text-white shadow-md border border-red-500">
-              <ShieldAlert size={14} /> אורח מנותק (צפייה בלבד)
-            </span>
-          )}
+          {isAdmin && <span className="flex items-center gap-1.5 text-[12px] font-black bg-blue-600 px-3 py-1 rounded text-white shadow-md border border-blue-500"><ShieldCheck size={14} /> מנהל מערכת ראשי</span>}
+          {isViewer && <span className="flex items-center gap-1.5 text-[12px] font-black bg-teal-600 px-3 py-1 rounded text-white shadow-md border border-teal-500"><UserCircle size={14} /> משתמש רשום (צפייה והוספה)</span>}
+          {isNotLoggedIn && <span className="flex items-center gap-1.5 text-[12px] font-black bg-red-600 px-3 py-1 rounded text-white shadow-md border border-red-500"><ShieldAlert size={14} /> אורח מנותק (צפייה בלבד)</span>}
 
           {hasUser && (
             <div className="text-[13px] text-gray-300 border-r border-gray-700 pr-5 flex items-center gap-2">
@@ -405,16 +441,11 @@ export default function LibraryApp() {
             </div>
           )}
         </div>
-
         <div>
           {hasUser ? (
-            <button onClick={handleLogout} className="flex items-center gap-2 text-[12px] font-bold text-gray-200 hover:text-white bg-gray-800 hover:bg-gray-700 px-4 py-1.5 rounded-lg transition-colors border border-gray-700">
-              <LogOut size={14} /> התנתקות
-            </button>
+            <button onClick={handleLogout} className="flex items-center gap-2 text-[12px] font-bold text-gray-200 hover:text-white bg-gray-800 hover:bg-gray-700 px-4 py-1.5 rounded-lg transition-colors border border-gray-700"><LogOut size={14} /> התנתקות</button>
           ) : (
-            <button onClick={() => navigate('/login')} className="flex items-center gap-2 text-[12px] font-black text-gray-900 bg-white hover:bg-blue-100 px-5 py-1.5 rounded-lg transition-colors shadow-md">
-              <LogIn size={14} /> התחברות למערכת
-            </button>
+            <button onClick={() => navigate('/login')} className="flex items-center gap-2 text-[12px] font-black text-gray-900 bg-white hover:bg-blue-100 px-5 py-1.5 rounded-lg transition-colors shadow-md"><LogIn size={14} /> התחברות למערכת</button>
           )}
         </div>
       </div>
@@ -423,25 +454,85 @@ export default function LibraryApp() {
         
         <aside className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 overflow-hidden shadow-lg z-10" style={{ width: '320px', minWidth: '320px', maxWidth: '320px' }}>
           <div className="p-3 border-b border-gray-300 bg-gray-100 shrink-0">
+            
             {canAddNew && (
-              <button
-                onClick={() => navigate('/add-series')}
-                className="w-full mb-3 flex items-center justify-center gap-2 py-2 bg-blue-700 hover:bg-blue-800 text-white text-[13px] font-black rounded-lg transition-colors shadow-md border border-blue-800"
-              >
-                <Plus size={16} /> הוספת סדרה חדשה
+              <button onClick={() => navigate('/add-series')} className="w-full mb-2 flex items-center justify-center gap-2 py-2 bg-blue-700 hover:bg-blue-800 text-white text-[13px] font-black rounded-lg transition-colors shadow-md border border-blue-800">
+                <Plus size={16} /> הוספת קובץ חדש
+              </button>
+            )}
+
+            {isAdmin && (
+              <button onClick={() => navigate('/admin/import')} className="w-full mb-3 flex items-center justify-center gap-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-black rounded-lg transition-colors shadow-sm border border-emerald-700">
+                <FileSpreadsheet size={14} /> ייבוא קבצים מאקסל
               </button>
             )}
 
             <div className="flex bg-gray-300 p-1 rounded-lg mb-3">
-              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'series' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><Book size={14}/> סדרות</button>
-              <button onClick={() => { setActiveTab('volume'); setSearchTerm(""); }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'volume' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><Layers size={14}/> גליונות</button>
-              <button onClick={() => { setActiveTab('article'); setSearchTerm(""); }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'article' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><FileText size={14}/> מאמרים</button>
+              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({place:'', sector:'', yearFrom:'', yearTo:'', topic:''}) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'series' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><Book size={14}/> קבצים</button>
+              <button onClick={() => { setActiveTab('volume'); setSearchTerm(""); setFilters({place:'', sector:'', yearFrom:'', yearTo:'', topic:''}) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'volume' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><Layers size={14}/> גליונות</button>
+              <button onClick={() => { setActiveTab('article'); setSearchTerm(""); setFilters({place:'', sector:'', yearFrom:'', yearTo:'', topic:''}) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'article' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><FileText size={14}/> מאמרים</button>
             </div>
 
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-              <input type="text" placeholder="הקלד לחיפוש חכם..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white border border-gray-400 pr-9 pl-3 py-2 rounded-lg text-[13px] font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all shadow-inner" />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                <input type="text" placeholder="הקלד לחיפוש חופשי..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white border border-gray-400 pr-9 pl-3 py-2 rounded-lg text-[13px] font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all shadow-inner" />
+              </div>
+              <button 
+                onClick={() => setShowFilters(!showFilters)} 
+                title="סינון מתקדם"
+                className={`px-3 py-2 rounded-lg border transition-colors flex items-center justify-center ${showFilters ? 'bg-blue-100 border-blue-400 text-blue-800 shadow-inner' : 'bg-white border-gray-400 text-gray-600 hover:bg-gray-50 shadow-sm'}`}
+              >
+                <Filter size={18} />
+              </button>
             </div>
+
+            {/* 🌟 פאנל הסינון המתקדם 🌟 */}
+            {showFilters && (
+              <div className="mt-2 p-3 bg-white rounded-lg border border-gray-300 shadow-sm space-y-2 text-[12px] animate-in fade-in slide-in-from-top-2">
+                
+                {activeTab === 'series' && (
+                  <>
+                    <select value={filters.place} onChange={e => setFilters({...filters, place: e.target.value})} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                      <option value="">כל מקומות ההוצאה</option>
+                      {filterOptions.places.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <select value={filters.sector} onChange={e => setFilters({...filters, sector: e.target.value})} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                      <option value="">כל המגזרים</option>
+                      {filterOptions.sectors.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </>
+                )}
+
+                {activeTab === 'volume' && (
+                  <>
+                    <div className="flex gap-2">
+                      <input type="text" placeholder="משנת (למשל תש''פ)" value={filters.yearFrom} onChange={e => setFilters({...filters, yearFrom: e.target.value})} className="w-1/2 p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50" />
+                      <input type="text" placeholder="עד שנת (למשל תשפ''ד)" value={filters.yearTo} onChange={e => setFilters({...filters, yearTo: e.target.value})} className="w-1/2 p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50" />
+                    </div>
+                    <select value={filters.topic} onChange={e => setFilters({...filters, topic: e.target.value})} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                      <option value="">כל הנושאים הראשיים</option>
+                      {filterOptions.topics.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </>
+                )}
+
+                {activeTab === 'article' && (
+                  <>
+                    <select value={filters.topic} onChange={e => setFilters({...filters, topic: e.target.value})} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                      <option value="">כל הנושאים הכלליים</option>
+                      {filterOptions.topics.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </>
+                )}
+
+                {(filters.place || filters.sector || filters.yearFrom || filters.yearTo || filters.topic) && (
+                  <button onClick={() => setFilters({place: '', sector: '', yearFrom: '', yearTo: '', topic: ''})} className="w-full text-center text-red-500 font-bold mt-2 hover:text-red-700">
+                    נקה פילטרים
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-scroll overflow-x-hidden custom-scrollbar bg-white min-w-0">
@@ -480,7 +571,7 @@ export default function LibraryApp() {
               }
               return null;
             }) : (
-              <div className="text-center p-8 text-gray-500 font-medium text-[13px]">לא נמצאו תוצאות לחיפוש זה.</div>
+              <div className="text-center p-8 text-gray-500 font-medium text-[13px]">לא נמצאו תוצאות התואמות לסינון.</div>
             )}
           </div>
         </aside>
@@ -504,7 +595,7 @@ export default function LibraryApp() {
                   {isAdmin && (
                     <>
                       <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-400 text-gray-800 rounded-lg text-[13px] font-bold hover:bg-gray-100 transition-colors shadow-sm">
-                        <Edit3 size={16} className="text-gray-600" /> עריכת סדרה
+                        <Edit3 size={16} className="text-gray-600" /> עריכת קובץ
                       </button>
                       <button onClick={() => confirmDelete(selectedSeries)} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors shadow-sm">
                         <Trash2 size={16} /> מחיקה
@@ -541,7 +632,7 @@ export default function LibraryApp() {
                   {canAddNew && (
                     <div className="p-3 border-t border-gray-300 bg-gray-50 shrink-0">
                       <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=volume`)} className="w-full py-2 bg-white border border-blue-400 text-blue-800 rounded-lg text-[13px] font-black hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                        <Plus size={14} /> הוספת גליון לסדרה
+                        <Plus size={14} /> הוספת גליון לקובץ
                       </button>
                     </div>
                   )}
@@ -623,7 +714,7 @@ export default function LibraryApp() {
                           <div className="h-full flex flex-col items-center justify-center text-gray-500 p-8 text-center bg-gray-100 border-l border-gray-300">
                             <Eye size={48} className="text-gray-300 mb-4" />
                             <h4 className="font-black text-gray-700 text-[16px]">קובץ ה-PDF לא נמצא</h4>
-                            <p className="text-[13px] mt-1.5 text-gray-500 max-w-[250px] leading-relaxed">הסדרה רשומה במערכת אך טרם הועלה קובץ סרוק לגליון זה.</p>
+                            <p className="text-[13px] mt-1.5 text-gray-500 max-w-[250px] leading-relaxed">הקובץ רשום במערכת אך טרם הועלה PDF לגליון זה.</p>
                           </div>
                         )}
                       </div>
@@ -637,7 +728,7 @@ export default function LibraryApp() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500">
               <BookOpen size={80} className="mb-5 text-gray-300" strokeWidth={1} />
-              <p className="text-2xl font-black text-gray-700">בחר סדרה מהספרייה כדי להתחיל</p>
+              <p className="text-2xl font-black text-gray-700">בחר קובץ מהספרייה כדי להתחיל</p>
               <p className="text-[14px] mt-2 font-medium">השתמש בתיבת החיפוש או בחר מהסרגל הימני</p>
             </div>
           )}

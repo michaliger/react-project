@@ -3,8 +3,8 @@ import HomePage from './pages/HomePage'
 import SeriesPage from './pages/SeriesPage'
 import Login from './pages/Login'
 import Register from './pages/Register'
-
-import AddNewSeries from './pages/AddNewSeries'   // ← הוספת סדרה חדשה + כרך + נושאים        // ← הוספת כרך לסדרה קיימת
+import AdminExcelUpload from './pages/AdminExcelUpload';
+import AddNewSeries from './pages/AddNewSeries'
 
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -15,15 +15,27 @@ function App() {
       <Route path="/series" element={<SeriesPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      
       {/* הוספת סדרה חדשה לגמרי (עם כרך ראשון ונושאים) */}
-      <Route 
-        path="/add-series" 
+      <Route
+        path="/add-series"
         element={
-          // <ProtectedRoute>
+          <ProtectedRoute>
             <AddNewSeries />
-          // </ProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* 🌟 עטפנו גם את האקסל והגדרנו שזה רק למנהלים! 🌟 */}
+      <Route 
+        path="/admin/import" 
+        element={
+          <ProtectedRoute adminOnly={true}>
+            <AdminExcelUpload />
+          </ProtectedRoute>
         } 
       />
+
     </Routes>
   )
 }
