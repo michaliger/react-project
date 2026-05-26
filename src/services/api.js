@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5000/api'
+const API_BASE = 'https://node-project-cvek.onrender.com'
 
 export const getAllSeries = async () => {
   const response = await fetch(`${API_BASE}/series`)
