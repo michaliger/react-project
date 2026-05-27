@@ -99,7 +99,7 @@ export default function App() {
               adminNotes: data.adminNotes || '',
               catalogStatus: data.catalogStatus || 'טיוטה',
               enteredBy: data.enteredBy || '',
-              coverPreview: data.coverImage ? `http://localhost:5000/uploads/${data.coverImage}` : null,
+              coverPreview: data.coverImage ? `https://node-project-cvek.onrender.com/uploads/${data.coverImage}` : null,
               coverImage: data.coverImage
             });
 
