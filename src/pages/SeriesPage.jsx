@@ -311,8 +311,8 @@ export default function LibraryApp() {
         }
       }
     }
-    pdfFinalUrl = `http://localhost:5000/uploads/${currentVol.pdfPath}${pageParam}${pageParam ? '&' : '#'}view=FitH&toolbar=0`;
-    externalPdfUrl = `http://localhost:5000/uploads/${currentVol.pdfPath}${pageParam}`;
+    pdfFinalUrl = `https://node-project-cvek.onrender.com/uploads/${currentVol.pdfPath}${pageParam}${pageParam ? '&' : '#'}view=FitH&toolbar=0`;
+    externalPdfUrl = `https://node-project-cvek.onrender.com/uploads/${currentVol.pdfPath}${pageParam}`;
   }
 
   return (
@@ -542,7 +542,7 @@ export default function LibraryApp() {
                 return (
                   <button key={item._id} onClick={() => handleResultClick(item)} className={`w-full flex items-center gap-3 p-3 border-b transition-colors ${isActive ? 'bg-blue-100 border-blue-400 shadow-inner' : 'border-gray-200 hover:bg-blue-50'}`}>
                     <div className="w-8 h-12 bg-white rounded border border-gray-300 shrink-0 overflow-hidden shadow-sm">
-                      <img src={item.coverImage ? `http://localhost:5000/uploads/${item.coverImage}` : "/books.jpg"} className="w-full h-full object-cover" alt="" onError={(e) => { e.target.onerror = null; e.target.src = "/books.jpg"; }} />
+                      <img src={item.coverImage ? `https://node-project-cvek.onrender.com/uploads/${item.coverImage}` : "/books.jpg"} className="w-full h-full object-cover" alt="" onError={(e) => { e.target.onerror = null; e.target.src = "/books.jpg"; }} />
                     </div>
                     <div className="text-right flex-1 min-w-0">
                       <h3 className={`font-bold text-[14px] truncate leading-tight w-full ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>{item.prefixName} {item.fileName}</h3>
