@@ -1,9 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { UserCircle, LogOut } from 'lucide-react'; // הוספנו אייקונים למראה מקצועי
+import { UserCircle, LogOut } from 'lucide-react';
 
 export default function HomePage() {
   const navigate = useNavigate();
   
+  // חילוץ כתובת השרת מתוך משתני הסביבה או כתובת הדיפולט
+  const API_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api';
+  
+  // הסרת ה-'/api' מסוף הכתובת כדי לקבל את כתובת השורש של השרת שבו נמצאת תיקיית ה-uploads
+  const SERVER_BASE_URL = API_URL.replace('/api', '');
+
   // שולפים את נתוני המשתמש מהזיכרון
   const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
   const hasUser = Object.keys(loggedInUser).length > 0;
@@ -12,7 +18,7 @@ export default function HomePage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.reload(); // רענון העמוד כדי לעדכן את התצוגה
+    window.location.reload(); 
   };
 
   return (
@@ -20,10 +26,10 @@ export default function HomePage() {
       {/* Container ראשי שעוטף הכל בגובה המסך בדיוק */}
       <section className="relative h-screen w-full overflow-hidden" dir="rtl">
         
-        {/* תמונת רקע */}
+        {/* תמונת רקע דינמית מהשרת */}
         <img
-          src="books.jpg"
-          alt="ספרי קודש"
+          src={`${SERVER_BASE_URL}/uploads/books.jpg`}
+          alt="רקע"
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-black/60" />
@@ -32,7 +38,6 @@ export default function HomePage() {
         <div className="absolute top-6 right-6 left-6 z-30 flex justify-between items-center">
           <div className="flex gap-4 items-center">
             {hasUser ? (
-              // תצוגה למשתמש מחובר
               <>
                 <div className="flex items-center gap-2 text-white bg-white/10 px-5 py-2.5 rounded-full border border-white/20 backdrop-blur-md shadow-lg">
                   <UserCircle size={20} className="text-amber-400" />
@@ -49,7 +54,6 @@ export default function HomePage() {
                 </button>
               </>
             ) : (
-              // תצוגה לאורח
               <>
                 <Link to="/login" className="px-6 py-2.5 bg-white/20 backdrop-blur-lg hover:bg-white/30 text-white text-sm md:text-base font-medium rounded-full border border-white/40 transition-all shadow-lg">
                   התחברות
@@ -62,7 +66,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* כיתוב ראשי וכפתור כניסה (הכל יחד באמצע) */}
+        {/* כיתוב ראשי וכפתור כניסה */}
         <div className="relative h-full flex flex-col items-center justify-center text-center px-6 z-20">
           
           <div className="animate-fadeIn mb-10">
@@ -70,14 +74,13 @@ export default function HomePage() {
               className="text-6xl md:text-7xl lg:text-9xl font-black text-white drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] leading-tight"
               style={{ fontFamily: 'Frank Ruhl Libre, serif' }}
             >
-              קבצים תורניים
+              מאגר קבצים
             </h1>
             <p className="text-white text-amber-400 text-lg md:text-2xl mt-4 font-medium drop-shadow-md">
-              מאגר סדרות, גליונות ומאמרים תורניים
+              סדרות, גליונות ומאמרים
             </p>
           </div>
 
-          {/* כפתור כניסה בפרופורציה נכונה בתוך הדף */}
           <div className="animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
             <Link
               to="/series"
@@ -112,5 +115,5 @@ export default function HomePage() {
         }
       `}</style>
     </>
-  )
+  );
 }
