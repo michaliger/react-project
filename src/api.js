@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // הגדרת כתובת השרת - משתמש במשתנה סביבה או בכתובת הישירה של Render
-const API_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com';
 
 // יצירת מופע של Axios
 const api = axios.create({
