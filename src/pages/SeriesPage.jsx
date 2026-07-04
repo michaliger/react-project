@@ -73,7 +73,7 @@ export default function LibraryApp() {
   const [allSeries, setAllSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // 🌟 סטייט לחיפוש וסינונים 🌟
+  // סטייט לחיפוש וסינונים 
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -173,7 +173,7 @@ export default function LibraryApp() {
     window.location.reload();
   };
 
-  // 🌟 אלגוריתם הסינון המורכב (חיפוש + פילטרים) 🌟
+  //  אלגוריתם הסינון המורכב (חיפוש + פילטרים) 
   const filteredData = useMemo(() => {
     let resultList = [];
 
