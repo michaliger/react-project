@@ -13,6 +13,8 @@ const CompactField = ({ label, children, colSpan = '', widthClass = '', required
   </div>
 )
 
+const SERVER_BASE_URL = (import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api').replace(/\/api\/?$/, '');
+
 export default function App() {
   const { currentUser } = useSelector((state) => state.user);
   const loggedInUser = currentUser || {};
@@ -418,12 +420,16 @@ export default function App() {
           const hasContent =
             (art.contentTitle && art.contentTitle.trim() !== '') ||
             (art.generalTopic && art.generalTopic.trim() !== '') ||
-            (art.startPage && art.startPage.trim() !== '') ||
+            (art.startPage && art.startPage.toString().trim() !== '') ||
             (art.linkedArticleId && art.linkedArticleId.trim() !== '') ||
+            (art.source && art.source.trim() !== '') ||
+            (art.section && art.section.trim() !== '') ||
+            (art.linkExplanation && art.linkExplanation.trim() !== '') ||
             (art.authors && art.authors.some(auth =>
               (auth.firstName && auth.firstName.trim() !== '') ||
               (auth.lastName && auth.lastName.trim() !== '') ||
-              (auth.titlePrefix && auth.titlePrefix.trim() !== '')
+              (auth.titlePrefix && auth.titlePrefix.trim() !== '') ||
+              (auth.role && auth.role.trim() !== '')
             ));
           return hasContent;
         });
@@ -633,7 +639,7 @@ export default function App() {
               <div className="col-span-2 flex items-center justify-center border-r pr-3">
                 <div onClick={() => { if (!(isNotLoggedIn || (isViewer && !!editId))) fileInputRef.current.click() }} className={`h-28 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-slate-50 overflow-hidden ${isNotLoggedIn || (isViewer && !!editId) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-100 transition-all'}`}>
                   {series.coverPreview || series.coverImage ? (
-                    <img src={series.coverPreview || `http://localhost:5000/uploads/${series.coverImage}`} className="h-full w-full object-contain" alt="כריכה" />
+                    <img src={series.coverPreview || `${SERVER_BASE_URL}/uploads/${series.coverImage}`} className="h-full w-full object-contain" alt="כריכה" />
                   ) : (
                     <div className="text-center text-slate-400">
                       <Upload size={20} className="mx-auto" />

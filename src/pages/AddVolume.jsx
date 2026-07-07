@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../api'
 
 export default function AddSeries() {
   const navigate = useNavigate()
@@ -28,40 +28,35 @@ export default function AddSeries() {
 
   // טעינת כל הסדרות לבחירה
   useEffect(() => {
-    axios.get('http://localhost:5000/api/series')
-      .then(res => setSeriesList(res.data))
+    api.get('/series')
+      .then(res => setSeriesList(res.data?.data?.series || []))
       .catch(() => alert('לא ניתן לטעון סדרות'))
   }, [])
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault()
-  //   setLoading(true)
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
 
-  //   try {
-  //     await axios.post('http://localhost:5000/api/volumes', {
-  //       ...form,
-  //       volumeNumber: Number(form.volumeNumber) || undefined,
-  //       publicationYear: form.publicationYear ? Number(form.publicationYear) : null,
-  //       publicationMonth: form.publicationMonth ? Number(form.publicationMonth) : null,
-  //       pages: form.pages ? Number(form.pages) : null,
-  //       heightCm: form.heightCm ? Number(form.heightCm) : null,
-  //       isAvailable: form.isAvailable === true || form.isAvailable === 'true',
-  //     }, {
-  //       headers: {
-  //         'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-  //         'Content-Type': 'application/json'
-  //       }
-  //     })
+    try {
+      await api.post('/volumes', {
+        ...form,
+        volumeNumber: Number(form.volumeNumber) || undefined,
+        publicationYear: form.publicationYear ? Number(form.publicationYear) : null,
+        publicationMonth: form.publicationMonth ? Number(form.publicationMonth) : null,
+        pages: form.pages ? Number(form.pages) : null,
+        heightCm: form.heightCm ? Number(form.heightCm) : null,
+        isAvailable: form.isAvailable === true || form.isAvailable === 'true',
+      })
 
-  //     alert('🎉 הכרך נוסף בהצלחה! את מלכה אמיתית!')
-  //     navigate(-1)
-  //   } catch (err) {
-  //     console.error(err)
-  //     alert('שגיאה: ' + (err.response?.data?.message || err.message))
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
+      alert('🎉 הכרך נוסף בהצלחה! את מלכה אמיתית!')
+      navigate(-1)
+    } catch (err) {
+      console.error(err)
+      alert('שגיאה: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-12 px-4" dir="rtl">
