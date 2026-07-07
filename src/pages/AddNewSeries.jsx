@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Users, FileText, Database, CheckCircle2, Link2, Upload, X, UserPlus, Info, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Users, FileText, Database, CheckCircle2, Link2, Upload, X, UserPlus, Info } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useSelector } from 'react-redux';
@@ -62,6 +62,7 @@ export default function App() {
 
   const isExistingSeries = !!series._id;
 
+  // יצירת מאמר ריק התואם ב-100% לשדות ה-Backend
   const createEmptyVolume = (index) => ({
     id: Math.random().toString(36).substr(2, 9),
     volumeTitle: '', volumeNumber: (index + 1).toString(), booklet: '',
@@ -73,7 +74,13 @@ export default function App() {
     articles: [{
       id: Math.random().toString(36).substr(2, 9), autoId: 1,
       authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-      page: '', title: '', generalTopic: '', source: '', linkedArticleId: '', linkType: ''
+      startPage: '',
+      section: '',
+      contentTitle: '',
+      generalTopic: '',
+      source: '',
+      linkedArticleId: '',
+      linkExplanation: ''
     }]
   })
 
@@ -126,8 +133,9 @@ export default function App() {
                   id: art._id,
                   autoId: aIdx + 1,
                   authors: art.authors && art.authors.length > 0 ? art.authors : [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-                  page: art.startPage || art.page || '',
-                  title: art.contentTitle || art.title || '',
+                  startPage: art.startPage || art.page || '',
+                  section: art.section || '',
+                  contentTitle: art.contentTitle || art.title || '',
                   generalTopic: art.generalTopic || '',
                   source: art.source || '',
                   linkedArticleId: art.linkedArticleId || '',
@@ -135,7 +143,7 @@ export default function App() {
                 })) : [{
                   id: Math.random().toString(36).substr(2, 9), autoId: 1,
                   authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-                  page: '', title: '', generalTopic: '', source: '', linkedArticleId: '', linkType: ''
+                  startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', linkExplanation: ''
                 }]
               }));
 
@@ -156,7 +164,7 @@ export default function App() {
                     id: Math.random().toString(36).substr(2, 9),
                     autoId: mappedVolumes[vIdx].articles.length + 1,
                     authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-                    page: '', title: '', generalTopic: '', source: '', linkedArticleId: '', linkType: ''
+                    startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', linkExplanation: ''
                   });
                   setTimeout(() => setActiveVolume(vIdx), 100);
                 }
@@ -170,55 +178,45 @@ export default function App() {
     }
   }, [editId]);
 
-const displayYears = useMemo(() => {
-    // פונקציית עזר גאונית שהופכת שנה עברית למספר (גימטריה) כדי למיין במדויק
+  const displayYears = useMemo(() => {
     const getYearValue = (yearStr) => {
       const str = yearStr.toString().trim();
-      
-      // אם הקלידו מספר רגיל לועזי (כמו 2024)
       if (/^\d+$/.test(str)) return parseInt(str, 10);
-      
-      // מילון גימטריה
+
       const gematria = {
-        'א':1,'ב':2,'ג':3,'ד':4,'ה':5,'ו':6,'ז':7,'ח':8,'ט':9,
-        'י':10,'כ':20,'ל':30,'מ':40,'נ':50,'ס':60,'ע':70,'פ':80,'צ':90,
-        'ק':100,'ר':200,'ש':300,'ת':400,
-        'ך':20,'ם':40,'ן':50,'ף':80,'ץ':90
+        'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9,
+        'י': 10, 'כ': 20, 'ל': 30, 'מ': 40, 'נ': 50, 'ס': 60, 'ע': 70, 'פ': 80, 'צ': 90,
+        'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400,
+        'ך': 20, 'ם': 40, 'ן': 50, 'ף': 80, 'ץ': 90
       };
-      
+
       let sum = 0;
-      const cleanStr = str.replace(/[^א-ת]/g, ''); // מנקים מרכאות ופסיקים
-      
+      const cleanStr = str.replace(/[^א-ת]/g, '');
+
       for (let char of cleanStr) {
         sum += gematria[char] || 0;
       }
-      
-      // טיפול באלפים (אם כתבו ה'תשפ"ד)
+
       if (str.startsWith("ה'") || str.startsWith("ה’") || (cleanStr.length >= 4 && cleanStr.startsWith('ה'))) {
-         sum += 4995; // מוסיפים 5000 (פחות 5 של הה' שכבר חושבה)
+        sum += 4995;
       }
-      
+
       return sum;
     };
 
-    // 1. אוספים את כל השנים מהגליונות ומסננים ריקים
     const validVolumes = volumes.filter(v => v.publicationYear && v.publicationYear.trim() !== '');
     if (validVolumes.length === 0) return 'טרם הוזנו שנים';
 
-    // 2. מסננים כפילויות (שלא יהיה פעמיים תשפ"ד)
     const uniqueYears = [...new Set(validVolumes.map(v => v.publicationYear.trim()))];
-
-    // 3. ממיינים בעזרת כוח העל של הגימטריה שבנינו!
     uniqueYears.sort((a, b) => getYearValue(a) - getYearValue(b));
 
-    // 4. לוקחים את הכי קטן והכי גדול
     const minYear = uniqueYears[0];
     const maxYear = uniqueYears[uniqueYears.length - 1];
 
     if (uniqueYears.length === 1 || minYear === maxYear) {
       return minYear;
     }
-    
+
     return `${minYear} - ${maxYear}`;
   }, [volumes]);
 
@@ -274,12 +272,25 @@ const displayYears = useMemo(() => {
     }
 
     const nv = [...volumes];
-    nv[activeVolume].articles.push({
-      id: Math.random(),
+    
+    const newArticle = {
+      id: Math.random().toString(36).substr(2, 9),
       autoId: nv[activeVolume].articles.length + 1,
       authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-      title: '', page: '', generalTopic: '', source: '', linkExplanation: '', linkedArticleId: ''
-    });
+      startPage: '',
+      section: '', 
+      contentTitle: '',
+      generalTopic: '',
+      source: '',
+      linkedArticleId: '',
+      linkExplanation: ''
+    };
+
+    nv[activeVolume] = {
+      ...nv[activeVolume],
+      articles: [...nv[activeVolume].articles, newArticle]
+    };
+
     setVolumes(nv);
   }
 
@@ -304,7 +315,7 @@ const displayYears = useMemo(() => {
       type: 'article',
       vIdx: vIdx,
       aIdx: aIdx,
-      title: volumes[vIdx].articles[aIdx].title || `מאמר שורה ${volumes[vIdx].articles[aIdx].autoId}`
+      title: volumes[vIdx].articles[aIdx].contentTitle || `מאמר שורה ${volumes[vIdx].articles[aIdx].autoId}`
     });
   }
 
@@ -405,9 +416,9 @@ const displayYears = useMemo(() => {
         const cleanArticles = vol.articles.filter(art => {
           if (art._id) return true;
           const hasContent =
-            (art.title && art.title.trim() !== '') ||
+            (art.contentTitle && art.contentTitle.trim() !== '') ||
             (art.generalTopic && art.generalTopic.trim() !== '') ||
-            (art.page && art.page.trim() !== '') ||
+            (art.startPage && art.startPage.trim() !== '') ||
             (art.linkedArticleId && art.linkedArticleId.trim() !== '') ||
             (art.authors && art.authors.some(auth =>
               (auth.firstName && auth.firstName.trim() !== '') ||
@@ -563,7 +574,12 @@ const displayYears = useMemo(() => {
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-10 grid grid-cols-10 gap-3 items-end">
                 <CompactField label="שם מקדים" colSpan="col-span-1">
-                  <select value={series.prefixName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, prefixName: e.target.value })} className={inputClass}><option value=""></option><option>ספר זכרון</option><option>קובץ תורני</option><option>ירחון</option></select>
+                  <select value={series.prefixName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, prefixName: e.target.value })} className={inputClass}>
+                    <option value=""></option>
+                    <option>ספר זכרון</option>
+                    <option>קובץ תורני</option>
+                    <option>ירחון</option>
+                  </select>
                 </CompactField>
                 <CompactField label="שם הקובץ" colSpan="col-span-2" required={true}>
                   <input value={series.fileName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => updateSeriesField('fileName', e.target.value)} className={`${inputClass} font-bold`} />
@@ -586,7 +602,12 @@ const displayYears = useMemo(() => {
                   </datalist>
                 </CompactField>
                 <CompactField label="מגזר" colSpan="col-span-1">
-                  <select value={series.sector} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, sector: e.target.value })} className={inputClass}><option value=""></option><option>ליטאי</option><option>חסידי</option><option>ספרדי</option></select>
+                  <select value={series.sector} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, sector: e.target.value })} className={inputClass}>
+                    <option value=""></option>
+                    <option>ליטאי</option>
+                    <option>חסידי</option>
+                    <option>ספרדי</option>
+                  </select>
                 </CompactField>
                 <CompactField label="סטטוס" colSpan="col-span-2">
                   <input value={series.catalogStatus} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, catalogStatus: e.target.value })} className={inputClass} />
@@ -612,7 +633,7 @@ const displayYears = useMemo(() => {
               <div className="col-span-2 flex items-center justify-center border-r pr-3">
                 <div onClick={() => { if (!(isNotLoggedIn || (isViewer && !!editId))) fileInputRef.current.click() }} className={`h-28 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-slate-50 overflow-hidden ${isNotLoggedIn || (isViewer && !!editId) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-100 transition-all'}`}>
                   {series.coverPreview || series.coverImage ? (
-                    <img src={series.coverPreview || `http://localhost:5000/uploads/${series.coverImage}`} className="h-full w-full object-contain" />
+                    <img src={series.coverPreview || `http://localhost:5000/uploads/${series.coverImage}`} className="h-full w-full object-contain" alt="כריכה" />
                   ) : (
                     <div className="text-center text-slate-400">
                       <Upload size={20} className="mx-auto" />
@@ -639,7 +660,13 @@ const displayYears = useMemo(() => {
               <CompactField label="יצא לרגל" widthClass="w-[16%]"><input value={currentVolume.publishedFor} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publishedFor', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="שנה" widthClass="w-[6%]"><input value={currentVolume.publicationYear} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationYear', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="חודש" widthClass="w-[6%]"><input value={currentVolume.publicationPeriod} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationPeriod', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="סטטוס" widthClass="w-[8%]"><select value={currentVolume.articlesCatalogStatus} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('articlesCatalogStatus', e.target.value)} className={inputClass}><option>ממתין</option><option>בתהליך</option><option>הושלם</option></select></CompactField>
+              <CompactField label="סטטוס" widthClass="w-[8%]">
+                <select value={currentVolume.articlesCatalogStatus} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('articlesCatalogStatus', e.target.value)} className={inputClass}>
+                  <option>ממתין</option>
+                  <option>בתהליך</option>
+                  <option>הושלם</option>
+                </select>
+              </CompactField>
               <CompactField label="שלמות קובץ" widthClass="w-[15%]"><input value={currentVolume.fileCompleteness} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('fileCompleteness', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="שלמות סריקה" widthClass="w-[15%]"><input value={currentVolume.scanCompleteness} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="קובץ" widthClass="w-[10%]">
@@ -666,6 +693,7 @@ const displayYears = useMemo(() => {
                     <th className="p-2 border-l w-24">שם פרטי</th>
                     <th className="p-2 border-l w-28">שם משפחה</th>
                     <th className="p-2 border-l w-24">תפקיד</th>
+                    <th className="p-2 border-l w-28">מדור</th>
                     <th className="p-2 border-l w-[23%]">שם המאמר</th>
                     <th className="p-2 border-l w-24">מקור</th>
                     <th className="p-2 border-l w-24">נושא</th>
@@ -705,9 +733,21 @@ const displayYears = useMemo(() => {
                           </div>
                         ))}
                       </td>
-
                       <td className="p-1 border-l align-middle">
-                        <input value={art.title} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border border-slate-200 rounded h-8 px-2 font-bold text-[11px] focus:border-indigo-400 outline-none" placeholder="כותרת המאמר..." onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].title = e.target.value; setVolumes(nv) }} />
+                        <input
+                          placeholder="מדור..."
+                          value={art.section || ''}
+                          disabled={isNotLoggedIn || (isViewer && !!art._id)}
+                          className="w-full border border-slate-200 rounded h-8 px-2 text-[11px] focus:border-indigo-400 outline-none"
+                          onChange={e => {
+                            const nv = [...volumes];
+                            nv[activeVolume].articles[aIdx].section = e.target.value;
+                            setVolumes(nv);
+                          }}
+                        />
+                      </td>
+                      <td className="p-1 border-l align-middle">
+                        <input value={art.contentTitle} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border border-slate-200 rounded h-8 px-2 font-bold text-[11px] focus:border-indigo-400 outline-none" placeholder="כותרת המאמר..." onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].contentTitle = e.target.value; setVolumes(nv) }} />
                       </td>
 
                       <td className="p-1 border-l align-middle">
@@ -718,7 +758,7 @@ const displayYears = useMemo(() => {
                         <input placeholder="נושא" value={art.generalTopic} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[10px] truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].generalTopic = e.target.value; setVolumes(nv) }} />
                       </td>
                       <td className="p-1 border-l text-center align-middle">
-                        <input value={art.page} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full text-center border rounded h-8 px-1 text-[10px]" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].page = e.target.value; setVolumes(nv) }} />
+                        <input value={art.startPage} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full text-center border rounded h-8 px-1 text-[10px]" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].startPage = e.target.value; setVolumes(nv) }} />
                       </td>
 
                       <td className="p-1 border-l bg-indigo-50/20 align-middle">
@@ -744,12 +784,12 @@ const displayYears = useMemo(() => {
                       <td className="p-1 text-center align-middle">
                         <div className="flex items-center justify-center gap-1">
                           {canAddNew && !(isViewer && !!art._id) && (
-                            <button title="הוסף מחבר" onClick={() => addAuthorRow(activeVolume, aIdx)} className="text-indigo-600 hover:bg-indigo-100 p-1.5 rounded-full transition-colors">
+                            <button type="button" title="הוסף מחבר" onClick={() => addAuthorRow(activeVolume, aIdx)} className="text-indigo-600 hover:bg-indigo-100 p-1.5 rounded-full transition-colors">
                               <UserPlus size={14} />
                             </button>
                           )}
                           {canAddNew && !(isViewer && !!art._id) && currentVolume.articles.length > 1 && (
-                            <button title="מחק מאמר" onClick={() => promptRemoveArticle(activeVolume, aIdx)} className="text-red-400 hover:bg-red-50 p-1.5 rounded-full transition-colors">
+                            <button type="button" title="מחק מאמר" onClick={() => promptRemoveArticle(activeVolume, aIdx)} className="text-red-400 hover:bg-red-50 p-1.5 rounded-full transition-colors">
                               <Trash2 size={14} />
                             </button>
                           )}

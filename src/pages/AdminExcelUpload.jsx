@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { UploadCloud, FileSpreadsheet, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, ArrowRight, AlertTriangle, CheckCircle2, Database } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import api from '../api'; 
 
 export default function AdminExcelUpload() {
   const navigate = useNavigate();
   const { currentUser } = useSelector((state) => state.user);
-  
-  // בדיקת הרשאות - רק מנהל יכול לראות את העמוד הזה!
+
+  // בדיקת הרשאות מנהל
   const isAdmin = currentUser && currentUser.role === 'admin';
-  
+
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [excelData, setExcelData] = useState(null);
+  const [excelData, setExcelData] = useState(null); 
+  const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isAdmin) {
     return (
@@ -26,11 +28,10 @@ export default function AdminExcelUpload() {
     );
   }
 
-  // פונקציה שמטפלת בהעלאת הקובץ
+  // פונקציה לקריאת כל הטאבים (העמודים) שיש בקובץ האקסל
   const handleFileUpload = (uploadedFile) => {
     if (!uploadedFile) return;
     
-    // מוודאים שזה קובץ אקסל
     if (!uploadedFile.name.match(/\.(xlsx|xls|csv)$/)) {
       alert('נא להעלות קובץ אקסל תקין (.xlsx, .xls)');
       return;
@@ -38,19 +39,137 @@ export default function AdminExcelUpload() {
 
     setFile(uploadedFile);
 
-    // קריאת הקובץ בעזרת הספרייה שהתקנו
     const reader = new FileReader();
     reader.onload = (e) => {
       const data = e.target.result;
       const workbook = XLSX.read(data, { type: 'binary' });
-      const sheetName = workbook.SheetNames[0]; // לוקחים את הגיליון הראשון
-      const worksheet = workbook.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(worksheet);
       
-      console.log("הנתונים שנקראו מהאקסל:", json);
-      setExcelData(json);
+      const allSheetsData = {};
+      
+      workbook.SheetNames.forEach((sheetName) => {
+        const worksheet = workbook.Sheets[sheetName];
+        allSheetsData[sheetName] = XLSX.utils.sheet_to_json(worksheet);
+      });
+      
+      setExcelData(allSheetsData);
     };
     reader.readAsBinaryString(uploadedFile);
+  };
+
+  // עיבוד משולב השומר על המספר הסידורי של המקבץ לצורך קישור מדויק
+  const handleProcessData = async () => {
+    if (!excelData) {
+      alert("לא נמצאו נתונים לעיבוד בקובץ.");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const fileName = file?.name?.replace(/\.[^/.]+$/, "") || "קול התורה";
+      
+      const sheetNames = Object.keys(excelData);
+      const volumesRows = excelData['גליונות'] || excelData[sheetNames[0]] || [];
+      const articlesRows = excelData['מאמרים'] || excelData[sheetNames[1]] || [];
+
+      const seriesPayload = {
+        seriesData: {
+          prefixName: '',
+          fileName: fileName,
+          identifierName: fileName,
+          details: 'ייבוא משולב מאקסל',
+          editor: '',
+          publicationPlace: '',
+          sector: '',
+          catalogStatus: 'טיוטה',
+          missingVolumesList: '',
+          adminNotes: '',
+          enteredBy: currentUser?.username || 'מנהל'
+        },
+        volumesMap: {}
+      };
+
+      // 1. שלב ראשון: מיפוי הגליונות וקביעת מזהה קבוע לפי מספר המיקבץ
+      volumesRows.forEach((row) => {
+        const mixbachNumber = row["מס' מיקבץ"]?.toString().trim();
+        if (!mixbachNumber) return;
+
+        seriesPayload.volumesMap[mixbachNumber] = {
+          id: `vol-${mixbachNumber}`, // מזהה קבוע ולא אקראי מונע כפילויות
+          volumeNumber: mixbachNumber, // המספר הסידורי לפיו המאמרים יתקשרו
+          volumeTitle: row['שם גליון']?.toString().trim() || `מקבץ ${mixbachNumber}`,
+          mainTopic: row['נושא ראשי']?.toString().trim() || '',
+          publishedFor: row['יצא לרגל']?.toString().trim() || '',
+          publicationYear: row['שנה']?.toString().trim() || '',
+          publicationPeriod: row['חודש']?.toString().trim() || '',
+          articlesCatalogStatus: row['סטטוס גליון']?.toString().trim() || 'ממתין',
+          fileCompleteness: row['שלמות קובץ']?.toString().trim() || '',
+          scanCompleteness: row['שלמות סריקה']?.toString().trim() || '',
+          pdfFileName: '',
+          articles: []
+        };
+      });
+
+      // 2. שלב שני: קריאת המאמרים ושיוכם הישיר לגליון התואם לפי מפתח מספר המיקבץ
+      articlesRows.forEach((row) => {
+        const mixbachNumber = row["מס' מיקבץ"]?.toString().trim();
+        if (!mixbachNumber) return;
+
+        // הגנת גיבוי: אם המקבץ לא נמצא בלשונית הגליונות, ניצור אותו כדי שהמאמר לא ייזרק
+        if (!seriesPayload.volumesMap[mixbachNumber]) {
+          seriesPayload.volumesMap[mixbachNumber] = {
+            id: `vol-${mixbachNumber}`,
+            volumeNumber: mixbachNumber,
+            volumeTitle: `גליון / מקבץ ${mixbachNumber}`,
+            mainTopic: '', publishedFor: '', publicationYear: '', publicationPeriod: '',
+            articlesCatalogStatus: 'ממתין', fileCompleteness: '', scanCompleteness: '',
+            pdfFileName: '', articles: []
+          };
+        }
+
+        const articleTitle = row['שם המאמר']?.toString().trim();
+        if (articleTitle) {
+          const articleObj = {
+            id: Math.random().toString(36).substr(2, 9),
+            autoId: seriesPayload.volumesMap[mixbachNumber].articles.length + 1,
+            authors: [{
+              titlePrefix: row['תואר לפי המקבץ']?.toString().trim() || '',
+              firstName: row['שם פרטי']?.toString().trim() || '',
+              lastName: row['שם משפחה']?.toString().trim() || '',
+              role: row['תפקיד']?.toString().trim() || ''
+            }],
+            section: row['מדור']?.toString().trim() || '',
+            title: articleTitle,
+            source: row['מקור']?.toString().trim() || '',
+            generalTopic: '',
+            page: row["עמ' "]?.toString().trim() || row["עמ'"]?.toString().trim() || '',
+            linkedArticleId: '',
+            linkExplanation: row['הערות']?.toString().trim() || ''
+          };
+
+          // הכנסה ישירה לתוך מערך המאמרים של הגליון בעל המספר הסידורי המתאים
+          seriesPayload.volumesMap[mixbachNumber].articles.push(articleObj);
+        }
+      });
+
+      // 3. הפיכת מפת הגליונות המאוחדת למערך רגיל לצורך שליחה לשרת
+      const volumesArray = Object.values(seriesPayload.volumesMap);
+
+      const formData = new FormData();
+      formData.append('seriesData', JSON.stringify(seriesPayload.seriesData));
+      formData.append('volumes', JSON.stringify(volumesArray));
+
+      await api.post('/series/save-full-catalog', formData);
+
+      alert('כל הנתונים שולבו בהצלחה! המאמרים קושרו ישירות לגליונות לפי מספר המיקבץ.');
+      navigate('/series');
+
+    } catch (error) {
+      console.error("Error processing full excel:", error);
+      alert("אירעה שגיאה בעיבוד וקישור הנתונים.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleDragOver = (e) => {
@@ -69,26 +188,22 @@ export default function AdminExcelUpload() {
     handleFileUpload(droppedFile);
   };
 
-  const handleProcessData = () => {
-    // כאן תיכנס הלוגיקה שלנו שתסדר את הנתונים ותשלח לשרת!
-    // בינתיים אנחנו רק מציגים הודעה:
-    alert('ברגע שנגדיר את התבנית, הכפתור הזה ישלח את כל הנתונים לשרת!');
-  };
+  const totalRowsCount = excelData ? Object.values(excelData).reduce((acc, sheet) => acc + sheet.length, 0) : 0;
 
   return (
     <div className="min-h-screen bg-slate-100 p-8 font-sans" dir="rtl">
       <div className="max-w-3xl mx-auto">
-        
-        {/* כותרת עליונה */}
+
+        {/* כותרת */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
               <FileSpreadsheet className="text-emerald-600" size={28} />
-              ייבוא סדרות מאקסל
+              ייבוא משולב מאקסל
             </h1>
-            <p className="text-slate-500 text-sm mt-1">העלאה מרוכזת של סדרות, גליונות ומאמרים למסד הנתונים</p>
+            <p className="text-slate-500 text-sm mt-1">סריקה וקישור אוטומטי של כל עמודי הקובץ (גליונות + מאמרים)</p>
           </div>
-          <button 
+          <button
             onClick={() => navigate('/')}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 bg-white px-4 py-2 rounded-lg border shadow-sm font-bold transition-colors"
           >
@@ -96,10 +211,9 @@ export default function AdminExcelUpload() {
           </button>
         </div>
 
-        {/* אזור העלאת הקובץ */}
+        {/* אזור העלאה */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-          
-          <div 
+          <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -113,10 +227,12 @@ export default function AdminExcelUpload() {
                   <CheckCircle2 size={48} className="text-emerald-600" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-800 mb-1">{file.name}</h3>
-                <p className="text-slate-500 text-sm mb-6">הקובץ נקרא בהצלחה ({excelData?.length || 0} שורות נמצאו)</p>
-                <button 
-                  onClick={() => setFile(null)}
+                <p className="text-slate-500 text-sm mb-2">הקובץ נקרא בהצלחה ומכיל {Object.keys(excelData || {}).length} עמודים פנימיים</p>
+                <p className="text-slate-400 text-xs mb-6">(סך הכל זוהו {totalRowsCount} שורות נתונים)</p>
+                <button
+                  onClick={() => { setFile(null); setExcelData(null); }}
                   className="text-sm font-bold text-red-500 hover:text-red-700"
+                  disabled={isProcessing}
                 >
                   הסר קובץ והעלה מחדש
                 </button>
@@ -126,32 +242,32 @@ export default function AdminExcelUpload() {
                 <div className="bg-slate-100 p-4 rounded-full mb-4">
                   <UploadCloud size={48} className="text-slate-500" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">לחץ להעלאה או גרור קובץ לכאן</h3>
-                <p className="text-slate-500 text-sm mb-4">תומך בקבצי .xlsx, .xls</p>
-                <input 
-                  type="file" 
-                  id="excel-upload" 
-                  className="hidden" 
-                  accept=".xlsx, .xls, .csv" 
-                  onChange={(e) => handleFileUpload(e.target.files[0])} 
+                <h3 className="text-lg font-bold text-slate-800 mb-1">לחץ להעלאת קובץ האקסל המלא או גרור לכאן</h3>
+                <p className="text-slate-500 text-sm mb-4">הקוד יקרא את כל הלשוניות בקובץ ויקשר ביניהן אוטומטית לפי מספר מיקבץ</p>
+                <input
+                  type="file"
+                  id="excel-upload"
+                  className="hidden"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={(e) => handleFileUpload(e.target.files[0])}
                 />
               </div>
             )}
           </div>
 
-          {/* כפתור אישור סופי (מופיע רק אחרי שהועלה קובץ) */}
+          {/* כפתור הפעלה ושמירה */}
           {file && (
             <div className="mt-8 border-t pt-6 flex justify-end">
-              <button 
+              <button
                 onClick={handleProcessData}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-black text-lg shadow-md transition-colors flex items-center gap-2"
+                disabled={isProcessing}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white px-8 py-3 rounded-xl font-black text-lg shadow-md transition-colors flex items-center gap-2"
               >
                 <Database size={20} />
-                הכנס נתונים למערכת
+                {isProcessing ? 'מעבד ומקשר את כל הנתונים...' : 'הכנס נתונים משולבים למערכת'}
               </button>
             </div>
           )}
-
         </div>
 
       </div>
