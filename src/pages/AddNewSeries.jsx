@@ -325,9 +325,6 @@ export default function App() {
     if (deletePrompt.type === 'volume') {
       const vol = volumes[deletePrompt.vIdx];
 
-      // אם לגליון הזה כבר יש _id - הוא קיים במסד הנתונים, וצריך למחוק אותו
-      // באמת מהשרת (כולל המאמרים שבתוכו, שנמחקים אוטומטית ב-deletevolume).
-      // בלי הקריאה הזו, הגליון היה רק "נעלם" מהטופס אבל נשאר לנצח במונגו.
       if (vol._id) {
         try {
           await api.delete(`/volumes/${vol._id}`);
@@ -345,8 +342,6 @@ export default function App() {
     } else if (deletePrompt.type === 'article') {
       const art = volumes[deletePrompt.vIdx].articles[deletePrompt.aIdx];
 
-      // אותו עיקרון: מאמר שכבר קיים במסד (יש לו _id) חייב להימחק בפועל
-      // דרך ה-API, אחרת הוא רק מוסתר בטופס ונשאר יתום במונגו.
       if (art._id) {
         try {
           await api.delete(`/subtitles/${art._id}`);
@@ -360,6 +355,16 @@ export default function App() {
 
       const nv = [...volumes];
       nv[deletePrompt.vIdx].articles.splice(deletePrompt.aIdx, 1);
+      
+      // תיקון: אם מחקנו את המאמר היחיד שנשאר, נדחוף במקומו שורה ריקה חדשה כדי שהטבלה לא תישבר
+      if (nv[deletePrompt.vIdx].articles.length === 0) {
+        nv[deletePrompt.vIdx].articles.push({
+          id: Math.random().toString(36).substr(2, 9), autoId: 1,
+          authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
+          startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', linkExplanation: ''
+        });
+      }
+      
       nv[deletePrompt.vIdx].articles.forEach((a, i) => a.autoId = i + 1);
       setVolumes(nv);
     }
@@ -446,23 +451,21 @@ export default function App() {
       }
 
       const cleanVolumes = volumes.map(vol => {
+        // תיקון 1: סריקה דינמית של כל שדות המאמר - אם שדה כלשהו מלא, המאמר יישמר
         const cleanArticles = vol.articles.filter(art => {
           if (art._id) return true;
-          const hasContent =
-            (art.contentTitle && art.contentTitle.trim() !== '') ||
-            (art.generalTopic && art.generalTopic.trim() !== '') ||
-            (art.startPage && art.startPage.toString().trim() !== '') ||
-            (art.linkedArticleId && art.linkedArticleId.trim() !== '') ||
-            (art.source && art.source.trim() !== '') ||
-            (art.section && art.section.trim() !== '') ||
-            (art.linkExplanation && art.linkExplanation.trim() !== '') ||
-            (art.authors && art.authors.some(auth =>
-              (auth.firstName && auth.firstName.trim() !== '') ||
-              (auth.lastName && auth.lastName.trim() !== '') ||
-              (auth.titlePrefix && auth.titlePrefix.trim() !== '') ||
-              (auth.role && auth.role.trim() !== '')
-            ));
-          return hasContent;
+          return Object.entries(art).some(([key, val]) => {
+            if (key === 'id' || key === 'autoId') return false;
+            if (key === 'authors' && Array.isArray(val)) {
+              return val.some(auth => 
+                (auth.firstName && auth.firstName.trim() !== '') ||
+                (auth.lastName && auth.lastName.trim() !== '') ||
+                (auth.titlePrefix && auth.titlePrefix.trim() !== '') ||
+                (auth.role && auth.role.trim() !== '')
+              );
+            }
+            return val && val.toString().trim() !== '';
+          });
         });
         return { ...vol, articles: cleanArticles };
       }).filter(vol => {
@@ -717,8 +720,18 @@ export default function App() {
           </section>
 
           <section className="bg-white rounded-xl border shadow-sm flex flex-col w-full overflow-hidden">
+            {/* תיקון 2: החזרת כפתור "הוסף מאמר" שנשמט אל תוך כותרת הטבלה השחורה */}
             <div className="p-2.5 border-b bg-slate-900 flex justify-between items-center shrink-0">
               <h4 className="text-white text-[11px] font-bold flex items-center gap-2"><Users size={14} /> מאמרים בתוך הגליון</h4>
+              {canAddNew && (
+                <button 
+                  type="button" 
+                  onClick={addNewArticle} 
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-1 rounded transition-colors flex items-center gap-1 shadow-sm"
+                >
+                  <Plus size={12} /> הוסף מאמר חדש
+                </button>
+              )}
             </div>
 
             <div className="w-full">
@@ -825,7 +838,8 @@ export default function App() {
                               <UserPlus size={14} />
                             </button>
                           )}
-                          {canAddNew && !(isViewer && !!art._id) && currentVolume.articles.length > 1 && (
+                          {/* תיקון 3: הוסר התנאי של אורך המערך; כפתור המחיקה זמין כעת תמיד, כולל למאמר הראשון! */}
+                          {canAddNew && !(isViewer && !!art._id) && (
                             <button type="button" title="מחק מאמר" onClick={() => promptRemoveArticle(activeVolume, aIdx)} className="text-red-400 hover:bg-red-50 p-1.5 rounded-full transition-colors">
                               <Trash2 size={14} />
                             </button>
