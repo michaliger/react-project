@@ -321,12 +321,43 @@ export default function App() {
     });
   }
 
-  const executeDeleteAction = () => {
+  const executeDeleteAction = async () => {
     if (deletePrompt.type === 'volume') {
+      const vol = volumes[deletePrompt.vIdx];
+
+      // אם לגליון הזה כבר יש _id - הוא קיים במסד הנתונים, וצריך למחוק אותו
+      // באמת מהשרת (כולל המאמרים שבתוכו, שנמחקים אוטומטית ב-deletevolume).
+      // בלי הקריאה הזו, הגליון היה רק "נעלם" מהטופס אבל נשאר לנצח במונגו.
+      if (vol._id) {
+        try {
+          await api.delete(`/volumes/${vol._id}`);
+        } catch (err) {
+          console.error('שגיאה במחיקת גליון מהשרת:', err);
+          alert('שגיאה במחיקת הגליון מהשרת: ' + (err.response?.data?.message || err.message));
+          setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' });
+          return;
+        }
+      }
+
       const newVolumes = volumes.filter((_, i) => i !== deletePrompt.vIdx);
       setVolumes(newVolumes);
       setActiveVolume(Math.max(0, deletePrompt.vIdx - 1));
     } else if (deletePrompt.type === 'article') {
+      const art = volumes[deletePrompt.vIdx].articles[deletePrompt.aIdx];
+
+      // אותו עיקרון: מאמר שכבר קיים במסד (יש לו _id) חייב להימחק בפועל
+      // דרך ה-API, אחרת הוא רק מוסתר בטופס ונשאר יתום במונגו.
+      if (art._id) {
+        try {
+          await api.delete(`/subtitles/${art._id}`);
+        } catch (err) {
+          console.error('שגיאה במחיקת מאמר מהשרת:', err);
+          alert('שגיאה במחיקת המאמר מהשרת: ' + (err.response?.data?.message || err.message));
+          setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' });
+          return;
+        }
+      }
+
       const nv = [...volumes];
       nv[deletePrompt.vIdx].articles.splice(deletePrompt.aIdx, 1);
       nv[deletePrompt.vIdx].articles.forEach((a, i) => a.autoId = i + 1);
