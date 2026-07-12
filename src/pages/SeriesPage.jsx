@@ -73,7 +73,6 @@ export default function LibraryApp() {
   const [allSeries, setAllSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // סטייט לחיפוש וסינונים 
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -92,7 +91,6 @@ export default function LibraryApp() {
   const [deleteModal, setDeleteModal] = useState({ show: false, seriesId: null, seriesName: '' });
   const [infoModal, setInfoModal] = useState({ show: false, type: '', data: null });
 
-  // שאיפת נתונים דינמית לפילטרים (אוסף מקומות, מגזרים ונושאים קיימים)
   const filterOptions = useMemo(() => {
     const places = new Set();
     const sectors = new Set();
@@ -173,11 +171,9 @@ export default function LibraryApp() {
     window.location.reload();
   };
 
-  //  אלגוריתם הסינון המורכב (חיפוש + פילטרים) 
   const filteredData = useMemo(() => {
     let resultList = [];
 
-    // 1. קודם כל אוספים את הנתונים ומפלטרים לפי החיפוש החופשי (טקסט)
     if (activeTab === 'series') {
       resultList = allSeries.filter(s =>
         isSmartMatch([s.prefixName, s.fileName, s.identifierName, s.details, s.editor, s.publicationPlace, s.sector, s.adminNotes, s.missingVolumesList, s.catalogStatus, s.enteredBy], searchTerm)
@@ -213,7 +209,6 @@ export default function LibraryApp() {
       });
     }
 
-    // 2. עכשיו מפעילים את הפילטרים המתקדמים על התוצאות
     if (activeTab === 'series') {
       if (filters.place) resultList = resultList.filter(item => item.publicationPlace === filters.place);
       if (filters.sector) resultList = resultList.filter(item => item.sector === filters.sector);
@@ -225,7 +220,6 @@ export default function LibraryApp() {
         if (activeTab === 'article') resultList = resultList.filter(item => item.generalTopic === filters.topic);
       }
       
-      // פילטר תאריכים מחושב גימטריה
       if (filters.yearFrom || filters.yearTo) {
         const fromVal = filters.yearFrom ? getYearValue(filters.yearFrom) : 0;
         const toVal = filters.yearTo ? getYearValue(filters.yearTo) : Infinity;
@@ -235,7 +229,7 @@ export default function LibraryApp() {
           if (item.type === 'volume') yStr = item.publicationYear;
           if (item.type === 'article') yStr = item.originalSeries?.volumes?.[item.volIndex]?.publicationYear;
           
-          if (!yStr) return false; // אם מבקשים סינון שנים ולפריט אין שנה - נסנן אותו החוצה
+          if (!yStr) return false; 
           const yVal = getYearValue(yStr);
           return yVal >= fromVal && yVal <= toVal;
         });
@@ -296,6 +290,9 @@ export default function LibraryApp() {
 
   const currentVol = selectedSeries?.volumes?.[activeVolIdx];
 
+  // ==========================================
+  // עדכון נתיבים לשימוש בכתובות מלאות של Cloudinary
+  // ==========================================
   let pdfFinalUrl = '';
   let externalPdfUrl = '';
   
@@ -311,8 +308,14 @@ export default function LibraryApp() {
         }
       }
     }
-    pdfFinalUrl = `https://node-project-cvek.onrender.com/uploads/${currentVol.pdfPath}${pageParam}${pageParam ? '&' : '#'}view=FitH&toolbar=0`;
-    externalPdfUrl = `https://node-project-cvek.onrender.com/uploads/${currentVol.pdfPath}${pageParam}`;
+    
+    // במידה והנתיב במסד הנתונים הוא כתובת מלאה (מתחיל ב-http), נשתמש בו ישירות. אחרת ניפול חזרה לשרת הישן
+    const basePdfUrl = currentVol.pdfPath.startsWith('http') 
+      ? currentVol.pdfPath 
+      : `https://node-project-cvek.onrender.com/uploads/${currentVol.pdfPath}`;
+
+    pdfFinalUrl = `${basePdfUrl}${pageParam}${pageParam ? '&' : '#'}view=FitH&toolbar=0`;
+    externalPdfUrl = `${basePdfUrl}${pageParam}`;
   }
 
   return (
@@ -487,7 +490,6 @@ export default function LibraryApp() {
               </button>
             </div>
 
-            {/* 🌟 פאנל הסינון המתקדם 🌟 */}
             {showFilters && (
               <div className="mt-2 p-3 bg-white rounded-lg border border-gray-300 shadow-sm space-y-2 text-[12px] animate-in fade-in slide-in-from-top-2">
                 
@@ -539,10 +541,16 @@ export default function LibraryApp() {
             {filteredData.length > 0 ? filteredData.map((item, idx) => {
               if (item.type === 'series') {
                 const isActive = selectedSeries?._id === item._id;
+                
+                // בדיקה האם קובץ התמונה הוא נתיב מלא של Cloudinary או מקומי
+                const imageUrl = item.coverImage 
+                  ? (item.coverImage.startsWith('http') ? item.coverImage : `https://node-project-cvek.onrender.com/uploads/${item.coverImage}`)
+                  : "/books.jpg";
+
                 return (
                   <button key={item._id} onClick={() => handleResultClick(item)} className={`w-full flex items-center gap-3 p-3 border-b transition-colors ${isActive ? 'bg-blue-100 border-blue-400 shadow-inner' : 'border-gray-200 hover:bg-blue-50'}`}>
                     <div className="w-8 h-12 bg-white rounded border border-gray-300 shrink-0 overflow-hidden shadow-sm">
-                      <img src={item.coverImage ? `https://node-project-cvek.onrender.com/uploads/${item.coverImage}` : "/books.jpg"} className="w-full h-full object-cover" alt="" onError={(e) => { e.target.onerror = null; e.target.src = "/books.jpg"; }} />
+                      <img src={imageUrl} className="w-full h-full object-cover" alt="" onError={(e) => { e.target.onerror = null; e.target.src = "/books.jpg"; }} />
                     </div>
                     <div className="text-right flex-1 min-w-0">
                       <h3 className={`font-bold text-[14px] truncate leading-tight w-full ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>{item.prefixName} {item.fileName}</h3>
