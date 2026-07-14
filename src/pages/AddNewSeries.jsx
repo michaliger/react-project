@@ -64,7 +64,6 @@ export default function App() {
 
   const isExistingSeries = !!series._id;
 
-  // יצירת מאמר ריק התואם ב-100% לשדות ה-Backend
   const createEmptyVolume = (index) => ({
     id: Math.random().toString(36).substr(2, 9),
     volumeTitle: '', volumeNumber: (index + 1).toString(), booklet: '',
@@ -274,13 +273,13 @@ export default function App() {
     }
 
     const nv = [...volumes];
-
+    
     const newArticle = {
       id: Math.random().toString(36).substr(2, 9),
       autoId: nv[activeVolume].articles.length + 1,
       authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
       startPage: '',
-      section: '',
+      section: '', 
       contentTitle: '',
       generalTopic: '',
       source: '',
@@ -355,8 +354,7 @@ export default function App() {
 
       const nv = [...volumes];
       nv[deletePrompt.vIdx].articles.splice(deletePrompt.aIdx, 1);
-
-      // תיקון: אם מחקנו את המאמר היחיד שנשאר, נדחוף במקומו שורה ריקה חדשה כדי שהטבלה לא תישבר
+      
       if (nv[deletePrompt.vIdx].articles.length === 0) {
         nv[deletePrompt.vIdx].articles.push({
           id: Math.random().toString(36).substr(2, 9), autoId: 1,
@@ -364,7 +362,7 @@ export default function App() {
           startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', linkExplanation: ''
         });
       }
-
+      
       nv[deletePrompt.vIdx].articles.forEach((a, i) => a.autoId = i + 1);
       setVolumes(nv);
     }
@@ -450,14 +448,14 @@ export default function App() {
         delete dataToSave._id;
       }
 
+      // כאן מתבצע התיקון: הוצאת pdfFile והגדרות הכריכה מתוך המיפוי של ה-JSON כדי שלא יישלחו בטעות כחלק מהטקסט
       const cleanVolumes = volumes.map(vol => {
-        // תיקון 1: סריקה דינמית של כל שדות המאמר - אם שדה כלשהו מלא, המאמר יישמר
         const cleanArticles = vol.articles.filter(art => {
           if (art._id) return true;
           return Object.entries(art).some(([key, val]) => {
             if (key === 'id' || key === 'autoId') return false;
             if (key === 'authors' && Array.isArray(val)) {
-              return val.some(auth =>
+              return val.some(auth => 
                 (auth.firstName && auth.firstName.trim() !== '') ||
                 (auth.lastName && auth.lastName.trim() !== '') ||
                 (auth.titlePrefix && auth.titlePrefix.trim() !== '') ||
@@ -467,7 +465,11 @@ export default function App() {
             return val && val.toString().trim() !== '';
           });
         });
-        return { ...vol, articles: cleanArticles };
+
+        // יצירת עותק ללא שדות קובץ גולמיים שלא תואמים ל-JSON
+        const { pdfFile, coverFile, coverPreview, ...restOfVol } = vol;
+
+        return { ...restOfVol, articles: cleanArticles };
       }).filter(vol => {
         if (vol._id) return true;
 
@@ -481,8 +483,7 @@ export default function App() {
           (vol.volumeSize && vol.volumeSize.trim() !== '') ||
           (vol.fileCompleteness && vol.fileCompleteness.trim() !== '') ||
           (vol.scanCompleteness && vol.scanCompleteness.trim() !== '') ||
-          (vol.pdfFileName && vol.pdfFileName.trim() !== '') ||
-          (vol.pdfFile != null);
+          (vol.pdfFileName && vol.pdfFileName.trim() !== '');
 
         return hasBasicData || vol.articles.length > 0;
       });
@@ -498,7 +499,8 @@ export default function App() {
         formData.append('coverImage', series.coverFile);
       }
 
-      cleanVolumes.forEach((vol, index) => {
+      // הוספת קבצי ה-PDF האמיתיים ל-FormData בנפרד
+      volumes.forEach((vol, index) => {
         if (vol.pdfFile) {
           formData.append(`pdfFile_${index}`, vol.pdfFile);
         }
@@ -673,11 +675,7 @@ export default function App() {
               <div className="col-span-2 flex items-center justify-center border-r pr-3">
                 <div onClick={() => { if (!(isNotLoggedIn || (isViewer && !!editId))) fileInputRef.current.click() }} className={`h-28 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-slate-50 overflow-hidden ${isNotLoggedIn || (isViewer && !!editId) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-100 transition-all'}`}>
                   {series.coverPreview || series.coverImage ? (
-                    <img
-                      src={series.coverPreview || (series.coverImage && series.coverImage.startsWith('http') ? series.coverImage : `${SERVER_BASE_URL}/uploads/${series.coverImage}`)}
-                      className="h-full w-full object-contain"
-                      alt="כריכה"
-                    />
+                    <img src={series.coverPreview || `${SERVER_BASE_URL}/uploads/${series.coverImage}`} className="h-full w-full object-contain" alt="כריכה" />
                   ) : (
                     <div className="text-center text-slate-400">
                       <Upload size={20} className="mx-auto" />
@@ -724,13 +722,12 @@ export default function App() {
           </section>
 
           <section className="bg-white rounded-xl border shadow-sm flex flex-col w-full overflow-hidden">
-            {/* תיקון 2: החזרת כפתור "הוסף מאמר" שנשמט אל תוך כותרת הטבלה השחורה */}
             <div className="p-2.5 border-b bg-slate-900 flex justify-between items-center shrink-0">
               <h4 className="text-white text-[11px] font-bold flex items-center gap-2"><Users size={14} /> מאמרים בתוך הגליון</h4>
               {canAddNew && (
-                <button
-                  type="button"
-                  onClick={addNewArticle}
+                <button 
+                  type="button" 
+                  onClick={addNewArticle} 
                   className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-1 rounded transition-colors flex items-center gap-1 shadow-sm"
                 >
                   <Plus size={12} /> הוסף מאמר חדש
@@ -842,7 +839,6 @@ export default function App() {
                               <UserPlus size={14} />
                             </button>
                           )}
-                          {/* תיקון 3: הוסר התנאי של אורך המערך; כפתור המחיקה זמין כעת תמיד, כולל למאמר הראשון! */}
                           {canAddNew && !(isViewer && !!art._id) && (
                             <button type="button" title="מחק מאמר" onClick={() => promptRemoveArticle(activeVolume, aIdx)} className="text-red-400 hover:bg-red-50 p-1.5 rounded-full transition-colors">
                               <Trash2 size={14} />
