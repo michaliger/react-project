@@ -61,6 +61,11 @@ export default function LibraryApp() {
   const { currentUser } = useSelector((state) => state.user);
   const dispatch = useDispatch();
   
+  // חילוץ כתובת השרת מתוך משתני הסביבה או כתובת הדיפולט
+  const API_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api';
+  
+  // הסרת ה-'/api' מסוף הכתובת כדי לקבל את כתובת השורש של השרת שבו נמצאת תיקיית ה-uploads
+  const SERVER_BASE_URL = API_URL.replace(/\/api$/, '') || 'https://node-project-cvek.onrender.com';
   const loggedInUser = currentUser || {};
   const hasUser = Object.keys(loggedInUser).length > 0;
   
@@ -291,7 +296,7 @@ export default function LibraryApp() {
   const currentVol = selectedSeries?.volumes?.[activeVolIdx];
 
   // ==========================================
-  // עדכון נתיבים לשימוש בכתובות מלאות של Cloudinary
+  // עדכון נתיבים לשימוש בכתובות מלאות של Cloudinary או שרת מקומי
   // ==========================================
   let pdfFinalUrl = '';
   let externalPdfUrl = '';
@@ -304,26 +309,25 @@ export default function LibraryApp() {
       if (targetPage) {
         const pageNum = String(targetPage).match(/\d+/);
         if (pageNum) {
-          pageParam = `#page=${pageNum[0]}`;
+          pageParam = `page=${pageNum[0]}`;
         }
       }
     }
     
-    // מנקים רווחים מיותרים ובודקים בבטחה אם מדובר בכתובת ענן מלאה (מתחיל ב-http)
     const rawPath = currentVol.pdfPath.trim();
     const basePdfUrl = rawPath.startsWith('http') 
       ? rawPath 
-      : `https://node-project-cvek.onrender.com/uploads/${rawPath}`;
+      : `${SERVER_BASE_URL}/uploads/${rawPath}`;
 
-    pdfFinalUrl = `${basePdfUrl}${pageParam}${pageParam ? '&' : '#'}view=FitH&toolbar=0`;
-    externalPdfUrl = `${basePdfUrl}${pageParam}`;
+    pdfFinalUrl = `${basePdfUrl}${pageParam ? '#' + pageParam : ''}`;
+    externalPdfUrl = basePdfUrl;
   }
 
   return (
     <div className="h-screen bg-gray-200 text-gray-900 font-sans flex flex-col overflow-hidden selection:bg-blue-200" dir="rtl">
       
       {infoModal.show && infoModal.data && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyYContent: 'center' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200">
             <div className="bg-blue-900 text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
               <h3 className="text-lg font-black flex items-center gap-2">
@@ -424,7 +428,7 @@ export default function LibraryApp() {
               <span className="text-[13px] text-gray-500 block mt-2 font-bold bg-gray-100 p-2 rounded">שימו לב: פעולה זו תמחק גם את כל הגליונות והמאמרים שבתוכה, ולא ניתנת לביטול.</span>
             </p>
             <div className="flex gap-4 justify-center">
-              <button onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} className="px-6 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors">بيטول</button>
+              <button onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} className="px-6 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors">ביטול</button>
               <button onClick={executeDelete} className="px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors">כן, מחק קובץ</button>
             </div>
           </div>
@@ -543,15 +547,20 @@ export default function LibraryApp() {
               if (item.type === 'series') {
                 const isActive = selectedSeries?._id === item._id;
                 
-                // בדיקה האם קובץ התמונה הוא נתיב מלא של Cloudinary או מקומי
+                // בניית נתיב התמונה בצורה מאובטחת
                 const imageUrl = item.coverImage 
-                  ? (item.coverImage.startsWith('http') ? item.coverImage : `https://node-project-cvek.onrender.com/uploads/${item.coverImage}`)
-                  : "/books.jpg";
+                  ? (item.coverImage.startsWith('http') ? item.coverImage : `${SERVER_BASE_URL}/uploads/${item.coverImage}`)
+                  : `${SERVER_BASE_URL}/uploads/books.jpg`;
 
                 return (
                   <button key={item._id} onClick={() => handleResultClick(item)} className={`w-full flex items-center gap-3 p-3 border-b transition-colors ${isActive ? 'bg-blue-100 border-blue-400 shadow-inner' : 'border-gray-200 hover:bg-blue-50'}`}>
                     <div className="w-8 h-12 bg-white rounded border border-gray-300 shrink-0 overflow-hidden shadow-sm">
-                      <img src={`${SERVER_BASE_URL}/uploads/books.jpg`|| imageUrl} className="w-full h-full object-cover" alt="" onError={(e) => { e.target.onerror = null; e.target.src = "/books.jpg"; }} />
+                      <img 
+                        src={imageUrl} 
+                        className="w-full h-full object-cover" 
+                        alt="" 
+                        onError={(e) => { e.target.onerror = null; e.target.src = "/books.jpg"; }} 
+                      />
                     </div>
                     <div className="text-right flex-1 min-w-0">
                       <h3 className={`font-bold text-[14px] truncate leading-tight w-full ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>{item.prefixName} {item.fileName}</h3>
