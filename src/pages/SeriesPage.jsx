@@ -96,6 +96,18 @@ export default function LibraryApp() {
   const SERVER_BASE_URL = API_URL.replace('/api', '');
   const DEFAULT_COVER_IMAGE = `${SERVER_BASE_URL}/uploads/books.jpg`;
 
+  // פונקציה חכמה שמונעת כפל בנתיב של ה-uploads וטוענת תמונה מקורית כראוי
+  const getCoverImageUrl = (coverImage) => {
+    if (!coverImage || coverImage.trim() === '') {
+      return DEFAULT_COVER_IMAGE;
+    }
+    if (coverImage.startsWith('http')) {
+      return coverImage;
+    }
+    const cleanPath = coverImage.replace(/^\/?(uploads\/)?/i, '');
+    return `${SERVER_BASE_URL}/uploads/${cleanPath}`;
+  };
+
   const filterOptions = useMemo(() => {
     const places = new Set();
     const sectors = new Set();
@@ -166,7 +178,7 @@ export default function LibraryApp() {
       setSelectedSeries(null);
       setDeleteModal({ show: false, seriesId: null, seriesName: '' });
     } catch (err) { 
-      alert("שגיאה במחיקת הקובץ. וודאי שהשרת פועל ויש לך הרשאות מתאימות."); 
+      alert("שגיאה במחיקת הקובץ. ודאי שהשרת פועל ויש לך הרשאות מתאימות."); 
       setDeleteModal({ show: false, seriesId: null, seriesName: '' });
     }
   };
@@ -295,9 +307,6 @@ export default function LibraryApp() {
 
   const currentVol = selectedSeries?.volumes?.[activeVolIdx];
 
-  // ==========================================
-  // עדכון נתיבים לשימוש בכתובות מלאות של Cloudinary
-  // ==========================================
   let pdfFinalUrl = '';
   let externalPdfUrl = '';
   
@@ -546,11 +555,7 @@ export default function LibraryApp() {
             {filteredData.length > 0 ? filteredData.map((item, idx) => {
               if (item.type === 'series') {
                 const isActive = selectedSeries?._id === item._id;
-                
-                // הגדרת נתיב התמונה: אם קיים, נבדוק אם הוא כתובת מלאה או מקומית. אם לא קיים - נשתמש בתמונת ברירת המחדל הדינמית מהשרת
-                const imageUrl = item.coverImage 
-                  ? (item.coverImage.startsWith('http') ? item.coverImage : `${SERVER_BASE_URL}/uploads/${item.coverImage}`)
-                  : DEFAULT_COVER_IMAGE;
+                const imageUrl = getCoverImageUrl(item.coverImage);
 
                 return (
                   <button key={item._id} onClick={() => handleResultClick(item)} className={`w-full flex items-center gap-3 p-3 border-b transition-colors ${isActive ? 'bg-blue-100 border-blue-400 shadow-inner' : 'border-gray-200 hover:bg-blue-50'}`}>
@@ -560,8 +565,9 @@ export default function LibraryApp() {
                         className="w-full h-full object-cover" 
                         alt="" 
                         onError={(e) => { 
-                          e.target.onerror = null; 
-                          e.target.src = DEFAULT_COVER_IMAGE; 
+                          if (e.target.src !== DEFAULT_COVER_IMAGE) {
+                            e.target.src = DEFAULT_COVER_IMAGE;
+                          }
                         }} 
                       />
                     </div>
