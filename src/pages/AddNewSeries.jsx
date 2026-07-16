@@ -750,7 +750,7 @@ export default function App() {
                     <th className="p-2 border-l w-24">נושא</th>
                     <th className="p-2 border-l text-center w-12">עמ'</th>
                     <th className="p-2 border-l bg-indigo-50/50 w-16">קישור</th>
-                    <th className="p-2 border-l bg-indigo-50/50 w-24">הערות</th>
+                    <th className="p-2 border-l bg-indigo-50/50 w-16">הערות</th>
                     <th className="p-2 text-center w-16">פעולות</th>
                   </tr>
                 </thead>
@@ -860,7 +860,7 @@ export default function App() {
           top: '20px',
           left: '50%',
           transform: 'translateX(-50%)',
-          backgroundColor: '#4CAF50',
+          backgroundColor: '#876003ae',
           color: 'white',
           padding: '15px 20px',
           borderRadius: '5px',

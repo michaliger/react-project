@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, Search, Plus, BookOpen, FileText, ExternalLink, Edit3, Eye, User, Layers, Book, LogOut, LogIn, ShieldAlert, ShieldCheck, UserCircle, AlertTriangle, Info, X, Link2, FileSpreadsheet, Filter } from 'lucide-react';
+import { Trash2, Search, Plus, BookOpen, FileText, ExternalLink, Edit3, Eye, User, Layers, Book, LogOut, LogIn, ShieldAlert, ShieldCheck, UserCircle, AlertTriangle, Info, X, Link2, FileSpreadsheet, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import api from '../api';
@@ -30,16 +30,31 @@ const getEditDistance = (a, b) => {
 
 const isSmartMatch = (textArray, query) => {
   if (!query) return true;
+
+  // פונקציית עזר להסרת אותיות אהו"י מתוך מילה
+  const removeAhoy = (str) => str.replace(/[אהוי]/g, '');
+
   const cleanText = textArray.filter(Boolean).join(' ').toLowerCase().replace(/["'`]/g, '');
   const cleanQuery = query.toString().toLowerCase().trim().replace(/["'`]/g, '');
+  
   if (!cleanText) return false;
   if (cleanText.includes(cleanQuery)) return true;
+
   const textWords = cleanText.split(/\s+/);
   const queryWords = cleanQuery.split(/\s+/);
+
   return queryWords.every(qWord => {
+    const qWordNoAhoy = removeAhoy(qWord); // הסרת אהו"י מהחיפוש
+    
     return textWords.some(tWord => {
-      if (tWord.includes(qWord)) return true;
-      if (qWord.length >= 5) return getEditDistance(tWord, qWord) <= 1; 
+      const tWordNoAhoy = removeAhoy(tWord); // הסרת אהו"י מהטקסט במערכת
+      
+      // בדיקה אם המילה מכילה את המילה המבוקשת (אחרי ניקוי אהו"י)
+      if (tWordNoAhoy.includes(qWordNoAhoy) && qWordNoAhoy.length > 0) return true;
+      
+      // אם המילה ארוכה מספיק, משתמשים גם במרחק עריכה על המילה הנקייה
+      if (qWordNoAhoy.length >= 4) return getEditDistance(tWordNoAhoy, qWordNoAhoy) <= 1; 
+      
       return false;
     });
   });
@@ -91,12 +106,14 @@ export default function LibraryApp() {
   const [deleteModal, setDeleteModal] = useState({ show: false, seriesId: null, seriesName: '' });
   const [infoModal, setInfoModal] = useState({ show: false, type: '', data: null });
 
+  // מצב למעקב אחר אילו סדרות פתוחות (Expanded) ברשימה בצד ימין
+  const [expandedSeries, setExpandedSeries] = useState({});
+
   // חילוץ כתובות השרת ובניית תמונת ברירת המחדל הדינמית
   const API_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api';
   const SERVER_BASE_URL = API_URL.replace('/api', '');
   const DEFAULT_COVER_IMAGE = `${SERVER_BASE_URL}/uploads/books.jpg`;
 
-  // פונקציה חכמה שמונעת כפל בנתיב של ה-uploads וטוענת תמונה מקורית כראוי
   const getCoverImageUrl = (coverImage) => {
     if (!coverImage || coverImage.trim() === '') {
       return DEFAULT_COVER_IMAGE;
@@ -106,6 +123,14 @@ export default function LibraryApp() {
     }
     const cleanPath = coverImage.replace(/^\/?(uploads\/)?/i, '');
     return `${SERVER_BASE_URL}/uploads/${cleanPath}`;
+  };
+
+  const toggleSeriesExpand = (seriesId, e) => {
+    e.stopPropagation(); // מונע בחירה אוטומטית של הסדרה רק בגלל לחיצה על כפתור הפתיחה
+    setExpandedSeries(prev => ({
+      ...prev,
+      [seriesId]: !prev[seriesId]
+    }));
   };
 
   const filterOptions = useMemo(() => {
@@ -137,7 +162,13 @@ export default function LibraryApp() {
       .then(res => {
         const seriesArray = res.data?.data?.series || [];
         setAllSeries(seriesArray);
-        if (seriesArray.length > 0 && !selectedSeries) setSelectedSeries(seriesArray[0]);
+        if (seriesArray.length > 0 && !selectedSeries) {
+          setSelectedSeries(seriesArray[0]);
+          // פתיחת הסדרה הראשונה כברירת מחדל
+          if (seriesArray[0]._id) {
+            setExpandedSeries(prev => ({ ...prev, [seriesArray[0]._id]: true }));
+          }
+        }
         setLoading(false);
       }).catch(err => {
         console.error("Error fetching series:", err);
@@ -263,6 +294,12 @@ export default function LibraryApp() {
       setActiveArticleId(item._id || item.id);
     } else {
       setActiveArticleId(null);
+    }
+
+    // פתיחה אוטומטית של האקורדיון של הסדרה שנבחרה
+    const targetSeriesId = item.originalSeries?._id || item._id;
+    if (targetSeriesId) {
+      setExpandedSeries(prev => ({ ...prev, [targetSeriesId]: true }));
     }
   };
 
@@ -469,7 +506,7 @@ export default function LibraryApp() {
 
       <div className="flex-1 flex overflow-hidden">
         
-        <aside className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 overflow-hidden shadow-lg z-10" style={{ width: '320px', minWidth: '320px', maxWidth: '320px' }}>
+        <aside className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 overflow-hidden shadow-lg z-10" style={{ width: '340px', minWidth: '340px', maxWidth: '340px' }}>
           <div className="p-3 border-b border-gray-300 bg-gray-100 shrink-0">
             
             {canAddNew && (
@@ -485,8 +522,7 @@ export default function LibraryApp() {
             )}
 
             <div className="flex bg-gray-300 p-1 rounded-lg mb-3">
-              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({place:'', sector:'', yearFrom:'', yearTo:'', topic:''}) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'series' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><Book size={14}/> קבצים</button>
-              <button onClick={() => { setActiveTab('volume'); setSearchTerm(""); setFilters({place:'', sector:'', yearFrom:'', yearTo:'', topic:''}) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'volume' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><Layers size={14}/> גליונות</button>
+              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({place:'', sector:'', yearFrom:'', yearTo:'', topic:''}) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'series' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><Book size={14}/> קבצים וגליונות</button>
               <button onClick={() => { setActiveTab('article'); setSearchTerm(""); setFilters({place:'', sector:'', yearFrom:'', yearTo:'', topic:''}) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'article' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><FileText size={14}/> מאמרים</button>
             </div>
 
@@ -520,19 +556,6 @@ export default function LibraryApp() {
                   </>
                 )}
 
-                {activeTab === 'volume' && (
-                  <>
-                    <div className="flex gap-2">
-                      <input type="text" placeholder="משנת (למשל תש''פ)" value={filters.yearFrom} onChange={e => setFilters({...filters, yearFrom: e.target.value})} className="w-1/2 p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50" />
-                      <input type="text" placeholder="עד שנת (למשל תשפ''ד)" value={filters.yearTo} onChange={e => setFilters({...filters, yearTo: e.target.value})} className="w-1/2 p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50" />
-                    </div>
-                    <select value={filters.topic} onChange={e => setFilters({...filters, topic: e.target.value})} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
-                      <option value="">כל הנושאים הראשיים</option>
-                      {filterOptions.topics.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </>
-                )}
-
                 {activeTab === 'article' && (
                   <>
                     <select value={filters.topic} onChange={e => setFilters({...filters, topic: e.target.value})} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
@@ -554,36 +577,78 @@ export default function LibraryApp() {
           <div className="flex-1 overflow-y-scroll overflow-x-hidden custom-scrollbar bg-white min-w-0">
             {filteredData.length > 0 ? filteredData.map((item, idx) => {
               if (item.type === 'series') {
-                const isActive = selectedSeries?._id === item._id;
+                const isActiveSeries = selectedSeries?._id === item._id;
+                const isExpanded = !!expandedSeries[item._id];
                 const imageUrl = getCoverImageUrl(item.coverImage);
 
                 return (
-                  <button key={item._id} onClick={() => handleResultClick(item)} className={`w-full flex items-center gap-3 p-3 border-b transition-colors ${isActive ? 'bg-blue-100 border-blue-400 shadow-inner' : 'border-gray-200 hover:bg-blue-50'}`}>
-                    <div className="w-8 h-12 bg-white rounded border border-gray-300 shrink-0 overflow-hidden shadow-sm">
-                      <img 
-                        src={imageUrl} 
-                        className="w-full h-full object-cover" 
-                        alt="" 
-                        onError={(e) => { 
-                          if (e.target.src !== DEFAULT_COVER_IMAGE) {
-                            e.target.src = DEFAULT_COVER_IMAGE;
-                          }
-                        }} 
-                      />
+                  <div key={item._id} className="border-b border-gray-200">
+                    {/* שורת הסדרה הניתנת ללחיצה */}
+                    <div 
+                      onClick={() => handleResultClick({ ...item, volIndex: 0 })}
+                      className={`w-full flex items-center justify-between p-3 transition-colors cursor-pointer ${isActiveSeries ? 'bg-blue-50/80 border-r-4 border-r-blue-700' : 'hover:bg-gray-50'}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-11 bg-white rounded border border-gray-300 shrink-0 overflow-hidden shadow-sm">
+                          <img 
+                            src={imageUrl} 
+                            className="w-full h-full object-cover" 
+                            alt="" 
+                            onError={(e) => { 
+                              if (e.target.src !== DEFAULT_COVER_IMAGE) {
+                                e.target.src = DEFAULT_COVER_IMAGE;
+                              }
+                            }} 
+                          />
+                        </div>
+                        <div className="text-right min-w-0 flex-1">
+                          <h3 className={`font-black text-[13.5px] truncate leading-snug ${isActiveSeries ? 'text-blue-900' : 'text-gray-900'}`}>
+                            {item.prefixName} {item.fileName}
+                          </h3>
+                          <span className="text-[10px] text-gray-500 font-bold">{item.volumes?.length || 0} גליונות</span>
+                        </div>
+                      </div>
+
+                      {/* כפתור + / - לפתיחה וסגירה מהירה של הגליונות השייכים אליה */}
+                      {item.volumes && item.volumes.length > 0 && (
+                        <button 
+                          onClick={(e) => toggleSeriesExpand(item._id, e)}
+                          className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-500 hover:text-blue-700 transition-colors mr-2"
+                        >
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      )}
                     </div>
-                    <div className="text-right flex-1 min-w-0">
-                      <h3 className={`font-bold text-[14px] truncate leading-tight w-full ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>{item.prefixName} {item.fileName}</h3>
-                    </div>
-                  </button>
+
+                    {/* רשימת גליונות נפתחת (Accordion) בתוך הסדרה */}
+                    {isExpanded && item.volumes && item.volumes.length > 0 && (
+                      <div className="bg-gray-50/50 border-t border-gray-100 pr-4 pl-2 py-1.5 space-y-1">
+                        {item.volumes.map((v, vIdx) => {
+                          const isVolActive = isActiveSeries && activeVolIdx === vIdx;
+                          return (
+                            <button
+                              key={vIdx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleResultClick({ originalSeries: item, volIndex: vIdx, type: 'volume' });
+                              }}
+                              className={`w-full text-right py-2 px-3 rounded-lg text-[12px] flex items-center justify-between transition-all ${
+                                isVolActive 
+                                  ? 'bg-blue-600 text-white font-black shadow-sm' 
+                                  : 'text-gray-700 hover:bg-blue-50 hover:text-blue-950'
+                              }`}
+                            >
+                              <span className="truncate">{v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`}</span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isVolActive ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                                {v.articles?.length || 0}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
-              } else if (item.type === 'volume') {
-                  const isActive = selectedSeries?._id === item.seriesId && activeVolIdx === item.volIndex;
-                  return (
-                    <button key={`${item.seriesId}-${idx}`} onClick={() => handleResultClick(item)} className={`w-full text-right p-3 border-b flex flex-col min-w-0 transition-colors ${isActive ? 'bg-blue-100 border-blue-400 shadow-inner' : 'border-gray-200 hover:bg-blue-50'}`}>
-                      <div className="text-[11px] text-blue-700 font-bold mb-1 truncate w-full">{item.seriesName}</div>
-                      <div className="font-bold text-[13px] text-gray-900 truncate w-full">{item.volumeTitle || item.title || `גליון ${item.volumeNumber}`}</div>
-                    </button>
-                  )
               } else if (item.type === 'article') {
                    const isActive = activeArticleId === (item._id || item.id);
                    return (
@@ -619,6 +684,14 @@ export default function LibraryApp() {
                 </div>
                 
                 <div className="flex gap-3 shrink-0">
+                  {canAddNew && (
+                    <button 
+                      onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=volume`)} 
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 border border-blue-300 text-blue-800 rounded-lg text-[13px] font-bold hover:bg-blue-100 transition-colors shadow-sm"
+                    >
+                      <Plus size={15} /> הוספת גליון
+                    </button>
+                  )}
                   {isAdmin && (
                     <>
                       <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-400 text-gray-800 rounded-lg text-[13px] font-bold hover:bg-gray-100 transition-colors shadow-sm">
@@ -633,46 +706,20 @@ export default function LibraryApp() {
               </header>
 
               <div className="flex-1 flex overflow-hidden">
-                
-                <div className="border-l border-gray-300 bg-white flex flex-col shrink-0 shadow-sm z-0" style={{ width: '220px', minWidth: '220px', maxWidth: '220px' }}>
-                  <div className="p-3 text-[12px] font-black text-gray-700 uppercase border-b border-gray-300 flex items-center gap-2 bg-gray-100 shrink-0">
-                    <Layers size={14} className="text-gray-500" /> רשימת גליונות
-                  </div>
-                  <div className="flex-1 overflow-y-scroll overflow-x-hidden custom-scrollbar">
-                    {selectedSeries.volumes?.map((v, idx) => (
-                      <button key={idx} onClick={() => { setActiveVolIdx(idx); setActiveArticleId(null); }} className={`w-full text-right px-3 py-3 border-b border-gray-200 transition-colors flex items-center justify-between min-w-0 group ${activeVolIdx === idx ? 'bg-blue-600 text-white font-bold shadow-md' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-900'}`}>
-                        <div className="text-[13px] truncate pr-1 flex-1 min-w-0 flex items-center gap-2">
-                          <div 
-                            onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'volume', data: v }); }} 
-                            className={`p-1 rounded-full shrink-0 transition-colors ${activeVolIdx === idx ? 'text-blue-200 hover:text-white hover:bg-blue-500' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-100 opacity-0 group-hover:opacity-100'}`}
-                            title="פרטי גליון"
-                          >
-                            <Info size={14} />
-                          </div>
-                          <span className="truncate">{v.volumeTitle || v.title || `גליון ${v.volumeNumber || idx + 1}`}</span>
-                        </div>
-                        <div className={`text-[10px] shrink-0 font-bold ml-1 ${activeVolIdx === idx ? 'text-blue-200' : 'text-gray-400 bg-gray-100 px-1.5 rounded'}`}>{v.articles?.length || 0}</div>
-                      </button>
-                    ))}
-                  </div>
-
-                  {canAddNew && (
-                    <div className="p-3 border-t border-gray-300 bg-gray-50 shrink-0">
-                      <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=volume`)} className="w-full py-2 bg-white border border-blue-400 text-blue-800 rounded-lg text-[13px] font-black hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                        <Plus size={14} /> הוספת גליון לקובץ
-                      </button>
-                    </div>
-                  )}
-                </div>
-
                 <div className="flex-1 flex overflow-hidden min-w-0">
                   {currentVol ? (
                     <>
-                      <div className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 shadow-sm z-0" style={{ width: '360px', minWidth: '360px', maxWidth: '360px' }}>
+                      <div className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 shadow-sm z-0" style={{ width: '380px', minWidth: '380px', maxWidth: '380px' }}>
                         <div className="p-4 pb-3 border-b border-gray-300 flex justify-between items-center bg-white shrink-0">
-                          <h3 className="text-[16px] font-black text-gray-900">מאמרי הגליון</h3>
-                          <span className="text-[11px] font-bold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded border border-blue-200 shadow-sm">{currentVol.articles?.length || 0} מאמרים</span>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-[15px] font-black text-gray-950 truncate">
+                              {currentVol.volumeTitle || currentVol.title || `גליון ${currentVol.volumeNumber}`}
+                            </h3>
+                            <p className="text-[11px] text-gray-500 font-bold mt-0.5">רשימת מאמרים מפורטת</p>
+                          </div>
+                          <span className="text-[11px] font-bold text-blue-900 bg-blue-100 px-2.5 py-1 rounded border border-blue-200 shadow-sm shrink-0">{currentVol.articles?.length || 0} מאמרים</span>
                         </div>
+                        
                         <div className="flex-1 overflow-y-scroll overflow-x-hidden p-3 space-y-2 custom-scrollbar bg-gray-100 min-w-0">
                           {currentVol.articles && currentVol.articles.length > 0 ? (
                             currentVol.articles.map((art, aIdx) => {
@@ -747,7 +794,7 @@ export default function LibraryApp() {
                       </div>
                     </>
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-gray-500 text-[15px] font-bold bg-white">אנא בחר גליון מהרשימה</div>
+                    <div className="h-full w-full flex items-center justify-center text-gray-500 text-[15px] font-bold bg-white">אנא בחר גליון מתוך אחת הסדרות בצד ימין</div>
                   )}
                 </div>
               </div>
@@ -755,8 +802,8 @@ export default function LibraryApp() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500">
               <BookOpen size={80} className="mb-5 text-gray-300" strokeWidth={1} />
-              <p className="text-2xl font-black text-gray-700">בחר קובץ מהספרייה כדי להתחיל</p>
-              <p className="text-[14px] mt-2 font-medium">השתמש בתיבת החיפוש או בחר מהסרגל הימני</p>
+              <p className="text-2xl font-black text-gray-700">בחר קובץ וגליון מהספרייה כדי להתחיל</p>
+              <p className="text-[14px] mt-2 font-medium">השתמש בתיבת החיפוש או פתח את אחת הסדרות בסרגל הימני</p>
             </div>
           )}
         </main>
