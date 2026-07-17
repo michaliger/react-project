@@ -16,9 +16,11 @@ body {
   margin: 0;
   font-family: 'Heebo', sans-serif;
   direction: rtl;
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  /* כאן הגדרת הרקע החדש */
+  background-color: #875f0364 !important; 
   min-height: 100vh;
 }
+
 
 .animate-fade-in {
   animation: fadeIn 0.9s ease-out;
@@ -47,4 +49,126 @@ body {
 /* אופציונלי – כרטיסים מרחפים יותר יפה */
 .hover\:scale-105:hover {
   transform: scale(1.05) !important;
+}
+/* שינוי צבע של כל הכפתורים באתר */
+button, .btn, [type="button"], [type="submit"] {
+  background-color: #755303 !important;
+  color: white !important;
+}
+
+/* במידה ויש כפתורים שמבוססים על תגיות a */
+a.btn, a.button {
+  background-color: #755303 !important;
+  color: white !important;
+}
+/* שינוי כללי של צבע אינדיגו/כחול לצבע המבוקש */
+.text-indigo-600, .text-indigo-700, .text-indigo-800, .text-indigo-900 {
+  color: #755303 !important;
+}
+
+.bg-indigo-600, .bg-indigo-700 {
+  background-color: #755303 !important;
+}
+
+.border-indigo-600, .border-indigo-500, .border-indigo-400, .border-indigo-200, .border-indigo-100 {
+  border-color: #755303 !important;
+}
+
+.bg-indigo-50, .bg-indigo-50\/20, .bg-indigo-50\/50 {
+  background-color: #f7f3e8 !important; /* גוון בהיר מאוד של הצבע שבחרת */
+}
+
+/* סרגל צדי */
+aside .border-r-indigo-600 {
+  border-right-color: #755303 !important;
+}
+
+/* כפתור העלאת קובץ והתאמה אישית */
+button:has(svg.text-indigo-600), button:has(svg.text-indigo-700) {
+  border-color: #755303 !important;
+  background-color: #f7f3e8 !important;
+}
+/* איקון הוספת מחבר */
+button svg {
+  color: black !important;
+}
+
+/* התאמה למצב ריחוף (Hover) */
+button:hover svg {
+  color: #755303 !important;
+}
+/* הסרת רקע מכל עמודה בטבלה שמקבלת רקע בהיר */
+table td.bg-indigo-50\/20 {
+  background-color: transparent !important;
+}
+/* שינוי מסגרת השדות בלחיצה (Focus) לצבע חום חלש */
+input:focus, select:focus, textarea:focus {
+  outline: none !important;
+  border-color: #d2b48c !important; /* גוון חום חלש */
+  box-shadow: 0 0 0 2px rgba(117, 83, 3, 0.2) !important;
+}
+
+/* ביטול רקע אינדיגו מהטבלה והגדרת רקע חום חלש לעמודות הקישור וההערות */
+.bg-indigo-50\/20, 
+.bg-indigo-50\/50 {
+  background-color: #f7f3e8 !important; /* רקע חום חלש מאוד */
+}
+
+/* וידוא שהגבולות בטבלה לא יהיו כחולים */
+.border-indigo-100, 
+.border-indigo-400 {
+  border-color: #d2b48c !important;
+}
+/* ביטול צבע המסגרת הקבוע (כדי שלא יהיה חום קבוע) */
+input.border-indigo-100, 
+select.border-indigo-100 {
+  border-color: #e2e8f0 !important; /* אפור בהיר רגיל */
+}
+
+/* מסגרת רק בזמן לחיצה (Focus) */
+input:focus, select:focus {
+  border-color: #755303 !important;
+  box-shadow: 0 0 0 2px rgba(117, 83, 3, 0.2) !important;
+}
+
+/* הסרת רקע חום קבוע מהעמודות בטבלה */
+td.bg-indigo-50\/20 {
+  background-color: transparent !important;
+}
+/* צבע איקונים רגיל - שחור כדי שלא יעלמו */
+button svg {
+  color: #000000 !important;
+  transition: color 0.2s ease;
+}
+
+/* צבע איקון בזמן ריחוף עם העכבר - חום כהה בולט */
+button:hover svg {
+  color: #755303 !important;
+}
+
+/* וידוא שרקע הכפתור לא נעלם בטעות */
+button:hover {
+  background-color: rgba(117, 83, 3, 0.1) !important;
+  color: #755303 !important;
+}
+/* הגדרה אחידה לכל שדות הטבלה */
+.table-input {
+  width: 100%;
+  height: 32px; /* גובה קבוע לכל השדות */
+  padding: 0 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-family: 'Assistant', sans-serif; /* או פונט אחיד אחר */
+  font-size: 12px;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.table-input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 1px #4f46e5;
+}
+.text-white{
+color: white !important;
 }

@@ -273,13 +273,13 @@ export default function App() {
     }
 
     const nv = [...volumes];
-    
+
     const newArticle = {
       id: Math.random().toString(36).substr(2, 9),
       autoId: nv[activeVolume].articles.length + 1,
       authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
       startPage: '',
-      section: '', 
+      section: '',
       contentTitle: '',
       generalTopic: '',
       source: '',
@@ -354,7 +354,7 @@ export default function App() {
 
       const nv = [...volumes];
       nv[deletePrompt.vIdx].articles.splice(deletePrompt.aIdx, 1);
-      
+
       if (nv[deletePrompt.vIdx].articles.length === 0) {
         nv[deletePrompt.vIdx].articles.push({
           id: Math.random().toString(36).substr(2, 9), autoId: 1,
@@ -362,7 +362,7 @@ export default function App() {
           startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', linkExplanation: ''
         });
       }
-      
+
       nv[deletePrompt.vIdx].articles.forEach((a, i) => a.autoId = i + 1);
       setVolumes(nv);
     }
@@ -455,7 +455,7 @@ export default function App() {
           return Object.entries(art).some(([key, val]) => {
             if (key === 'id' || key === 'autoId') return false;
             if (key === 'authors' && Array.isArray(val)) {
-              return val.some(auth => 
+              return val.some(auth =>
                 (auth.firstName && auth.firstName.trim() !== '') ||
                 (auth.lastName && auth.lastName.trim() !== '') ||
                 (auth.titlePrefix && auth.titlePrefix.trim() !== '') ||
@@ -571,13 +571,20 @@ export default function App() {
           <Database size={18} className="text-indigo-600" />
           <span className="font-black text-sm text-slate-800">מערכת קטלוג תורני מאוחדת</span>
         </div>
-        <button
-          onClick={handleFinalSave}
-          className="px-6 py-1.5 bg-black text-white rounded text-xs font-bold hover:bg-slate-800 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
-          disabled={isSaving || isNotLoggedIn}
-        >
-          {isSaving ? 'שומר נתונים...' : 'שמירה סופית'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/series')}
+            className="px-4 py-1.5 bg-slate-200 text-slate-700 rounded text-xs font-bold hover:bg-slate-300 transition-colors"
+          >
+            חזרה לסדרות
+          </button>
+          <button
+            onClick={handleFinalSave}
+            className="px-6 py-1.5 bg-black text-white rounded text-xs font-bold hover:bg-slate-800 transition-colors ..."
+          >
+            {isSaving ? 'שומר נתונים...' : 'שמירה סופית'}
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-1 p-3 gap-3 items-start">
@@ -585,7 +592,7 @@ export default function App() {
           <div className="p-2 border-b bg-slate-50 shrink-0">
             {canAddNew ? (
               <button onClick={addNewVolume} className="w-full py-2 bg-indigo-600 text-white rounded text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700">
-                <Plus size={14} /> הוסף גליון
+                <Plus size={14} className="text-white" /> הוסף גליון
               </button>
             ) : (
               <div className="text-center text-[11px] font-bold text-slate-400 py-1">רשימת גליונות</div>
@@ -657,7 +664,7 @@ export default function App() {
                 <CompactField label="גליונות חסרים" colSpan="col-span-3">
                   <input value={series.missingVolumesList} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, missingVolumesList: e.target.value })} className={inputClass} />
                 </CompactField>
-                <CompactField label="הערות מנהל" colSpan="col-span-8">
+                <CompactField label="הערות מנהל" colSpan="col-span-6">
                   <input value={series.adminNotes} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, adminNotes: e.target.value })} className={inputClass} />
                 </CompactField>
                 <CompactField label="טווח שנים (מחושב)" colSpan="col-span-2">
@@ -725,12 +732,12 @@ export default function App() {
             <div className="p-2.5 border-b bg-slate-900 flex justify-between items-center shrink-0">
               <h4 className="text-white text-[11px] font-bold flex items-center gap-2"><Users size={14} /> מאמרים בתוך הגליון</h4>
               {canAddNew && (
-                <button 
-                  type="button" 
-                  onClick={addNewArticle} 
+                <button
+                  type="button"
+                  onClick={addNewArticle}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-1 rounded transition-colors flex items-center gap-1 shadow-sm"
                 >
-                  <Plus size={12} /> הוסף מאמר חדש
+                  <Plus size={12} className="text-white" /> הוסף מאמר חדש
                 </button>
               )}
             </div>
@@ -749,8 +756,8 @@ export default function App() {
                     <th className="p-2 border-l w-24">מקור</th>
                     <th className="p-2 border-l w-24">נושא</th>
                     <th className="p-2 border-l text-center w-12">עמ'</th>
-                    <th className="p-2 border-l bg-indigo-50/50 w-16">קישור</th>
-                    <th className="p-2 border-l bg-indigo-50/50 w-16">הערות</th>
+                    <th className="p-2 border-l w-16">קישור</th>
+                    <th className="p-2 border-l w-16">הערות</th>
                     <th className="p-2 text-center w-16">פעולות</th>
                   </tr>
                 </thead>
@@ -824,7 +831,6 @@ export default function App() {
                       <td className="p-1 border-l bg-indigo-50/20 align-middle">
                         <input
                           data-last-article-field={aIdx === currentVolume.articles.length - 1 ? "true" : "false"}
-                          placeholder="הערות..."
                           className="w-full bg-white border border-indigo-100 rounded h-8 px-1 text-[10px] font-bold text-indigo-900 focus:ring-1 focus:ring-indigo-400 outline-none"
                           value={art.linkExplanation || ''}
                           disabled={isNotLoggedIn || (isViewer && !!art._id)}
@@ -835,13 +841,23 @@ export default function App() {
                       <td className="p-1 text-center align-middle">
                         <div className="flex items-center justify-center gap-1">
                           {canAddNew && !(isViewer && !!art._id) && (
-                            <button type="button" title="הוסף מחבר" onClick={() => addAuthorRow(activeVolume, aIdx)} className="text-indigo-600 hover:bg-indigo-100 p-1.5 rounded-full transition-colors">
-                              <UserPlus size={14} />
+                            <button
+                              type="button"
+                              title="הוסף מחבר"
+                              onClick={() => addAuthorRow(activeVolume, aIdx)}
+                              className="bg-amber-100 text-white p-1.5 rounded transition-colors"
+                            >
+                              <UserPlus size={14} className="text-white"/>
                             </button>
                           )}
                           {canAddNew && !(isViewer && !!art._id) && (
-                            <button type="button" title="מחק מאמר" onClick={() => promptRemoveArticle(activeVolume, aIdx)} className="text-red-400 hover:bg-red-50 p-1.5 rounded-full transition-colors">
-                              <Trash2 size={14} />
+                            <button
+                              type="button"
+                              title="מחק מאמר"
+                              onClick={() => promptRemoveArticle(activeVolume, aIdx)}
+                              className="bg-amber-100 text-white p-1.5 rounded transition-colors"
+                            >
+                              <Trash2 size={14} className="text-white"/>
                             </button>
                           )}
                         </div>
