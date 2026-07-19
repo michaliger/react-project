@@ -43,12 +43,12 @@ export default function HomePage() {
                   <UserCircle size={20} className="text-amber-400" />
                   <span className="font-medium text-sm md:text-base">שלום, {loggedInUser.name || 'משתמש'}</span>
                   {loggedInUser.role === 'admin' && (
-                    <span className="bg-blue-600 text-[10px] px-2 py-0.5 rounded font-bold ml-1">מנהל</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded font-bold ml-1 bg-indigo-700 text-white">מנהל</span>
                   )}
                 </div>
                 <button 
                   onClick={handleLogout} 
-                  className="px-5 py-2.5 bg-red-500/80 hover:bg-red-600/90 text-white text-sm md:text-base font-medium rounded-full backdrop-blur-md transition-all shadow-lg flex items-center gap-1.5"
+                  className="px-5 py-2.5 text-sm md:text-base font-medium rounded-full backdrop-blur-md transition-all shadow-lg flex items-center gap-1.5 text-indigo-600 bg-indigo-50"
                 >
                   <LogOut size={16} /> התנתקות
                 </button>

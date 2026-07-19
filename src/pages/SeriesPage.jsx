@@ -36,7 +36,7 @@ const isSmartMatch = (textArray, query) => {
 
   const cleanText = textArray.filter(Boolean).join(' ').toLowerCase().replace(/["'`]/g, '');
   const cleanQuery = query.toString().toLowerCase().trim().replace(/["'`]/g, '');
-  
+
   if (!cleanText) return false;
   if (cleanText.includes(cleanQuery)) return true;
 
@@ -45,16 +45,16 @@ const isSmartMatch = (textArray, query) => {
 
   return queryWords.every(qWord => {
     const qWordNoAhoy = removeAhoy(qWord); // הסרת אהו"י מהחיפוש
-    
+
     return textWords.some(tWord => {
       const tWordNoAhoy = removeAhoy(tWord); // הסרת אהו"י מהטקסט במערכת
-      
+
       // בדיקה אם המילה מכילה את המילה המבוקשת (אחרי ניקוי אהו"י)
       if (tWordNoAhoy.includes(qWordNoAhoy) && qWordNoAhoy.length > 0) return true;
-      
+
       // אם המילה ארוכה מספיק, משתמשים גם במרחק עריכה על המילה הנקייה
-      if (qWordNoAhoy.length >= 4) return getEditDistance(tWordNoAhoy, qWordNoAhoy) <= 1; 
-      
+      if (qWordNoAhoy.length >= 4) return getEditDistance(tWordNoAhoy, qWordNoAhoy) <= 1;
+
       return false;
     });
   });
@@ -64,7 +64,7 @@ const getYearValue = (yearStr) => {
   if (!yearStr) return 0;
   const str = yearStr.toString().trim();
   if (/^\d+$/.test(str)) return parseInt(str, 10);
-  const gematria = { 'א':1,'ב':2,'ג':3,'ד':4,'ה':5,'ו':6,'ז':7,'ח':8,'ט':9,'י':10,'כ':20,'ל':30,'מ':40,'נ':50,'ס':60,'ע':70,'פ':80,'צ':90,'ק':100,'ר':200,'ש':300,'ת':400,'ך':20,'ם':40,'ן':50,'ף':80,'ץ':90 };
+  const gematria = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9, 'י': 10, 'כ': 20, 'ל': 30, 'מ': 40, 'נ': 50, 'ס': 60, 'ע': 70, 'פ': 80, 'צ': 90, 'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400, 'ך': 20, 'ם': 40, 'ן': 50, 'ף': 80, 'ץ': 90 };
   let sum = 0;
   const cleanStr = str.replace(/[^א-ת]/g, '');
   for (let char of cleanStr) sum += gematria[char] || 0;
@@ -75,19 +75,19 @@ const getYearValue = (yearStr) => {
 export default function LibraryApp() {
   const { currentUser } = useSelector((state) => state.user);
   const dispatch = useDispatch();
-  
+
   const loggedInUser = currentUser || {};
   const hasUser = Object.keys(loggedInUser).length > 0;
-  
-  const isNotLoggedIn = !hasUser; 
-  const isAdmin = hasUser && loggedInUser.role === 'admin'; 
-  const isViewer = hasUser && !isAdmin; 
-  const canAddNew = hasUser; 
-  
+
+  const isNotLoggedIn = !hasUser;
+  const isAdmin = hasUser && loggedInUser.role === 'admin';
+  const isViewer = hasUser && !isAdmin;
+  const canAddNew = hasUser;
+
   const navigate = useNavigate();
   const [allSeries, setAllSeries] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -101,7 +101,7 @@ export default function LibraryApp() {
   const [selectedSeries, setSelectedSeries] = useState(null);
   const [activeVolIdx, setActiveVolIdx] = useState(0);
   const [activeTab, setActiveTab] = useState('series');
-  
+
   const [activeArticleId, setActiveArticleId] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ show: false, seriesId: null, seriesName: '' });
   const [infoModal, setInfoModal] = useState({ show: false, type: '', data: null });
@@ -208,8 +208,8 @@ export default function LibraryApp() {
       setAllSeries(prev => prev.filter(s => s._id !== id));
       setSelectedSeries(null);
       setDeleteModal({ show: false, seriesId: null, seriesName: '' });
-    } catch (err) { 
-      alert("שגיאה במחיקת הקובץ. ודאי שהשרת פועל ויש לך הרשאות מתאימות."); 
+    } catch (err) {
+      alert("שגיאה במחיקת הקובץ. ודאי שהשרת פועל ויש לך הרשאות מתאימות.");
       setDeleteModal({ show: false, seriesId: null, seriesName: '' });
     }
   };
@@ -231,10 +231,10 @@ export default function LibraryApp() {
       allSeries.forEach(s => {
         if (s.volumes && s.volumes.length > 0) {
           s.volumes.forEach((v, vIdx) => {
-             const volTitle = v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`;
-             if (isSmartMatch([volTitle, v.volumeNumber, v.booklet, v.mainTopic, v.publishedFor, v.publicationYear, v.publicationPeriod, v.coverType, v.volumeSize, v.fileCompleteness, v.scanCompleteness, v.articlesCatalogStatus], searchTerm)) {
-               resultList.push({ ...v, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, originalSeries: s, volIndex: vIdx, type: 'volume' });
-             }
+            const volTitle = v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`;
+            if (isSmartMatch([volTitle, v.volumeNumber, v.booklet, v.mainTopic, v.publishedFor, v.publicationYear, v.publicationPeriod, v.coverType, v.volumeSize, v.fileCompleteness, v.scanCompleteness, v.articlesCatalogStatus], searchTerm)) {
+              resultList.push({ ...v, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, originalSeries: s, volIndex: vIdx, type: 'volume' });
+            }
           });
         }
       });
@@ -248,7 +248,7 @@ export default function LibraryApp() {
                 const artTitle = art.contentTitle || art.title || '';
                 const authorNames = art.authors ? art.authors.map(a => `${a.titlePrefix || ''} ${a.firstName || ''} ${a.lastName || ''} ${a.role || ''}`).join(' ') : '';
                 if (isSmartMatch([artTitle, authorNames, art.generalTopic, art.source, art.startPage, art.page, art.linkExplanation], searchTerm)) {
-                   resultList.push({ ...art, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, volTitle: v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`, originalSeries: s, volIndex: vIdx, type: 'article' });
+                  resultList.push({ ...art, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, volTitle: v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`, originalSeries: s, volIndex: vIdx, type: 'article' });
                 }
               });
             }
@@ -261,13 +261,13 @@ export default function LibraryApp() {
       if (filters.place) resultList = resultList.filter(item => item.publicationPlace === filters.place);
       if (filters.sector) resultList = resultList.filter(item => item.sector === filters.sector);
     }
-    
+
     if (activeTab === 'volume' || activeTab === 'article') {
       if (filters.topic) {
         if (activeTab === 'volume') resultList = resultList.filter(item => item.mainTopic === filters.topic);
         if (activeTab === 'article') resultList = resultList.filter(item => item.generalTopic === filters.topic);
       }
-      
+
       if (filters.yearFrom || filters.yearTo) {
         const fromVal = filters.yearFrom ? getYearValue(filters.yearFrom) : 0;
         const toVal = filters.yearTo ? getYearValue(filters.yearTo) : Infinity;
@@ -276,8 +276,8 @@ export default function LibraryApp() {
           let yStr = '';
           if (item.type === 'volume') yStr = item.publicationYear;
           if (item.type === 'article') yStr = item.originalSeries?.volumes?.[item.volIndex]?.publicationYear;
-          
-          if (!yStr) return false; 
+
+          if (!yStr) return false;
           const yVal = getYearValue(yStr);
           return yVal >= fromVal && yVal <= toVal;
         });
@@ -346,12 +346,12 @@ export default function LibraryApp() {
 
   let pdfFinalUrl = '';
   let externalPdfUrl = '';
-  
+
   if (currentVol && currentVol.pdfPath) {
     let pageParam = '';
     if (activeArticleId && currentVol.articles) {
       const activeArt = currentVol.articles.find(a => (a._id || a.id) === activeArticleId);
-      const targetPage = activeArt?.startPage || activeArt?.page; 
+      const targetPage = activeArt?.startPage || activeArt?.page;
       if (targetPage) {
         const pageNum = String(targetPage).match(/\d+/);
         if (pageNum) {
@@ -359,10 +359,10 @@ export default function LibraryApp() {
         }
       }
     }
-    
+
     const rawPath = currentVol.pdfPath.trim();
-    const basePdfUrl = rawPath.startsWith('http') 
-      ? rawPath 
+    const basePdfUrl = rawPath.startsWith('http')
+      ? rawPath
       : `https://node-project-cvek.onrender.com/uploads/${rawPath}`;
 
     pdfFinalUrl = `${basePdfUrl}${pageParam}${pageParam ? '&' : '#'}view=FitH&toolbar=0`;
@@ -371,20 +371,20 @@ export default function LibraryApp() {
 
   return (
     <div className="h-screen bg-gray-200 text-gray-900 font-sans flex flex-col overflow-hidden selection:bg-blue-200" dir="rtl">
-      
+
       {infoModal.show && infoModal.data && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999, display: 'flex', alignItems: 'center', justifycontent: 'center' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200">
             <div className="bg-blue-900 text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
               <h3 className="text-lg font-black flex items-center gap-2">
-                <Info size={20} />
+                <Info size={20} className="text-white" />
                 פרטי {infoModal.type === 'volume' ? 'גליון' : 'מאמר'} מלאים
               </h3>
               <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="hover:bg-blue-800 p-1.5 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-gray-50">
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                 {infoModal.type === 'volume' ? (
@@ -411,11 +411,11 @@ export default function LibraryApp() {
                     {renderInfoRow("עמוד התחלה", infoModal.data.startPage || infoModal.data.page)}
                     {renderInfoRow("מקור", infoModal.data.source)}
                     {renderInfoRow("הסבר קישור", infoModal.data.linkExplanation)}
-                    
+
                     {infoModal.data.linkedArticleId && (
                       <div className="flex flex-col border-b border-gray-100 py-2 last:border-0">
                         <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">מאמר מקושר בספרייה</span>
-                        <button 
+                        <button
                           onClick={() => {
                             let found = false;
                             for (let i = 0; i < allSeries.length; i++) {
@@ -442,7 +442,7 @@ export default function LibraryApp() {
                           }}
                           className="text-[13px] text-blue-600 font-bold hover:text-blue-800 hover:underline text-right w-fit flex items-center gap-1.5 mt-0.5 transition-colors"
                         >
-                          <Link2 size={14} /> 
+                          <Link2 size={14} className="text-white" />
                           {getLinkedArticleName(infoModal.data.linkedArticleId)}
                         </button>
                       </div>
@@ -451,9 +451,9 @@ export default function LibraryApp() {
                 )}
               </div>
             </div>
-            
+
             <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl shrink-0 flex justify-end">
-              <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-colors">
+              <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="custom-btn-style px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-colors">
                 סגירה
               </button>
             </div>
@@ -465,17 +465,17 @@ export default function LibraryApp() {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifycontent: 'center' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4">
             <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={32} />
+              <Trash2 size={32} className="text-white" />
             </div>
             <h3 className="text-xl font-black text-gray-900 mb-2">אזהרת מחיקה!</h3>
             <p className="text-gray-700 mb-6 text-[15px]">
-              האם אתה בטוח שברצונך למחוק לחלוטין את הקובץ:<br/>
-              <strong className="text-red-600 text-lg">{deleteModal.seriesName}</strong> ?<br/>
+              האם אתה בטוח שברצונך למחוק לחלוטין את הקובץ:<br />
+              <strong className="text-red-600 text-lg">{deleteModal.seriesName}</strong> ?<br />
               <span className="text-[13px] text-gray-500 block mt-2 font-bold bg-gray-100 p-2 rounded">שימו לב: פעולה זו תמחק גם את כל הגליונות והמאמרים שבתוכה, ולא ניתנת לביטול.</span>
             </p>
             <div className="flex gap-4 justify-center">
-              <button onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} className="px-6 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors">ביטול</button>
-              <button onClick={executeDelete} className="px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors">כן, מחק קובץ</button>
+              <button onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} className="custom-btn-style px-6 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors">ביטול</button>
+              <button onClick={executeDelete} className="custom-btn-style px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors">כן, מחק קובץ</button>
             </div>
           </div>
         </div>
@@ -483,8 +483,8 @@ export default function LibraryApp() {
 
       <div className="h-12 bg-gray-900 text-white flex items-center justify-between px-5 shrink-0 shadow-lg z-20">
         <div className="flex items-center gap-5">
-          {isAdmin && <span className="flex items-center gap-1.5 text-[12px] font-black bg-blue-600 px-3 py-1 rounded text-white shadow-md border border-blue-500"><ShieldCheck size={14} /> מנהל מערכת ראשי</span>}
-          {isViewer && <span className="flex items-center gap-1.5 text-[12px] font-black bg-teal-600 px-3 py-1 rounded text-white shadow-md border border-teal-500"><UserCircle size={14} /> משתמש רשום (צפייה והוספה)</span>}
+          {isAdmin && <span className="flex items-center gap-1.5 text-[12px] font-black bg-indigo-600 px-3 py-1 rounded text-white shadow-md border border-indigo-400"><ShieldCheck size={14} /> מנהל מערכת ראשי</span>}
+          {isViewer && <span className="flex items-center gap-1.5 text-[12px] font-black bg-indigo-600 px-3 py-1 rounded text-white shadow-md border border-indigo-400"><UserCircle size={14} /> משתמש רשום (צפייה והוספה)</span>}
           {isNotLoggedIn && <span className="flex items-center gap-1.5 text-[12px] font-black bg-red-600 px-3 py-1 rounded text-white shadow-md border border-red-500"><ShieldAlert size={14} /> אורח מנותק (צפייה בלבד)</span>}
 
           {hasUser && (
@@ -505,51 +505,51 @@ export default function LibraryApp() {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        
+
         <aside className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 overflow-hidden shadow-lg z-10" style={{ width: '340px', minWidth: '340px', maxWidth: '340px' }}>
-          <div className="p-3 border-b border-gray-300 bg-gray-100 shrink-0">
-            
+          <div className="p-3 border-b border-gray-300 bg-indigo-50 shrink-0">
+
             {canAddNew && (
-              <button onClick={() => navigate('/add-series')} className="w-full mb-2 flex items-center justify-center gap-2 py-2 bg-blue-700 hover:bg-blue-800 text-white text-[13px] font-black rounded-lg transition-colors shadow-md border border-blue-800">
-                <Plus size={16} /> הוספת קובץ חדש
+              <button onClick={() => navigate('/add-series')} className="custom-btn-style w-full mb-2 flex items-center justify-center gap-2 py-2 bg-blue-700 hover:bg-blue-800 text-white text-[13px] font-black rounded-lg transition-colors shadow-md border border-blue-800">
+                <Plus size={16} className="text-white" /> הוספת קובץ חדש
               </button>
             )}
 
             {isAdmin && (
-              <button onClick={() => navigate('/admin/import')} className="w-full mb-3 flex items-center justify-center gap-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-black rounded-lg transition-colors shadow-sm border border-emerald-700">
-                <FileSpreadsheet size={14} /> ייבוא קבצים מאקסל
+              <button onClick={() => navigate('/admin/import')} className="custom-btn-style w-full mb-3 flex items-center justify-center gap-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-black rounded-lg transition-colors shadow-sm border border-emerald-700">
+                <FileSpreadsheet size={14} className="text-white" /> ייבוא קבצים מאקסל
               </button>
             )}
 
-            <div className="flex bg-gray-300 p-1 rounded-lg mb-3">
-              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({place:'', sector:'', yearFrom:'', yearTo:'', topic:''}) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'series' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><Book size={14}/> קבצים וגליונות</button>
-              <button onClick={() => { setActiveTab('article'); setSearchTerm(""); setFilters({place:'', sector:'', yearFrom:'', yearTo:'', topic:''}) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'article' ? 'bg-white text-blue-800 shadow border border-gray-200' : 'text-gray-700 hover:bg-gray-200'}`}><FileText size={14}/> מאמרים</button>
+            <div className="flex bg-indigo-600 p-1 rounded-lg mb-3">
+              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'series' ? 'bg-white text-blue-800 shadow border border-indigo-600' : 'text-gray-700 hover:bg-gray-200'}`}><Book size={14} /> קבצים וגליונות</button>
+              <button onClick={() => { setActiveTab('article'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'article' ? 'bg-white text-blue-800 shadow border border-indigo-600' : 'text-gray-700 hover:bg-gray-200'}`}><FileText size={14} /> מאמרים</button>
             </div>
 
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} className="text-white" />
                 <input type="text" placeholder="הקלד לחיפוש חופשי..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white border border-gray-400 pr-9 pl-3 py-2 rounded-lg text-[13px] font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all shadow-inner" />
               </div>
-              <button 
-                onClick={() => setShowFilters(!showFilters)} 
+              <button
+                onClick={() => setShowFilters(!showFilters)}
                 title="סינון מתקדם"
                 className={`px-3 py-2 rounded-lg border transition-colors flex items-center justify-center ${showFilters ? 'bg-blue-100 border-blue-400 text-blue-800 shadow-inner' : 'bg-white border-gray-400 text-gray-600 hover:bg-gray-50 shadow-sm'}`}
               >
-                <Filter size={18} />
+                <Filter size={18} className="text-white" />
               </button>
             </div>
 
             {showFilters && (
               <div className="mt-2 p-3 bg-white rounded-lg border border-gray-300 shadow-sm space-y-2 text-[12px] animate-in fade-in slide-in-from-top-2">
-                
+
                 {activeTab === 'series' && (
                   <>
-                    <select value={filters.place} onChange={e => setFilters({...filters, place: e.target.value})} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                    <select value={filters.place} onChange={e => setFilters({ ...filters, place: e.target.value })} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
                       <option value="">כל מקומות ההוצאה</option>
                       {filterOptions.places.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
-                    <select value={filters.sector} onChange={e => setFilters({...filters, sector: e.target.value})} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                    <select value={filters.sector} onChange={e => setFilters({ ...filters, sector: e.target.value })} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
                       <option value="">כל המגזרים</option>
                       {filterOptions.sectors.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -558,7 +558,7 @@ export default function LibraryApp() {
 
                 {activeTab === 'article' && (
                   <>
-                    <select value={filters.topic} onChange={e => setFilters({...filters, topic: e.target.value})} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                    <select value={filters.topic} onChange={e => setFilters({ ...filters, topic: e.target.value })} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
                       <option value="">כל הנושאים הכלליים</option>
                       {filterOptions.topics.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
@@ -566,7 +566,7 @@ export default function LibraryApp() {
                 )}
 
                 {(filters.place || filters.sector || filters.yearFrom || filters.yearTo || filters.topic) && (
-                  <button onClick={() => setFilters({place: '', sector: '', yearFrom: '', yearTo: '', topic: ''})} className="w-full text-center text-red-500 font-bold mt-2 hover:text-red-700">
+                  <button onClick={() => setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' })} className="w-full text-center text-red-500 font-bold mt-2 hover:text-red-700">
                     נקה פילטרים
                   </button>
                 )}
@@ -584,21 +584,21 @@ export default function LibraryApp() {
                 return (
                   <div key={item._id} className="border-b border-gray-200">
                     {/* שורת הסדרה הניתנת ללחיצה */}
-                    <div 
+                    <div
                       onClick={() => handleResultClick({ ...item, volIndex: 0 })}
                       className={`w-full flex items-center justify-between p-3 transition-colors cursor-pointer ${isActiveSeries ? 'bg-blue-50/80 border-r-4 border-r-blue-700' : 'hover:bg-gray-50'}`}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="w-8 h-11 bg-white rounded border border-gray-300 shrink-0 overflow-hidden shadow-sm">
-                          <img 
-                            src={imageUrl} 
-                            className="w-full h-full object-cover" 
-                            alt="" 
-                            onError={(e) => { 
+                          <img
+                            src={imageUrl}
+                            className="w-full h-full object-cover"
+                            alt=""
+                            onError={(e) => {
                               if (e.target.src !== DEFAULT_COVER_IMAGE) {
                                 e.target.src = DEFAULT_COVER_IMAGE;
                               }
-                            }} 
+                            }}
                           />
                         </div>
                         <div className="text-right min-w-0 flex-1">
@@ -611,7 +611,7 @@ export default function LibraryApp() {
 
                       {/* כפתור + / - לפתיחה וסגירה מהירה של הגליונות השייכים אליה */}
                       {item.volumes && item.volumes.length > 0 && (
-                        <button 
+                        <button
                           onClick={(e) => toggleSeriesExpand(item._id, e)}
                           className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-500 hover:text-blue-700 transition-colors mr-2"
                         >
@@ -632,11 +632,10 @@ export default function LibraryApp() {
                                 e.stopPropagation();
                                 handleResultClick({ originalSeries: item, volIndex: vIdx, type: 'volume' });
                               }}
-                              className={`w-full text-right py-2 px-3 rounded-lg text-[12px] flex items-center justify-between transition-all ${
-                                isVolActive 
-                                  ? 'bg-blue-600 text-white font-black shadow-sm' 
+                              className={`w-full text-right py-2 px-3 rounded-lg text-[12px] flex items-center justify-between transition-all ${isVolActive
+                                  ? 'bg-blue-600 text-white font-black shadow-sm'
                                   : 'text-gray-700 hover:bg-blue-50 hover:text-blue-950'
-                              }`}
+                                }`}
                             >
                               <span className="truncate">{v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`}</span>
                               <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isVolActive ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
@@ -650,16 +649,16 @@ export default function LibraryApp() {
                   </div>
                 );
               } else if (item.type === 'article') {
-                   const isActive = activeArticleId === (item._id || item.id);
-                   return (
-                    <button key={`${item.seriesId}-${idx}`} onClick={() => handleResultClick(item)} className={`w-full text-right p-3 border-b flex flex-col min-w-0 transition-colors ${isActive ? 'bg-yellow-100 border-yellow-400 shadow-inner' : 'border-gray-200 hover:bg-blue-50'}`}>
-                      <div className="flex justify-between items-start mb-1 w-full">
-                        <div className="text-[10px] text-gray-600 font-bold truncate flex-1 min-w-0">{item.seriesName} / {item.volTitle}</div>
-                        {item.startPage && <div className="text-[10px] bg-gray-200 px-1.5 rounded text-gray-700 shrink-0 mr-2 font-mono">עמ' {item.startPage}</div>}
-                      </div>
-                      <div className={`font-bold text-[13px] truncate leading-tight w-full ${isActive ? 'text-yellow-900' : 'text-blue-900'}`}>{item.contentTitle || item.title}</div>
-                    </button>
-                  )
+                const isActive = activeArticleId === (item._id || item.id);
+                return (
+                  <button key={`${item.seriesId}-${idx}`} onClick={() => handleResultClick(item)} className={`w-full text-right p-3 border-b flex flex-col min-w-0 transition-colors ${isActive ? 'bg-yellow-100 border-yellow-400 shadow-inner' : 'border-gray-200 hover:bg-blue-50'}`}>
+                    <div className="flex justify-between items-start mb-1 w-full">
+                      <div className="text-[10px] text-gray-600 font-bold truncate flex-1 min-w-0">{item.seriesName} / {item.volTitle}</div>
+                      {item.startPage && <div className="text-[10px] bg-gray-200 px-1.5 rounded text-gray-700 shrink-0 mr-2 font-mono">עמ' {item.startPage}</div>}
+                    </div>
+                    <div className={`font-bold text-[13px] truncate leading-tight w-full ${isActive ? 'text-yellow-900' : 'text-blue-900'}`}>{item.contentTitle || item.title}</div>
+                  </button>
+                )
               }
               return null;
             }) : (
@@ -682,11 +681,11 @@ export default function LibraryApp() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-3 shrink-0">
                   {canAddNew && (
-                    <button 
-                      onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=volume`)} 
+                    <button
+                      onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=volume`)}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 border border-blue-300 text-blue-800 rounded-lg text-[13px] font-bold hover:bg-blue-100 transition-colors shadow-sm"
                     >
                       <Plus size={15} /> הוספת גליון
@@ -719,48 +718,47 @@ export default function LibraryApp() {
                           </div>
                           <span className="text-[11px] font-bold text-blue-900 bg-blue-100 px-2.5 py-1 rounded border border-blue-200 shadow-sm shrink-0">{currentVol.articles?.length || 0} מאמרים</span>
                         </div>
-                        
-                        <div className="flex-1 overflow-y-scroll overflow-x-hidden p-3 space-y-2 custom-scrollbar bg-gray-100 min-w-0">
+
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white custom-scrollbar">
                           {currentVol.articles && currentVol.articles.length > 0 ? (
                             currentVol.articles.map((art, aIdx) => {
                               const isHighlighted = activeArticleId === (art._id || art.id);
                               return (
-                                <div 
-                                  id={`art-${art._id || art.id}`} 
-                                  key={aIdx} 
+                                <div
+                                  id={`art-${art._id || art.id}`}
+                                  key={aIdx}
                                   onClick={() => setActiveArticleId(art._id || art.id)}
-                                  className={`group cursor-pointer p-3.5 rounded-xl border transition-all shadow-sm ${isHighlighted ? 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-200 scale-[1.02] shadow-md z-10 relative' : 'bg-white border-gray-300 hover:border-blue-400 hover:shadow-md'}`}
+                                  className={`group cursor-pointer p-2.5 border-b border-gray-100 transition-colors flex items-center gap-3 ${isHighlighted ? 'bg-amber-50' : 'hover:bg-gray-50'}`}
                                 >
-                                  <div className="flex justify-between items-start mb-1.5 w-full min-w-0 gap-2">
-                                    <h4 className={`text-[14px] font-black leading-snug flex-1 truncate whitespace-normal ${isHighlighted ? 'text-yellow-900' : 'text-gray-900'}`}>
+                                  {/* מספר עמוד - קומפקטי */}
+                                  <div className="text-[10px] font-mono text-gray-400 w-8 text-center shrink-0">
+                                    {art.startPage || art.page || '-'}
+                                  </div>
+
+                                  {/* תוכן המאמר */}
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className={`text-[13px] font-bold leading-tight truncate ${isHighlighted ? 'text-amber-900' : 'text-gray-900'}`}>
                                       {art.contentTitle || art.title}
                                     </h4>
-                                    
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <button 
-                                        onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'article', data: art }); }} 
-                                        className={`p-1.5 rounded-full transition-colors ${isHighlighted ? 'text-yellow-700 hover:bg-yellow-200' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 opacity-0 group-hover:opacity-100'}`}
-                                        title="פרטי מאמר"
-                                      >
-                                        <Info size={14} />
-                                      </button>
-                                      
-                                      <div className="bg-gray-100 border border-gray-300 text-gray-600 text-[11px] px-2 py-0.5 rounded font-mono font-bold shadow-inner">
-                                        עמ' {art.startPage || art.page || '-'}
-                                      </div>
+                                    <div className="text-[11px] text-gray-500 truncate mt-0.5">
+                                      {art.authors?.[0]?.firstName} {art.authors?.[0]?.lastName || ''}
+                                      {art.generalTopic && <span className="mr-2 text-blue-600">| {art.generalTopic}</span>}
                                     </div>
                                   </div>
-                                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-600 font-medium">
-                                    <span className="flex items-center gap-1.5"><User size={12} className="text-gray-400 shrink-0" /> {art.authors?.[0]?.firstName} {art.authors?.[0]?.lastName || 'מחבר לא צוין'}</span>
-                                    {art.generalTopic && <><span className="text-gray-300 shrink-0">•</span><span className="text-blue-700 bg-blue-50 px-1 rounded truncate">{art.generalTopic}</span></>}
-                                  </div>
+
+                                  {/* כפתור מידע - מופיע בריחוף */}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'article', data: art }); }}
+                                    className="p-1.5 text-gray-300 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="פרטי מאמר"
+                                  >
+                                    <Info size={14} />
+                                  </button>
                                 </div>
                               )
                             })
                           ) : (
-                            <div className="h-40 flex flex-col items-center justify-center text-gray-500 italic border-2 border-dashed border-gray-300 rounded-xl m-2 bg-white">
-                              <p className="text-[13px] font-bold">אין מאמרים רשומים לגליון זה</p>
-                            </div>
+                            <div className="p-8 text-center text-gray-400 text-[12px]">אין מאמרים רשומים לגליון זה</div>
                           )}
                         </div>
 
@@ -772,12 +770,12 @@ export default function LibraryApp() {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex-1 bg-gray-400 relative shadow-inner overflow-hidden min-w-[300px]">
                         {currentVol.pdfPath ? (
                           <div className="h-full flex flex-col">
                             <div className="bg-gray-900 h-10 flex justify-between items-center text-white px-4 shrink-0 shadow-md">
-                              <span className="text-[12px] font-bold tracking-wide flex items-center gap-2"><Eye size={14}/> תצוגת מסמך מלאה</span>
+                              <span className="text-[12px] font-bold tracking-wide flex items-center gap-2"><Eye size={14} /> תצוגת מסמך מלאה</span>
                               <a href={externalPdfUrl} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-gray-200 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5 border border-gray-700">
                                 <ExternalLink size={12} /> פתיחה בחלון נפרד
                               </a>
@@ -814,6 +812,7 @@ export default function LibraryApp() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
       `}</style>
     </div>
   );

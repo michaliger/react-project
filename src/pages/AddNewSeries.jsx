@@ -528,6 +528,7 @@ export default function App() {
   };
 
   return (
+    <div className="series-editor-page page-container min-h-screen">
     <div className="flex flex-col min-h-screen bg-slate-100 font-sans text-right relative pb-10" dir="rtl" onKeyDown={handleKeyDown}>
 
       {deletePrompt.show && (
@@ -544,13 +545,13 @@ export default function App() {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' })}
-                className="px-5 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors"
+                className="custom-btn-style px-5 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors"
               >
                 ביטול
               </button>
               <button
                 onClick={executeDeleteAction}
-                className="px-5 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors"
+                className="custom-btn-style px-5 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors"
               >
                 מחק
               </button>
@@ -574,13 +575,13 @@ export default function App() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/series')}
-            className="px-4 py-1.5 bg-slate-200 text-slate-700 rounded text-xs font-bold hover:bg-slate-300 transition-colors"
+            className="custom-btn-style px-4 py-1.5 bg-slate-200 text-slate-700 rounded text-xs font-bold hover:bg-slate-300 transition-colors"
           >
             חזרה לסדרות
           </button>
           <button
             onClick={handleFinalSave}
-            className="px-6 py-1.5 bg-black text-white rounded text-xs font-bold hover:bg-slate-800 transition-colors ..."
+            className="custom-btn-style px-6 py-1.5 bg-black text-white rounded text-xs font-bold hover:bg-slate-800 transition-colors ..."
           >
             {isSaving ? 'שומר נתונים...' : 'שמירה סופית'}
           </button>
@@ -591,7 +592,7 @@ export default function App() {
         <aside className="w-36 bg-white border rounded-xl flex flex-col shrink-0 shadow-sm sticky top-16" style={{ height: 'calc(100vh - 80px)' }}>
           <div className="p-2 border-b bg-slate-50 shrink-0">
             {canAddNew ? (
-              <button onClick={addNewVolume} className="w-full py-2 bg-indigo-600 text-white rounded text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700">
+              <button onClick={addNewVolume} className="custom-btn-style w-full py-2 bg-indigo-600 text-white rounded text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700">
                 <Plus size={14} className="text-white" /> הוסף גליון
               </button>
             ) : (
@@ -619,27 +620,35 @@ export default function App() {
         <div className="flex-1 flex flex-col gap-3 min-w-0">
 
           <section className="bg-white p-3 rounded-xl border shadow-sm shrink-0">
-            <h3 className="text-[10px] font-black text-indigo-600 mb-2 border-b pb-1 flex items-center gap-1"><Info size={12} /> נתוני סדרה כלליים</h3>
+            <h3 className="text-[10px] font-black text-indigo-600 mb-2 border-b pb-1 flex items-center gap-1"><Info size={12} /> נתוני כותר כלליים</h3>
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-10 grid grid-cols-10 gap-3 items-end">
-                <CompactField label="שם מקדים" colSpan="col-span-1">
+                <CompactField label="אופי הכותר" colSpan="col-span-1">
                   <select value={series.prefixName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, prefixName: e.target.value })} className={inputClass}>
                     <option value=""></option>
-                    <option>ספר זכרון</option>
-                    <option>קובץ תורני</option>
-                    <option>ירחון</option>
+                    <option>ספרי זכרון ויובל</option>
+                    <option>כתבי עת ותקופונים</option>
+                    <option>ספרי קהילות</option>
+                    <option>קבצי ישיבות</option>
+                    <option>קבצי כוללים</option>
+                    <option>קבצי קהילות ובתי כנסת</option>
+                    <option>הספדים ודרשות</option>
+                    <option>קבצים משפחתיים</option>
+                    <option>גנוזות וכתבי יד</option>
+                    <option>קבצים בודדים</option>
+                    <option>עלונים</option>
                   </select>
                 </CompactField>
-                <CompactField label="שם הקובץ" colSpan="col-span-2" required={true}>
+                <CompactField label="שם הכותר" colSpan="col-span-2" required={true}>
                   <input value={series.fileName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => updateSeriesField('fileName', e.target.value)} className={`${inputClass} font-bold`} />
                 </CompactField>
                 <CompactField label="שם מזהה" colSpan="col-span-2">
                   <input value={series.identifierName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, identifierName: e.target.value })} className={inputClass} />
                 </CompactField>
-                <CompactField label="פרטים נוספים" colSpan="col-span-5">
+                <CompactField label="פרטים" colSpan="col-span-5">
                   <input value={series.details} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, details: e.target.value })} className={inputClass} />
                 </CompactField>
-                <CompactField label="עורך" colSpan="col-span-2">
+                <CompactField label="שם העורך" colSpan="col-span-3">
                   <input value={series.editor} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, editor: e.target.value })} className={inputClass} />
                 </CompactField>
                 <CompactField label="מקום הוצאה" colSpan="col-span-2">
@@ -650,13 +659,24 @@ export default function App() {
                     ))}
                   </datalist>
                 </CompactField>
-                <CompactField label="מגזר" colSpan="col-span-1">
+                <CompactField label="השתייכות" colSpan="col-span-1">
                   <select value={series.sector} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, sector: e.target.value })} className={inputClass}>
                     <option value=""></option>
                     <option>ליטאי</option>
+                    <option>חב"ד</option>
+                    <option>דתי לאומי</option>
                     <option>חסידי</option>
                     <option>ספרדי</option>
+                    <option>תימני</option>
                   </select>
+                </CompactField>
+                <CompactField label="שנת הוצאה" colSpan="col-span-2">
+                  <input
+                    value={displayYears}
+                    disabled
+                    className={`${inputClass} bg-slate-100 text-slate-500 font-bold cursor-not-allowed text-center`}
+                    dir="ltr"
+                  />
                 </CompactField>
                 <CompactField label="סטטוס" colSpan="col-span-2">
                   <input value={series.catalogStatus} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, catalogStatus: e.target.value })} className={inputClass} />
@@ -664,16 +684,8 @@ export default function App() {
                 <CompactField label="גליונות חסרים" colSpan="col-span-3">
                   <input value={series.missingVolumesList} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, missingVolumesList: e.target.value })} className={inputClass} />
                 </CompactField>
-                <CompactField label="הערות מנהל" colSpan="col-span-6">
+                <CompactField label="הערות מנהל" colSpan="col-span-5">
                   <input value={series.adminNotes} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, adminNotes: e.target.value })} className={inputClass} />
-                </CompactField>
-                <CompactField label="טווח שנים (מחושב)" colSpan="col-span-2">
-                  <input
-                    value={displayYears}
-                    disabled
-                    className={`${inputClass} bg-slate-100 text-slate-500 font-bold cursor-not-allowed text-center`}
-                    dir="ltr"
-                  />
                 </CompactField>
                 <CompactField label="הוזן ע״י" colSpan="col-span-2">
                   <input value={series.enteredBy} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, enteredBy: e.target.value })} className={inputClass} />
@@ -699,7 +711,7 @@ export default function App() {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-wider">נתוני גליון פעיל</h3>
-                <span className="bg-indigo-600 text-white text-[11px] px-3 py-0.5 rounded-full font-bold">גליון #{activeVolume + 1}</span>
+                <span className="bg-indigo-600 text-white text-[11px] px-3 py-0.5 rounded-full font-bold"> {activeVolume + 1}</span>
               </div>
             </div>
 
@@ -707,18 +719,10 @@ export default function App() {
               <CompactField label="שם גליון" widthClass="w-[8%]"><input value={currentVolume.volumeTitle} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('volumeTitle', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="נושא ראשי" widthClass="w-[16%]"><input value={currentVolume.mainTopic} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('mainTopic', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="יצא לרגל" widthClass="w-[16%]"><input value={currentVolume.publishedFor} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publishedFor', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="שנה" widthClass="w-[6%]"><input value={currentVolume.publicationYear} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationYear', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="שנה" widthClass="w-[3%]"><input value={currentVolume.publicationYear} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationYear', e.target.value)} className={inputClass} /></CompactField>
               <CompactField label="חודש" widthClass="w-[6%]"><input value={currentVolume.publicationPeriod} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationPeriod', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="סטטוס" widthClass="w-[8%]">
-                <select value={currentVolume.articlesCatalogStatus} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('articlesCatalogStatus', e.target.value)} className={inputClass}>
-                  <option>ממתין</option>
-                  <option>בתהליך</option>
-                  <option>הושלם</option>
-                </select>
-              </CompactField>
-              <CompactField label="שלמות קובץ" widthClass="w-[15%]"><input value={currentVolume.fileCompleteness} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('fileCompleteness', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="שלמות סריקה" widthClass="w-[15%]"><input value={currentVolume.scanCompleteness} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="קובץ" widthClass="w-[10%]">
+              <CompactField label="הערות מערכת" widthClass="w-[15%]"><input value={currentVolume.scanCompleteness} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="קובץ" widthClass="w-[20%]">
                 <button onClick={() => { if (!(isNotLoggedIn || (isViewer && !!currentVolume?._id))) pdfInputRef.current.click() }} className={`w-full p-1 h-[26px] border rounded text-[11px] font-bold flex items-center justify-center gap-1 shadow-inner ${isNotLoggedIn || (isViewer && !!currentVolume?._id) ? 'bg-slate-100 cursor-not-allowed opacity-60 text-slate-400' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all border-indigo-200'}`} title={currentVolume.pdfFileName || 'צרף קובץ PDF'}>
                   <Link2 size={12} className={currentVolume.pdfFileName ? "text-green-600" : "text-indigo-600"} />
                   <span className="truncate">{currentVolume.pdfFileName ? 'צורף' : 'העלה'}</span>
@@ -735,7 +739,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={addNewArticle}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-1 rounded transition-colors flex items-center gap-1 shadow-sm"
+                  className="custom-btn-style bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-1 rounded transition-colors flex items-center gap-1 shadow-sm"
                 >
                   <Plus size={12} className="text-white" /> הוסף מאמר חדש
                 </button>
@@ -748,13 +752,13 @@ export default function App() {
                   <tr className="bg-slate-50 border-b text-slate-700">
                     <th className="p-2 border-l text-center w-9">#</th>
                     <th className="p-2 border-l w-20">תואר</th>
-                    <th className="p-2 border-l w-24">שם פרטי</th>
                     <th className="p-2 border-l w-28">שם משפחה</th>
+                    <th className="p-2 border-l w-24">שם פרטי</th>
                     <th className="p-2 border-l w-24">תפקיד</th>
                     <th className="p-2 border-l w-28">מדור</th>
-                    <th className="p-2 border-l w-[23%]">שם המאמר</th>
-                    <th className="p-2 border-l w-24">מקור</th>
-                    <th className="p-2 border-l w-24">נושא</th>
+                    <th className="p-2 border-l w-[23%]">כותרת המאמר</th>
+                    <th className="p-2 border-l w-24">על מקור</th>
+                    <th className="p-2 border-l w-24">נושאים</th>
                     <th className="p-2 border-l text-center w-12">עמ'</th>
                     <th className="p-2 border-l w-16">קישור</th>
                     <th className="p-2 border-l w-16">הערות</th>
@@ -820,7 +824,7 @@ export default function App() {
                       </td>
 
                       <td className="p-1 border-l bg-indigo-50/20 align-middle">
-                        <select className="w-full bg-white border border-indigo-100 rounded h-8 px-1 text-[10px] font-medium text-indigo-800 focus:ring-1 focus:ring-indigo-400 outline-none" value={art.linkedArticleId} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkedArticleId = e.target.value; setVolumes(nv) }}>
+                        <select className="w-full bg-white border rounded h-8 px-1 text-[10px] font-medium text-indigo-800 focus:ring-1 focus:ring-indigo-400 outline-none" value={art.linkedArticleId} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkedArticleId = e.target.value; setVolumes(nv) }}>
                           <option value=""></option>
                           {dbArticles && dbArticles.map(dbArt => (
                             <option key={dbArt._id} value={dbArt._id}>{dbArt.subtitleTitle || dbArt.contentTitle || 'ללא כותרת'}</option>
@@ -831,7 +835,7 @@ export default function App() {
                       <td className="p-1 border-l bg-indigo-50/20 align-middle">
                         <input
                           data-last-article-field={aIdx === currentVolume.articles.length - 1 ? "true" : "false"}
-                          className="w-full bg-white border border-indigo-100 rounded h-8 px-1 text-[10px] font-bold text-indigo-900 focus:ring-1 focus:ring-indigo-400 outline-none"
+                          className="w-full bg-white border rounded h-8 px-1 text-[10px] font-bold text-indigo-900 focus:ring-1 focus:ring-indigo-400 outline-none"
                           value={art.linkExplanation || ''}
                           disabled={isNotLoggedIn || (isViewer && !!art._id)}
                           onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkExplanation = e.target.value; setVolumes(nv) }}
@@ -845,7 +849,7 @@ export default function App() {
                               type="button"
                               title="הוסף מחבר"
                               onClick={() => addAuthorRow(activeVolume, aIdx)}
-                              className="bg-amber-100 text-white p-1.5 rounded transition-colors"
+                              className="custom-btn-style text-white p-1.5 rounded transition-colors"
                             >
                               <UserPlus size={14} className="text-white"/>
                             </button>
@@ -855,7 +859,7 @@ export default function App() {
                               type="button"
                               title="מחק מאמר"
                               onClick={() => promptRemoveArticle(activeVolume, aIdx)}
-                              className="bg-amber-100 text-white p-1.5 rounded transition-colors"
+                              className="custom-btn-style text-white p-1.5 rounded transition-colors"
                             >
                               <Trash2 size={14} className="text-white"/>
                             </button>
@@ -886,6 +890,7 @@ export default function App() {
           השמירה בוצעה בהצלחה! מעביר אותך לדף הספרייה...
         </div>
       )}
+    </div>
     </div>
   )
 }
