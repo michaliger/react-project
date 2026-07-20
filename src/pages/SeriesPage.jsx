@@ -336,8 +336,8 @@ export default function LibraryApp() {
   };
 
   if (loading) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-gray-100">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-blue-700 mb-4"></div>
+    <div className="h-screen flex flex-col items-center justify-center bg-slate-100">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-[#755303] mb-4"></div>
       <p className="text-gray-700 text-lg font-bold">טוען נתונים למערכת...</p>
     </div>
   );
@@ -370,23 +370,23 @@ export default function LibraryApp() {
   }
 
   return (
-    <div className="h-screen bg-gray-200 text-gray-900 font-sans flex flex-col overflow-hidden selection:bg-blue-200" dir="rtl">
+    <div className="h-screen bg-slate-100 text-gray-900 font-sans flex flex-col overflow-hidden selection:bg-[#e3d3ad]" dir="rtl">
 
       {infoModal.show && infoModal.data && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999, display: 'flex', alignItems: 'center', justifycontent: 'center' }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-blue-900 text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200 border border-slate-200">
+            <div className="bg-slate-900 text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
               <h3 className="text-lg font-black flex items-center gap-2">
                 <Info size={20} className="text-white" />
                 פרטי {infoModal.type === 'volume' ? 'גליון' : 'מאמר'} מלאים
               </h3>
-              <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="hover:bg-blue-800 p-1.5 rounded-full transition-colors">
+              <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="hover:bg-white/10 p-1.5 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-gray-50">
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                 {infoModal.type === 'volume' ? (
                   <>
                     {renderInfoRow("שם הגליון / כותרת", infoModal.data.volumeTitle || infoModal.data.title)}
@@ -440,7 +440,7 @@ export default function LibraryApp() {
                             }
                             if (!found) alert('המאמר המקושר לא נמצא בספרייה כרגע.');
                           }}
-                          className="text-[13px] text-blue-600 font-bold hover:text-blue-800 hover:underline text-right w-fit flex items-center gap-1.5 mt-0.5 transition-colors"
+                          className="text-[13px] text-[#755303] font-bold hover:text-[#5c4102] hover:underline text-right w-fit flex items-center gap-1.5 mt-0.5 transition-colors"
                         >
                           <Link2 size={14} className="text-white" />
                           {getLinkedArticleName(infoModal.data.linkedArticleId)}
@@ -452,8 +452,8 @@ export default function LibraryApp() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl shrink-0 flex justify-end">
-              <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="custom-btn-style px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-colors">
+            <div className="p-4 border-t border-slate-200 bg-white rounded-b-xl shrink-0 flex justify-end">
+              <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="custom-btn-style px-6 py-2 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300 transition-colors">
                 סגירה
               </button>
             </div>
@@ -462,33 +462,33 @@ export default function LibraryApp() {
       )}
 
       {deleteModal.show && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifycontent: 'center' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4">
             <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={32} className="text-white" />
+              <Trash2 size={32} className="text-red-600" />
             </div>
             <h3 className="text-xl font-black text-gray-900 mb-2">אזהרת מחיקה!</h3>
             <p className="text-gray-700 mb-6 text-[15px]">
               האם אתה בטוח שברצונך למחוק לחלוטין את הקובץ:<br />
               <strong className="text-red-600 text-lg">{deleteModal.seriesName}</strong> ?<br />
-              <span className="text-[13px] text-gray-500 block mt-2 font-bold bg-gray-100 p-2 rounded">שימו לב: פעולה זו תמחק גם את כל הגליונות והמאמרים שבתוכה, ולא ניתנת לביטול.</span>
+              <span className="text-[13px] text-gray-500 block mt-2 font-bold bg-slate-100 p-2 rounded">שימו לב: פעולה זו תמחק גם את כל הגליונות והמאמרים שבתוכה, ולא ניתנת לביטול.</span>
             </p>
             <div className="flex gap-4 justify-center">
-              <button onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} className="custom-btn-style px-6 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors">ביטול</button>
+              <button onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} className="custom-btn-style px-6 py-2.5 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300 w-1/2 transition-colors">ביטול</button>
               <button onClick={executeDelete} className="custom-btn-style px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors">כן, מחק קובץ</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="h-12 bg-gray-900 text-white flex items-center justify-between px-5 shrink-0 shadow-lg z-20">
+      <div className="h-12 bg-[#4a3402] border-b border-[#3a2801] text-white flex items-center justify-between px-5 shrink-0 shadow-sm z-20">
         <div className="flex items-center gap-5">
-          {isAdmin && <span className="flex items-center gap-1.5 text-[12px] font-black bg-indigo-600 px-3 py-1 rounded text-white shadow-md border border-indigo-400"><ShieldCheck size={14} /> מנהל מערכת ראשי</span>}
-          {isViewer && <span className="flex items-center gap-1.5 text-[12px] font-black bg-indigo-600 px-3 py-1 rounded text-white shadow-md border border-indigo-400"><UserCircle size={14} /> משתמש רשום (צפייה והוספה)</span>}
-          {isNotLoggedIn && <span className="flex items-center gap-1.5 text-[12px] font-black bg-red-600 px-3 py-1 rounded text-white shadow-md border border-red-500"><ShieldAlert size={14} /> אורח מנותק (צפייה בלבד)</span>}
+          {isAdmin && <span className="flex items-center gap-1.5 text-[12px] font-black bg-[#755303] px-3 py-1 rounded text-white shadow-sm border border-[#8a6410]"><ShieldCheck size={14} /> מנהל מערכת ראשי</span>}
+          {isViewer && <span className="flex items-center gap-1.5 text-[12px] font-black bg-[#755303] px-3 py-1 rounded text-white shadow-sm border border-[#8a6410]"><UserCircle size={14} /> משתמש רשום (צפייה והוספה)</span>}
+          {isNotLoggedIn && <span className="flex items-center gap-1.5 text-[12px] font-black bg-red-600 px-3 py-1 rounded text-white shadow-sm"><ShieldAlert size={14} /> אורח מנותק (צפייה בלבד)</span>}
 
           {hasUser && (
-            <div className="text-[13px] text-gray-300 border-r border-gray-700 pr-5 flex items-center gap-2">
+            <div className="text-[13px] text-[#e7d8b4] border-r border-white/20 pr-5 flex items-center gap-2">
               <span className="font-bold text-white">{loggedInUser.name || 'משתמש'}</span>
               <span className="opacity-40">|</span>
               <span className="opacity-80">{loggedInUser.email}</span>
@@ -497,59 +497,59 @@ export default function LibraryApp() {
         </div>
         <div>
           {hasUser ? (
-            <button onClick={handleLogout} className="flex items-center gap-2 text-[12px] font-bold text-gray-200 hover:text-white bg-gray-800 hover:bg-gray-700 px-4 py-1.5 rounded-lg transition-colors border border-gray-700"><LogOut size={14} /> התנתקות</button>
+            <button onClick={handleLogout} className="custom-btn-style flex items-center gap-2 text-[12px] font-bold text-white bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg transition-colors border border-white/25"><LogOut size={14} /> התנתקות</button>
           ) : (
-            <button onClick={() => navigate('/login')} className="flex items-center gap-2 text-[12px] font-black text-gray-900 bg-white hover:bg-blue-100 px-5 py-1.5 rounded-lg transition-colors shadow-md"><LogIn size={14} /> התחברות למערכת</button>
+            <button onClick={() => navigate('/login')} className="custom-btn-style flex items-center gap-2 text-[12px] font-black text-white bg-[#755303] hover:bg-[#5c4102] px-5 py-1.5 rounded-lg transition-colors shadow-sm border border-[#8a6410]"><LogIn size={14} /> התחברות למערכת</button>
           )}
         </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
 
-        <aside className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 overflow-hidden shadow-lg z-10" style={{ width: '340px', minWidth: '340px', maxWidth: '340px' }}>
-          <div className="p-3 border-b border-gray-300 bg-indigo-50 shrink-0">
+        <aside className="border-l border-slate-200 flex flex-col bg-white shrink-0 overflow-hidden shadow-sm z-10" style={{ width: '340px', minWidth: '340px', maxWidth: '340px' }}>
+          <div className="p-3 border-b border-slate-200 bg-[#f7f3e8] shrink-0">
 
             {canAddNew && (
-              <button onClick={() => navigate('/add-series')} className="custom-btn-style w-full mb-2 flex items-center justify-center gap-2 py-2 bg-blue-700 hover:bg-blue-800 text-white text-[13px] font-black rounded-lg transition-colors shadow-md border border-blue-800">
+              <button onClick={() => navigate('/add-series')} className="custom-btn-style w-full mb-2 flex items-center justify-center gap-2 py-2 bg-[#755303] hover:bg-[#5c4102] text-white text-[13px] font-black rounded-lg transition-colors shadow-sm">
                 <Plus size={16} className="text-white" /> הוספת קובץ חדש
               </button>
             )}
 
             {isAdmin && (
-              <button onClick={() => navigate('/admin/import')} className="custom-btn-style w-full mb-3 flex items-center justify-center gap-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-black rounded-lg transition-colors shadow-sm border border-emerald-700">
+              <button onClick={() => navigate('/admin/import')} className="custom-btn-style w-full mb-3 flex items-center justify-center gap-2 py-1.5 bg-[#4a3402] hover:bg-[#3a2801] text-white text-[12px] font-black rounded-lg transition-colors shadow-sm">
                 <FileSpreadsheet size={14} className="text-white" /> ייבוא קבצים מאקסל
               </button>
             )}
 
-            <div className="flex bg-indigo-600 p-1 rounded-lg mb-3">
-              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'series' ? 'bg-white text-blue-800 shadow border border-indigo-600' : 'text-gray-700 hover:bg-gray-200'}`}><Book size={14} /> קבצים וגליונות</button>
-              <button onClick={() => { setActiveTab('article'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 ${activeTab === 'article' ? 'bg-white text-blue-800 shadow border border-indigo-600' : 'text-gray-700 hover:bg-gray-200'}`}><FileText size={14} /> מאמרים</button>
+            <div className="flex bg-[#755303] p-1 rounded-lg mb-3 border border-[#5c4102]">
+              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 transition-colors border ${activeTab === 'series' ? 'bg-white text-[#5c4102] shadow border-white' : 'text-white/80 border-white/25 hover:bg-white/10'}`}><Book size={14} /> קבצים וגליונות</button>
+              <button onClick={() => { setActiveTab('article'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 transition-colors border ${activeTab === 'article' ? 'bg-white text-[#5c4102] shadow border-white' : 'text-white/80 border-white/25 hover:bg-white/10'}`}><FileText size={14} /> מאמרים</button>
             </div>
 
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} className="text-white" />
-                <input type="text" placeholder="הקלד לחיפוש חופשי..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white border border-gray-400 pr-9 pl-3 py-2 rounded-lg text-[13px] font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all shadow-inner" />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input type="text" placeholder="הקלד לחיפוש חופשי..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white border border-slate-300 pr-9 pl-3 py-2 rounded-lg text-[13px] font-medium outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1] transition-all shadow-sm" />
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 title="סינון מתקדם"
-                className={`px-3 py-2 rounded-lg border transition-colors flex items-center justify-center ${showFilters ? 'bg-blue-100 border-blue-400 text-blue-800 shadow-inner' : 'bg-white border-gray-400 text-gray-600 hover:bg-gray-50 shadow-sm'}`}
+                className={`custom-btn-style px-3 py-2 rounded-lg border transition-colors flex items-center justify-center ${showFilters ? 'bg-[#f7f3e8] border-[#d2b48c] text-[#5c4102]' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50 shadow-sm'}`}
               >
-                <Filter size={18} className="text-white" />
+                <Filter size={18} />
               </button>
             </div>
 
             {showFilters && (
-              <div className="mt-2 p-3 bg-white rounded-lg border border-gray-300 shadow-sm space-y-2 text-[12px] animate-in fade-in slide-in-from-top-2">
+              <div className="mt-2 p-3 bg-white rounded-lg border border-slate-200 shadow-sm space-y-2 text-[12px] animate-in fade-in slide-in-from-top-2">
 
                 {activeTab === 'series' && (
                   <>
-                    <select value={filters.place} onChange={e => setFilters({ ...filters, place: e.target.value })} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                    <select value={filters.place} onChange={e => setFilters({ ...filters, place: e.target.value })} className="w-full p-2 rounded border border-slate-200 outline-none focus:border-[#d2b48c] bg-slate-50">
                       <option value="">כל מקומות ההוצאה</option>
                       {filterOptions.places.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
-                    <select value={filters.sector} onChange={e => setFilters({ ...filters, sector: e.target.value })} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                    <select value={filters.sector} onChange={e => setFilters({ ...filters, sector: e.target.value })} className="w-full p-2 rounded border border-slate-200 outline-none focus:border-[#d2b48c] bg-slate-50">
                       <option value="">כל המגזרים</option>
                       {filterOptions.sectors.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -558,7 +558,7 @@ export default function LibraryApp() {
 
                 {activeTab === 'article' && (
                   <>
-                    <select value={filters.topic} onChange={e => setFilters({ ...filters, topic: e.target.value })} className="w-full p-2 rounded border border-gray-200 outline-none focus:border-blue-400 bg-slate-50">
+                    <select value={filters.topic} onChange={e => setFilters({ ...filters, topic: e.target.value })} className="w-full p-2 rounded border border-slate-200 outline-none focus:border-[#d2b48c] bg-slate-50">
                       <option value="">כל הנושאים הכלליים</option>
                       {filterOptions.topics.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
@@ -566,7 +566,7 @@ export default function LibraryApp() {
                 )}
 
                 {(filters.place || filters.sector || filters.yearFrom || filters.yearTo || filters.topic) && (
-                  <button onClick={() => setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' })} className="w-full text-center text-red-500 font-bold mt-2 hover:text-red-700">
+                  <button onClick={() => setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' })} className="w-full text-center text-red-500 font-bold mt-2 hover:text-red-700 transition-colors">
                     נקה פילטרים
                   </button>
                 )}
@@ -582,14 +582,14 @@ export default function LibraryApp() {
                 const imageUrl = getCoverImageUrl(item.coverImage);
 
                 return (
-                  <div key={item._id} className="border-b border-gray-200">
+                  <div key={item._id} className="border-b border-slate-100">
                     {/* שורת הסדרה הניתנת ללחיצה */}
                     <div
                       onClick={() => handleResultClick({ ...item, volIndex: 0 })}
-                      className={`w-full flex items-center justify-between p-3 transition-colors cursor-pointer ${isActiveSeries ? 'bg-blue-50/80 border-r-4 border-r-blue-700' : 'hover:bg-gray-50'}`}
+                      className={`w-full flex items-center justify-between p-2 transition-all duration-200 cursor-pointer ${isActiveSeries ? 'bg-[#f7f3e8]/80 border-r-4 border-r-[#755303] hover:bg-[#efe6d1] hover:shadow-md' : 'border-r-4 border-r-transparent hover:bg-gradient-to-l hover:from-[#f7f3e8] hover:to-white hover:border-r-[#d2b48c] hover:shadow-md'}`}
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-8 h-11 bg-white rounded border border-gray-300 shrink-0 overflow-hidden shadow-sm">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="w-5 h-7 bg-white rounded border border-slate-200 shrink-0 overflow-hidden shadow-sm transition-transform hover:scale-110">
                           <img
                             src={imageUrl}
                             className="w-full h-full object-cover"
@@ -602,27 +602,29 @@ export default function LibraryApp() {
                           />
                         </div>
                         <div className="text-right min-w-0 flex-1">
-                          <h3 className={`font-black text-[13.5px] truncate leading-snug ${isActiveSeries ? 'text-blue-900' : 'text-gray-900'}`}>
+                          <h3 className={`font-black text-[12px] truncate leading-snug ${isActiveSeries ? 'text-[#4a3402]' : 'text-gray-900'}`}>
                             {item.prefixName} {item.fileName}
                           </h3>
-                          <span className="text-[10px] text-gray-500 font-bold">{item.volumes?.length || 0} גליונות</span>
                         </div>
                       </div>
 
-                      {/* כפתור + / - לפתיחה וסגירה מהירה של הגליונות השייכים אליה */}
+                      {/* מספר הגליונות + כפתור פתיחה/סגירה מהירה */}
                       {item.volumes && item.volumes.length > 0 && (
-                        <button
-                          onClick={(e) => toggleSeriesExpand(item._id, e)}
-                          className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-500 hover:text-blue-700 transition-colors mr-2"
-                        >
-                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
+                        <div className="flex items-center gap-1 mr-2 shrink-0">
+                          <span className="text-[10px] font-bold text-gray-400">{item.volumes.length}</span>
+                          <button
+                            onClick={(e) => toggleSeriesExpand(item._id, e)}
+                            className="p-1 rounded-lg hover:bg-[#efe6d1] text-gray-400 hover:text-[#5c4102] transition-colors"
+                          >
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          </button>
+                        </div>
                       )}
                     </div>
 
                     {/* רשימת גליונות נפתחת (Accordion) בתוך הסדרה */}
                     {isExpanded && item.volumes && item.volumes.length > 0 && (
-                      <div className="bg-gray-50/50 border-t border-gray-100 pr-4 pl-2 py-1.5 space-y-1">
+                      <div className="bg-slate-50/60 border-t border-slate-100 pr-3 pl-1.5 py-1 space-y-0.5">
                         {item.volumes.map((v, vIdx) => {
                           const isVolActive = isActiveSeries && activeVolIdx === vIdx;
                           return (
@@ -632,13 +634,13 @@ export default function LibraryApp() {
                                 e.stopPropagation();
                                 handleResultClick({ originalSeries: item, volIndex: vIdx, type: 'volume' });
                               }}
-                              className={`w-full text-right py-2 px-3 rounded-lg text-[12px] flex items-center justify-between transition-all ${isVolActive
-                                  ? 'bg-blue-600 text-white font-black shadow-sm'
-                                  : 'text-gray-700 hover:bg-blue-50 hover:text-blue-950'
+                              className={`w-full text-right py-1.5 px-2.5 rounded-lg text-[11px] flex items-center justify-between transition-all duration-200 border ${isVolActive
+                                  ? 'bg-[#f0e0b8] border-[#d2b48c] text-[#3a2801] font-black shadow-sm'
+                                  : 'border-transparent text-gray-700 hover:bg-[#f7f3e8] hover:border-[#e3d3ad] hover:text-[#3a2801] hover:shadow-sm hover:translate-x-[-2px]'
                                 }`}
                             >
                               <span className="truncate">{v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`}</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isVolActive ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                              <span className={`text-[9px] font-bold ${isVolActive ? 'text-[#5c4102]' : 'text-gray-400'}`}>
                                 {v.articles?.length || 0}
                               </span>
                             </button>
@@ -651,12 +653,12 @@ export default function LibraryApp() {
               } else if (item.type === 'article') {
                 const isActive = activeArticleId === (item._id || item.id);
                 return (
-                  <button key={`${item.seriesId}-${idx}`} onClick={() => handleResultClick(item)} className={`w-full text-right p-3 border-b flex flex-col min-w-0 transition-colors ${isActive ? 'bg-yellow-100 border-yellow-400 shadow-inner' : 'border-gray-200 hover:bg-blue-50'}`}>
+                  <button key={`${item.seriesId}-${idx}`} onClick={() => handleResultClick(item)} className={`w-full text-right p-2 border-b border-r-4 flex flex-col min-w-0 transition-all duration-200 ${isActive ? 'bg-[#f5ead1] border-[#d2b48c] border-r-[#755303] shadow-inner' : 'border-slate-100 border-r-transparent hover:bg-[#f7f3e8] hover:border-r-[#d2b48c] hover:shadow-md hover:pr-1'}`}>
                     <div className="flex justify-between items-start mb-1 w-full">
-                      <div className="text-[10px] text-gray-600 font-bold truncate flex-1 min-w-0">{item.seriesName} / {item.volTitle}</div>
-                      {item.startPage && <div className="text-[10px] bg-gray-200 px-1.5 rounded text-gray-700 shrink-0 mr-2 font-mono">עמ' {item.startPage}</div>}
+                      <div className="text-[9px] text-gray-600 font-bold truncate flex-1 min-w-0">{item.seriesName} / {item.volTitle}</div>
+                      {item.startPage && <div className="text-[9px] bg-slate-200 px-1.5 rounded text-gray-700 shrink-0 mr-2 font-mono">עמ' {item.startPage}</div>}
                     </div>
-                    <div className={`font-bold text-[13px] truncate leading-tight w-full ${isActive ? 'text-yellow-900' : 'text-blue-900'}`}>{item.contentTitle || item.title}</div>
+                    <div className={`font-bold text-[12px] truncate leading-tight w-full ${isActive ? 'text-[#5c4102]' : 'text-[#4a3402]'}`}>{item.contentTitle || item.title}</div>
                   </button>
                 )
               }
@@ -667,16 +669,16 @@ export default function LibraryApp() {
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col min-w-0 bg-gray-100 overflow-hidden">
+        <main className="flex-1 flex flex-col min-w-0 bg-slate-100 overflow-hidden">
           {selectedSeries ? (
             <>
-              <header className="h-16 bg-white border-b border-gray-300 px-6 flex items-center justify-between shrink-0 shadow-sm z-0">
+              <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm z-0">
                 <div className="flex items-center gap-4 truncate min-w-0">
-                  <div className="bg-blue-800 p-2.5 rounded-lg text-white shadow shrink-0"><BookOpen size={22} /></div>
+                  <div className="bg-[#755303] p-2.5 rounded-lg text-white shadow shrink-0"><BookOpen size={22} /></div>
                   <div className="truncate min-w-0">
                     <h2 className="text-[18px] font-black text-gray-900 leading-none truncate">{selectedSeries.prefixName} {selectedSeries.fileName}</h2>
                     <div className="flex gap-3 mt-1.5 truncate">
-                      {selectedSeries.sector && <span className="text-[11px] font-bold text-blue-800 bg-blue-100 px-2 rounded border border-blue-200 shrink-0">{selectedSeries.sector}</span>}
+                      {selectedSeries.sector && <span className="text-[11px] font-bold text-[#5c4102] bg-[#efe6d1] px-2 rounded border border-[#e3d3ad] shrink-0">{selectedSeries.sector}</span>}
                       {selectedSeries.publicationPlace && <span className="text-[12px] text-gray-600 font-bold truncate">{selectedSeries.publicationPlace}</span>}
                     </div>
                   </div>
@@ -686,17 +688,17 @@ export default function LibraryApp() {
                   {canAddNew && (
                     <button
                       onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=volume`)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 border border-blue-300 text-blue-800 rounded-lg text-[13px] font-bold hover:bg-blue-100 transition-colors shadow-sm"
+                      className="custom-btn-style flex items-center gap-1.5 px-3.5 py-2 bg-[#f7f3e8] border border-[#d2b48c] text-[#5c4102] rounded-lg text-[13px] font-bold hover:bg-[#efe6d1] transition-colors shadow-sm"
                     >
                       <Plus size={15} /> הוספת גליון
                     </button>
                   )}
                   {isAdmin && (
                     <>
-                      <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-400 text-gray-800 rounded-lg text-[13px] font-bold hover:bg-gray-100 transition-colors shadow-sm">
-                        <Edit3 size={16} className="text-gray-600" /> עריכת קובץ
+                      <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} className="custom-btn-style flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-300 text-gray-800 rounded-lg text-[13px] font-bold hover:bg-slate-100 transition-colors shadow-sm">
+                        <Edit3 size={16} className="text-[#755303]" /> עריכת קובץ
                       </button>
-                      <button onClick={() => confirmDelete(selectedSeries)} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors shadow-sm">
+                      <button onClick={() => confirmDelete(selectedSeries)} className="custom-btn-style flex items-center gap-1.5 px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors shadow-sm">
                         <Trash2 size={16} /> מחיקה
                       </button>
                     </>
@@ -708,15 +710,15 @@ export default function LibraryApp() {
                 <div className="flex-1 flex overflow-hidden min-w-0">
                   {currentVol ? (
                     <>
-                      <div className="border-l border-gray-300 flex flex-col bg-gray-50 shrink-0 shadow-sm z-0" style={{ width: '380px', minWidth: '380px', maxWidth: '380px' }}>
-                        <div className="p-4 pb-3 border-b border-gray-300 flex justify-between items-center bg-white shrink-0">
+                      <div className="border-l border-slate-200 flex flex-col bg-white shrink-0 shadow-sm z-0" style={{ width: '380px', minWidth: '380px', maxWidth: '380px' }}>
+                        <div className="p-4 pb-3 border-b border-[#4a3402] flex justify-between items-center bg-[#4a3402] shrink-0">
                           <div className="min-w-0 flex-1">
-                            <h3 className="text-[15px] font-black text-gray-950 truncate">
+                            <h3 className="text-[15px] font-black text-white truncate">
                               {currentVol.volumeTitle || currentVol.title || `גליון ${currentVol.volumeNumber}`}
                             </h3>
-                            <p className="text-[11px] text-gray-500 font-bold mt-0.5">רשימת מאמרים מפורטת</p>
+                            <p className="text-[11px] text-[#e7d8b4] font-bold mt-0.5">רשימת מאמרים מפורטת</p>
                           </div>
-                          <span className="text-[11px] font-bold text-blue-900 bg-blue-100 px-2.5 py-1 rounded border border-blue-200 shadow-sm shrink-0">{currentVol.articles?.length || 0} מאמרים</span>
+                          <span className="text-[11px] font-bold text-[#4a3402] bg-[#efe6d1] px-2.5 py-1 rounded border border-[#e3d3ad] shadow-sm shrink-0">{currentVol.articles?.length || 0} מאמרים</span>
                         </div>
 
                         <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white custom-scrollbar">
@@ -728,31 +730,31 @@ export default function LibraryApp() {
                                   id={`art-${art._id || art.id}`}
                                   key={aIdx}
                                   onClick={() => setActiveArticleId(art._id || art.id)}
-                                  className={`group cursor-pointer p-2.5 border-b border-gray-100 transition-colors flex items-center gap-3 ${isHighlighted ? 'bg-amber-50' : 'hover:bg-gray-50'}`}
+                                  className={`group cursor-pointer p-2 border-b border-slate-100 border-r-4 transition-all duration-200 flex items-center gap-2 ${isHighlighted ? 'bg-[#f5ead1] border-r-[#755303]' : 'border-r-transparent hover:bg-[#f7f3e8] hover:border-r-[#d2b48c] hover:shadow-sm hover:pr-1'}`}
                                 >
                                   {/* מספר עמוד - קומפקטי */}
-                                  <div className="text-[10px] font-mono text-gray-400 w-8 text-center shrink-0">
+                                  <div className="text-[9px] font-mono text-gray-400 w-7 text-center shrink-0">
                                     {art.startPage || art.page || '-'}
                                   </div>
 
                                   {/* תוכן המאמר */}
                                   <div className="flex-1 min-w-0">
-                                    <h4 className={`text-[13px] font-bold leading-tight truncate ${isHighlighted ? 'text-amber-900' : 'text-gray-900'}`}>
+                                    <h4 className={`text-[11.5px] font-bold leading-tight truncate ${isHighlighted ? 'text-[#5c4102]' : 'text-gray-900'}`}>
                                       {art.contentTitle || art.title}
                                     </h4>
-                                    <div className="text-[11px] text-gray-500 truncate mt-0.5">
+                                    <div className="text-[10px] text-gray-500 truncate mt-0.5">
                                       {art.authors?.[0]?.firstName} {art.authors?.[0]?.lastName || ''}
-                                      {art.generalTopic && <span className="mr-2 text-blue-600">| {art.generalTopic}</span>}
+                                      {art.generalTopic && <span className="mr-2 text-[#755303]">| {art.generalTopic}</span>}
                                     </div>
                                   </div>
 
                                   {/* כפתור מידע - מופיע בריחוף */}
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'article', data: art }); }}
-                                    className="p-1.5 text-gray-300 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="p-1 text-gray-300 hover:text-[#755303] opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
                                     title="פרטי מאמר"
                                   >
-                                    <Info size={14} />
+                                    <Info size={13} />
                                   </button>
                                 </div>
                               )
@@ -763,28 +765,28 @@ export default function LibraryApp() {
                         </div>
 
                         {canAddNew && (
-                          <div className="p-3 bg-white border-t border-gray-300 shrink-0">
-                            <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=article&volId=${currentVol._id || activeVolIdx}`)} className="w-full py-2 bg-blue-100 border border-blue-300 text-blue-900 rounded-lg text-[13px] font-black hover:bg-blue-200 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                          <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+                            <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=article&volId=${currentVol._id || activeVolIdx}`)} className="custom-btn-style w-full py-2 bg-[#efe6d1] border border-[#d2b48c] text-[#4a3402] rounded-lg text-[13px] font-black hover:bg-[#e3d3ad] transition-colors flex items-center justify-center gap-1.5 shadow-sm">
                               <Plus size={16} /> הוספת מאמר לגליון
                             </button>
                           </div>
                         )}
                       </div>
 
-                      <div className="flex-1 bg-gray-400 relative shadow-inner overflow-hidden min-w-[300px]">
+                      <div className="flex-1 bg-slate-300 relative shadow-inner overflow-hidden min-w-[300px]">
                         {currentVol.pdfPath ? (
                           <div className="h-full flex flex-col">
-                            <div className="bg-gray-900 h-10 flex justify-between items-center text-white px-4 shrink-0 shadow-md">
+                            <div className="bg-slate-900 h-10 flex justify-between items-center text-white px-4 shrink-0 shadow-md">
                               <span className="text-[12px] font-bold tracking-wide flex items-center gap-2"><Eye size={14} /> תצוגת מסמך מלאה</span>
-                              <a href={externalPdfUrl} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-gray-200 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5 border border-gray-700">
+                              <a href={externalPdfUrl} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-gray-200 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5 border border-slate-700">
                                 <ExternalLink size={12} /> פתיחה בחלון נפרד
                               </a>
                             </div>
                             <iframe key={pdfFinalUrl} src={pdfFinalUrl} className="w-full h-full border-none bg-gray-300" title="Preview" />
                           </div>
                         ) : (
-                          <div className="h-full flex flex-col items-center justify-center text-gray-500 p-8 text-center bg-gray-100 border-l border-gray-300">
-                            <Eye size={48} className="text-gray-300 mb-4" />
+                          <div className="h-full flex flex-col items-center justify-center text-gray-500 p-8 text-center bg-slate-100 border-l border-slate-200">
+                            <Eye size={48} className="text-slate-300 mb-4" />
                             <h4 className="font-black text-gray-700 text-[16px]">קובץ ה-PDF לא נמצא</h4>
                             <p className="text-[13px] mt-1.5 text-gray-500 max-w-[250px] leading-relaxed">הקובץ רשום במערכת אך טרם הועלה PDF לגליון זה.</p>
                           </div>
@@ -798,8 +800,8 @@ export default function LibraryApp() {
               </div>
             </>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500">
-              <BookOpen size={80} className="mb-5 text-gray-300" strokeWidth={1} />
+            <div className="h-full flex flex-col items-center justify-center bg-slate-100 text-gray-500">
+              <BookOpen size={80} className="mb-5 text-slate-300" strokeWidth={1} />
               <p className="text-2xl font-black text-gray-700">בחר קובץ וגליון מהספרייה כדי להתחיל</p>
               <p className="text-[14px] mt-2 font-medium">השתמש בתיבת החיפוש או פתח את אחת הסדרות בסרגל הימני</p>
             </div>
