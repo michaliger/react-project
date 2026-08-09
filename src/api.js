@@ -1,38 +1,41 @@
+// src/api.js
+// ⚠️ מיקום הקובץ לא השתנה: הקומפוננטות ממשיכות להשתמש ב-`import api from '../api';`
+//    אם הקובץ הקיים אצלך הוא src/api.js — החלף אותו.
+//    אם הוא src/api/index.js — החלף את התוכן של אותו קובץ, בלי להזיז אותו.
 import axios from 'axios';
 
-// כתובת בסיס לשרת - כולל את קידומת ה-/api שהשרת מצפה לה
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api';
+// ✓ Vite (לא process.env של CRA)
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// מופע axios מרכזי לכל האפליקציה
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
+const api = axios.create({ baseURL });
 
-// מוסיף אוטומטית את טוקן ההתחברות (אם קיים) לכל בקשה יוצאת
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// ✓ הוספת ה-token לכל בקשה
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        // חשוב: כשמשתמשים ב-FormData, אין לקבוע Content-Type ידנית —
+        // הדפדפן מוסיף boundary בעצמו.
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
 
-// אם מתקבלת תשובת 401 (טוקן פג/לא תקין) - מנקים את הסשן המקומי
+// טיפול בשגיאות אימות
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        }
+        return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
 );
 
 export default api;
-
-// נשמר לשם תאימות לאחור עם קוד ישן שמייבא את הפונקציה הזו בשמה
-export const getAllSeries = async () => {
-  const response = await api.get('/series');
-  return response.data?.data?.series || [];
-};

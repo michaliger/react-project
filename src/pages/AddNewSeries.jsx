@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Users, FileText, Database, CheckCircle2, Link2, Upload, X, UserPlus, Info } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Plus, Trash2, Users, FileText, Database, CheckCircle2, Link2, Upload, X, UserPlus, Info, MessageSquare } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useSelector } from 'react-redux';
@@ -14,6 +15,9 @@ const CompactField = ({ label, children, colSpan = '', widthClass = '', required
 )
 
 const SERVER_BASE_URL = (import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api').replace(/\/api\/?$/, '');
+
+const inputClass = "w-full border border-slate-200 rounded h-8 px-2 text-[11px] focus:border-indigo-400 outline-none";
+const activeVolInputClass = "w-full border border-slate-200 rounded h-7 px-2 text-[11px] font-semibold focus:border-indigo-400 outline-none";
 
 export default function App() {
   const { currentUser } = useSelector((state) => state.user);
@@ -35,9 +39,14 @@ export default function App() {
   const [publicationPlaces, setPublicationPlaces] = useState([]);
   const [activeVolume, setActiveVolume] = useState(0)
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [noteBoxPos, setNoteBoxPos] = useState({ top: 0, left: 0 });
 
   const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('info');
   const [deletePrompt, setDeletePrompt] = useState({ show: false, type: '', vIdx: null, aIdx: null, title: '' });
+  const DEFAULT_SECTORS = ['ליטאי', 'חב"ד', 'דתי לאומי', 'חסידי', 'ספרדי', 'תימני'];
+  const [sectors, setSectors] = useState(DEFAULT_SECTORS);
+  const [openNoteFor, setOpenNoteFor] = useState(null);
 
   useEffect(() => {
     const target = searchParams.get('target');
@@ -47,6 +56,7 @@ export default function App() {
         : 'מצב משתמש: הנך מוסיף מאמר חדש. נתוני העבר חסומים לעריכה.';
 
       setToastMessage(msg);
+      setToastType('info');
       const timer = setTimeout(() => setToastMessage(''), 6000);
       return () => clearTimeout(timer);
     }
@@ -58,7 +68,7 @@ export default function App() {
   const [series, setSeries] = useState({
     _id: '', prefixName: '', fileName: '', identifierName: '', details: '',
     editor: '', publicationPlace: '', sector: '',
-    missingVolumesList: '', adminNotes: '', catalogStatus: 'טיוטה',
+    missingVolumesList: '', userNotes: '', catalogStatus: 'טיוטה',
     enteredBy: '', coverPreview: null
   })
 
@@ -67,6 +77,7 @@ export default function App() {
   const createEmptyVolume = (index) => ({
     id: Math.random().toString(36).substr(2, 9),
     volumeTitle: '', volumeNumber: (index + 1).toString(), booklet: '',
+    volumeEditor: '',
     mainTopic: '', publishedFor: '', publicationYear: '',
     publicationPeriod: '', coverType: '', volumeSize: '',
     fileCompleteness: '', scanCompleteness: '',
@@ -81,7 +92,7 @@ export default function App() {
       generalTopic: '',
       source: '',
       linkedArticleId: '',
-      linkExplanation: ''
+      note: ''
     }]
   })
 
@@ -104,7 +115,7 @@ export default function App() {
               publicationPlace: data.publicationPlace || '',
               sector: data.sector || '',
               missingVolumesList: data.missingVolumesList || '',
-              adminNotes: data.adminNotes || '',
+              userNotes: data.userNotes || '',
               catalogStatus: data.catalogStatus || 'טיוטה',
               enteredBy: data.enteredBy || '',
               coverPreview: data.coverImage ? `https://node-project-cvek.onrender.com/uploads/${data.coverImage}` : null,
@@ -118,6 +129,7 @@ export default function App() {
                 volumeTitle: v.volumeTitle || v.title || '',
                 volumeNumber: v.volumeNumber || (vIdx + 1).toString(),
                 booklet: v.booklet || '',
+                volumeEditor: v.volumeEditor || '',
                 mainTopic: v.mainTopic || '',
                 publishedFor: v.publishedFor || '',
                 publicationYear: v.publicationYear || '',
@@ -140,11 +152,11 @@ export default function App() {
                   generalTopic: art.generalTopic || '',
                   source: art.source || '',
                   linkedArticleId: art.linkedArticleId || '',
-                  linkExplanation: art.linkExplanation || ''
+                  note: art.note || ''
                 })) : [{
                   id: Math.random().toString(36).substr(2, 9), autoId: 1,
                   authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-                  startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', linkExplanation: ''
+                  startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', note: ''
                 }]
               }));
 
@@ -153,7 +165,8 @@ export default function App() {
 
               if (target === 'volume' && canAddNew) {
                 const newIdx = mappedVolumes.length;
-                mappedVolumes.push(createEmptyVolume(newIdx));
+                const commonEditor = mappedVolumes.find(v => v.volumeEditor && v.volumeEditor.trim() !== '')?.volumeEditor || '';
+                mappedVolumes.push({ ...createEmptyVolume(newIdx), volumeEditor: commonEditor });
                 setTimeout(() => setActiveVolume(newIdx), 100);
 
               } else if (target === 'article' && canAddNew) {
@@ -165,7 +178,7 @@ export default function App() {
                     id: Math.random().toString(36).substr(2, 9),
                     autoId: mappedVolumes[vIdx].articles.length + 1,
                     authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-                    startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', linkExplanation: ''
+                    startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', note: ''
                   });
                   setTimeout(() => setActiveVolume(vIdx), 100);
                 }
@@ -198,7 +211,7 @@ export default function App() {
         sum += gematria[char] || 0;
       }
 
-      if (str.startsWith("ה'") || str.startsWith("ה’") || (cleanStr.length >= 4 && cleanStr.startsWith('ה'))) {
+      if (str.startsWith("ה'") || str.startsWith("ה'") || (cleanStr.length >= 4 && cleanStr.startsWith('ה'))) {
         sum += 4995;
       }
 
@@ -221,6 +234,28 @@ export default function App() {
     return `${minYear} - ${maxYear}`;
   }, [volumes]);
 
+  const displayEditor = useMemo(() => {
+    const validEditors = volumes
+      .map(v => (v.volumeEditor || '').trim())
+      .filter(v => v !== '');
+
+    if (validEditors.length === 0) return series.editor || '';
+
+    const uniqueEditors = [...new Set(validEditors)];
+
+    if (uniqueEditors.length > 1) return 'עורכים רבים';
+
+    const names = uniqueEditors[0].split(/[,;/]+/).map(s => s.trim()).filter(Boolean);
+    return names.length > 1 ? 'עורכים רבים' : (names[0] || '');
+  }, [volumes, series.editor]);
+
+  const addToSuggestionList = (value, list, setList) => {
+    const v = (value || '').trim();
+    if (v && !list.includes(v)) {
+      setList(prev => [...prev, v].sort((a, b) => a.localeCompare(b, 'he')));
+    }
+  };
+
   useEffect(() => {
     api.get('/subtitles')
       .then(res => {
@@ -236,11 +271,15 @@ export default function App() {
         const seriesArray = result?.data?.series || result?.data || [];
         const uniquePlaces = [...new Set(seriesArray.map(s => s.publicationPlace).filter(Boolean))];
         setPublicationPlaces(uniquePlaces.sort());
+
+        const uniqueSectors = [...new Set([...DEFAULT_SECTORS, ...seriesArray.map(s => s.sector).filter(Boolean)])];
+        setSectors(uniqueSectors.sort((a, b) => a.localeCompare(b, 'he')));
       })
       .catch(err => console.error('Error fetching places:', err));
   }, []);
 
-  const showToast = (msg) => {
+  const showToast = (msg, type = 'info') => {
+    setToastType(type);
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage('');
@@ -253,12 +292,19 @@ export default function App() {
       return;
     }
 
+    const activeVolTitle = volumes[activeVolume]?.volumeTitle;
+    if (!activeVolTitle || activeVolTitle.trim() === '') {
+      showToast('יש להזין שם לגליון הנוכחי לפני שניתן להוסיף גליון חדש.', 'warning');
+      return;
+    }
+
     if (isViewer && isExistingSeries) {
       showToast('מצב משתמש: הנך מוסיף גליון חדש. שדות עבר חסומים לעריכה.');
     }
 
+    const commonEditor = volumes.find(v => v.volumeEditor && v.volumeEditor.trim() !== '')?.volumeEditor || '';
     const newIdx = volumes.length;
-    setVolumes([...volumes, createEmptyVolume(newIdx)]);
+    setVolumes([...volumes, { ...createEmptyVolume(newIdx), volumeEditor: commonEditor }]);
     setActiveVolume(newIdx);
   }
 
@@ -284,7 +330,7 @@ export default function App() {
       generalTopic: '',
       source: '',
       linkedArticleId: '',
-      linkExplanation: ''
+      note: ''
     };
 
     nv[activeVolume] = {
@@ -355,18 +401,24 @@ export default function App() {
       const nv = [...volumes];
       nv[deletePrompt.vIdx].articles.splice(deletePrompt.aIdx, 1);
 
-      if (nv[deletePrompt.vIdx].articles.length === 0) {
-        nv[deletePrompt.vIdx].articles.push({
-          id: Math.random().toString(36).substr(2, 9), autoId: 1,
-          authors: [{ titlePrefix: '', firstName: '', lastName: '', role: '' }],
-          startPage: '', section: '', contentTitle: '', generalTopic: '', source: '', linkedArticleId: '', linkExplanation: ''
-        });
-      }
-
-      nv[deletePrompt.vIdx].articles.forEach((a, i) => a.autoId = i + 1);
       setVolumes(nv);
     }
+
     setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' });
+  }
+
+  const currentVolume = volumes[activeVolume] || {};
+
+  const updateVolume = (field, value) => {
+    const nv = [...volumes];
+    nv[activeVolume][field] = value;
+    setVolumes(nv);
+  }
+
+  const updateAuthor = (vIdx, aIdx, authIdx, field, value) => {
+    const nv = [...volumes];
+    nv[vIdx].articles[aIdx].authors[authIdx][field] = value;
+    setVolumes(nv);
   }
 
   const addAuthorRow = (vIdx, aIdx) => {
@@ -375,83 +427,31 @@ export default function App() {
     setVolumes(nv);
   }
 
-  const updateAuthor = (vIdx, aIdx, authIdx, field, val) => {
-    const nv = [...volumes];
-    nv[vIdx].articles[aIdx].authors[authIdx][field] = val;
-    setVolumes(nv);
-  }
-
-  const updateVolume = (field, val) => {
-    const nv = [...volumes];
-    nv[activeVolume][field] = val;
-    setVolumes(nv);
-  }
-
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      if (e.target.tagName === 'BUTTON' || e.target.type === 'submit' || e.target.type === 'file') {
-        return;
-      }
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-
-      if (e.target.dataset.lastArticleField === "true" && canAddNew) {
-        addNewArticle();
-        setTimeout(() => {
-          const focusable = Array.from(
-            document.querySelectorAll('input:not([disabled]):not([type="hidden"]), select:not([disabled])')
-          ).filter(el => {
-            const rect = el.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
-          });
-          const currentIndex = focusable.indexOf(e.target);
-          if (currentIndex > -1 && currentIndex + 1 < focusable.length) {
-            focusable[currentIndex + 1].focus();
-          }
-        }, 50);
-        return;
-      }
-
-      const focusable = Array.from(
-        document.querySelectorAll('input:not([disabled]):not([type="hidden"]), select:not([disabled])')
-      ).filter(el => {
-        const rect = el.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
-      });
-      const currentIndex = focusable.indexOf(e.target);
-      if (currentIndex > -1 && currentIndex < focusable.length - 1) {
-        focusable[currentIndex + 1].focus();
-      }
+      handleFinalSave();
     }
-  };
-
-  const inputClass = "w-full p-1.5 border border-slate-200 rounded text-[12px] text-black outline-none focus:border-indigo-500 bg-white shadow-sm";
-  const currentVolume = volumes[activeVolume];
-
-  if (currentPage === 'home') return <div className="min-h-screen flex items-center justify-center bg-slate-50" dir="rtl"><div className="text-center p-10 bg-white rounded-2xl shadow-lg border"><CheckCircle2 size={48} className="text-green-500 mx-auto mb-4" /><h1 className="text-xl font-bold">הנתונים נשמרו בהצלחה!</h1><button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg">חזרה</button></div></div>;
+  }
 
   const handleFinalSave = async () => {
+    if (isSaving) return;
+
     if (!series.fileName || series.fileName.trim() === '') {
-      alert("שגיאה: שדה 'שם הקובץ' הינו שדה חובה! אנא מלא אותו לפני השמירה.");
+      alert('יש להזין שם כותר לפני השמירה.');
       return;
     }
 
-    if (isNotLoggedIn) return;
-
     setIsSaving(true);
+
     try {
-      const formData = new FormData();
-      const dataToSave = { ...series };
+      const dataToSave = {
+        ...series,
+        sector: (series.sector || '').trim()
+      };
 
-      if (editId) {
-        dataToSave._id = editId;
-      } else {
-        delete dataToSave._id;
-      }
-
-      // כאן מתבצע התיקון: הוצאת pdfFile והגדרות הכריכה מתוך המיפוי של ה-JSON כדי שלא יישלחו בטעות כחלק מהטקסט
       const cleanVolumes = volumes.map(vol => {
         const cleanArticles = vol.articles.filter(art => {
-          if (art._id) return true;
           return Object.entries(art).some(([key, val]) => {
             if (key === 'id' || key === 'autoId') return false;
             if (key === 'authors' && Array.isArray(val)) {
@@ -466,7 +466,6 @@ export default function App() {
           });
         });
 
-        // יצירת עותק ללא שדות קובץ גולמיים שלא תואמים ל-JSON
         const { pdfFile, coverFile, coverPreview, ...restOfVol } = vol;
 
         return { ...restOfVol, articles: cleanArticles };
@@ -483,7 +482,8 @@ export default function App() {
           (vol.volumeSize && vol.volumeSize.trim() !== '') ||
           (vol.fileCompleteness && vol.fileCompleteness.trim() !== '') ||
           (vol.scanCompleteness && vol.scanCompleteness.trim() !== '') ||
-          (vol.pdfFileName && vol.pdfFileName.trim() !== '');
+          (vol.pdfFileName && vol.pdfFileName.trim() !== '') ||
+          (vol.volumeEditor && vol.volumeEditor.trim() !== '');
 
         return hasBasicData || vol.articles.length > 0;
       });
@@ -492,6 +492,7 @@ export default function App() {
         v.volumeNumber = (i + 1).toString();
       });
 
+      const formData = new FormData();
       formData.append('seriesData', JSON.stringify(dataToSave));
       formData.append('volumes', JSON.stringify(cleanVolumes));
 
@@ -499,7 +500,6 @@ export default function App() {
         formData.append('coverImage', series.coverFile);
       }
 
-      // הוספת קבצי ה-PDF האמיתיים ל-FormData בנפרד
       volumes.forEach((vol, index) => {
         if (vol.pdfFile) {
           formData.append(`pdfFile_${index}`, vol.pdfFile);
@@ -561,7 +561,10 @@ export default function App() {
       )}
 
       {toastMessage && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-5 py-2.5 rounded-full shadow-lg text-[12px] font-bold flex items-center gap-2 z-50">
+        <div
+          className={`fixed top-14 left-1/2 -translate-x-1/2 ${toastType === 'warning' ? 'bg-amber-600' : 'bg-blue-600'} px-5 py-2.5 rounded-full shadow-lg text-[12px] font-bold flex items-center gap-2 z-50 animate-in fade-in slide-in-from-top-2`}
+          style={{ color: '#ffffff' }}
+        >
           <Info size={16} />
           {toastMessage}
         </div>
@@ -640,7 +643,7 @@ export default function App() {
                   </select>
                 </CompactField>
                 <CompactField label="שם הכותר" colSpan="col-span-2" required={true}>
-                  <input value={series.fileName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => updateSeriesField('fileName', e.target.value)} className={`${inputClass} font-bold`} />
+                  <input value={series.fileName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => updateSeriesField('fileName', e.target.value)} className={`${inputClass} font-semibold`} />
                 </CompactField>
                 <CompactField label="שם מזהה" colSpan="col-span-2">
                   <input value={series.identifierName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, identifierName: e.target.value })} className={inputClass} />
@@ -649,10 +652,10 @@ export default function App() {
                   <input value={series.details} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, details: e.target.value })} className={inputClass} />
                 </CompactField>
                 <CompactField label="שם העורך" colSpan="col-span-3">
-                  <input value={series.editor} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, editor: e.target.value })} className={inputClass} />
+                  <input value={displayEditor} disabled className={`${inputClass} bg-slate-100 text-slate-500 font-semibold cursor-not-allowed`} title="שדה זה מתעדכן אוטומטית משדה 'עורך גליון'" />
                 </CompactField>
                 <CompactField label="מקום הוצאה" colSpan="col-span-2">
-                  <input list="places-list" value={series.publicationPlace} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, publicationPlace: e.target.value })} className={inputClass} autoComplete="off" placeholder="הקלד או בחר..." />
+                  <input list="places-list" value={series.publicationPlace} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, publicationPlace: e.target.value })} onBlur={e => addToSuggestionList(e.target.value, publicationPlaces, setPublicationPlaces)} className={inputClass} autoComplete="off" placeholder="הקלד או בחר..." />
                   <datalist id="places-list">
                     {publicationPlaces.map((place, idx) => (
                       <option key={idx} value={place} />
@@ -660,21 +663,24 @@ export default function App() {
                   </datalist>
                 </CompactField>
                 <CompactField label="השתייכות" colSpan="col-span-1">
-                  <select value={series.sector} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, sector: e.target.value })} className={inputClass}>
+                  <select 
+                    value={series.sector} 
+                    disabled={isNotLoggedIn || (isViewer && !!editId)} 
+                    onChange={e => setSeries({ ...series, sector: e.target.value })} 
+                    onBlur={e => addToSuggestionList(e.target.value, sectors, setSectors)} 
+                    className={inputClass}
+                  >
                     <option value=""></option>
-                    <option>ליטאי</option>
-                    <option>חב"ד</option>
-                    <option>דתי לאומי</option>
-                    <option>חסידי</option>
-                    <option>ספרדי</option>
-                    <option>תימני</option>
+                    {sectors.map((s, idx) => (
+                      <option key={idx} value={s}>{s}</option>
+                    ))}
                   </select>
                 </CompactField>
                 <CompactField label="שנת הוצאה" colSpan="col-span-2">
                   <input
                     value={displayYears}
                     disabled
-                    className={`${inputClass} bg-slate-100 text-slate-500 font-bold cursor-not-allowed text-center`}
+                    className={`${inputClass} bg-slate-100 text-slate-500 font-semibold cursor-not-allowed text-center`}
                     dir="ltr"
                   />
                 </CompactField>
@@ -685,20 +691,20 @@ export default function App() {
                   <input value={series.missingVolumesList} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, missingVolumesList: e.target.value })} className={inputClass} />
                 </CompactField>
                 <CompactField label="הערות מנהל" colSpan="col-span-5">
-                  <input value={series.adminNotes} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, adminNotes: e.target.value })} className={inputClass} />
+                  <input value={series.userNotes} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, userNotes: e.target.value })} className={inputClass} />
                 </CompactField>
                 <CompactField label="הוזן ע״י" colSpan="col-span-2">
                   <input value={series.enteredBy} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, enteredBy: e.target.value })} className={inputClass} />
                 </CompactField>
               </div>
               <div className="col-span-2 flex items-center justify-center border-r pr-3">
-                <div onClick={() => { if (!(isNotLoggedIn || (isViewer && !!editId))) fileInputRef.current.click() }} className={`h-28 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-slate-50 overflow-hidden ${isNotLoggedIn || (isViewer && !!editId) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-100 transition-all'}`}>
+                <div onClick={() => { if (!(isNotLoggedIn || (isViewer && !!editId))) fileInputRef.current.click() }} className={`h-32 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-slate-50 overflow-hidden ${isNotLoggedIn || (isViewer && !!editId) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-100 transition-all'}`}>
                   {series.coverPreview || series.coverImage ? (
                     <img src={series.coverPreview || `${SERVER_BASE_URL}/uploads/${series.coverImage}`} className="h-full w-full object-contain" alt="כריכה" />
                   ) : (
                     <div className="text-center text-slate-400">
-                      <Upload size={20} className="mx-auto" />
-                      <span className="text-[9px] block mt-1">העלה כריכה</span>
+                      <Upload size={24} className="mx-auto" />
+                      <span className="text-[10px] block mt-1 font-semibold">העלה כריכה</span>
                     </div>
                   )}
                   <input type="file" ref={fileInputRef} hidden onChange={(e) => { const file = e.target.files[0]; if (file) { setSeries({ ...series, coverPreview: URL.createObjectURL(file), coverFile: file }); } }} />
@@ -716,14 +722,15 @@ export default function App() {
             </div>
 
             <div className="flex flex-row gap-2 items-end w-full">
-              <CompactField label="שם גליון" widthClass="w-[8%]"><input value={currentVolume.volumeTitle} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('volumeTitle', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="נושא ראשי" widthClass="w-[16%]"><input value={currentVolume.mainTopic} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('mainTopic', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="יצא לרגל" widthClass="w-[16%]"><input value={currentVolume.publishedFor} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publishedFor', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="שנה" widthClass="w-[3%]"><input value={currentVolume.publicationYear} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationYear', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="חודש" widthClass="w-[6%]"><input value={currentVolume.publicationPeriod} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationPeriod', e.target.value)} className={inputClass} /></CompactField>
-              <CompactField label="הערות מערכת" widthClass="w-[15%]"><input value={currentVolume.scanCompleteness} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={inputClass} /></CompactField>
+              <CompactField label="שם גליון" widthClass="w-[8%]" required={true}><input value={currentVolume.volumeTitle} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('volumeTitle', e.target.value)} className={activeVolInputClass} /></CompactField>
+              <CompactField label="נושא ראשי" widthClass="w-[16%]"><input value={currentVolume.mainTopic} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('mainTopic', e.target.value)} className={activeVolInputClass} /></CompactField>
+              <CompactField label="יצא לרגל" widthClass="w-[16%]"><input value={currentVolume.publishedFor} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publishedFor', e.target.value)} className={activeVolInputClass} /></CompactField>
+              <CompactField label="שנה" widthClass="w-[3%] min-w-[56px]"><input value={currentVolume.publicationYear} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationYear', e.target.value)} className={activeVolInputClass} /></CompactField>
+              <CompactField label="חודש" widthClass="w-[6%] min-w-[60px]"><input value={currentVolume.publicationPeriod} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationPeriod', e.target.value)} className={activeVolInputClass} /></CompactField>
+              <CompactField label="עורך גליון" widthClass="w-[12%]"><input value={currentVolume.volumeEditor || ''} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('volumeEditor', e.target.value)} className={activeVolInputClass} placeholder="ניתן להזין מספר שמות מופרדים בפסיק" /></CompactField>
+              <CompactField label="הערות מערכת" widthClass="w-[15%]"><input value={currentVolume.scanCompleteness} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={activeVolInputClass} /></CompactField>
               <CompactField label="קובץ" widthClass="w-[20%]">
-                <button onClick={() => { if (!(isNotLoggedIn || (isViewer && !!currentVolume?._id))) pdfInputRef.current.click() }} className={`w-full p-1 h-[26px] border rounded text-[11px] font-bold flex items-center justify-center gap-1 shadow-inner ${isNotLoggedIn || (isViewer && !!currentVolume?._id) ? 'cursor-not-allowed opacity-60 bg-indigo-50' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all border-indigo-200'}`} title={currentVolume.pdfFileName || 'צרף קובץ PDF'}>
+                <button onClick={() => { if (!(isNotLoggedIn || (isViewer && !!currentVolume?._id))) pdfInputRef.current.click() }} className={`w-full p-1.5 h-[30px] border rounded text-[11px] font-semibold flex items-center justify-center gap-1 shadow-inner ${isNotLoggedIn || (isViewer && !!currentVolume?._id) ? 'cursor-not-allowed opacity-60 bg-indigo-50' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all border-indigo-200'}`} title={currentVolume.pdfFileName || 'צרף קובץ PDF'}>
                   <Link2 size={12} className={currentVolume.pdfFileName ? "text-green-600" : "text-indigo-600"} />
                   <span className="truncate">{currentVolume.pdfFileName ? 'צורף' : 'העלה'}</span>
                 </button>
@@ -735,15 +742,6 @@ export default function App() {
           <section className="bg-white rounded-xl border shadow-sm flex flex-col w-full overflow-hidden">
             <div className="p-2.5 border-b bg-slate-900 flex justify-between items-center shrink-0">
               <h4 className="text-white text-[11px] font-bold flex items-center gap-2"><Users size={14} /> מאמרים בתוך הגליון</h4>
-              {canAddNew && (
-                <button
-                  type="button"
-                  onClick={addNewArticle}
-                  className="custom-btn-style bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-1 rounded transition-colors flex items-center gap-1 shadow-sm"
-                >
-                  <Plus size={12} className="text-white" /> הוסף מאמר חדש
-                </button>
-              )}
             </div>
 
             <div className="w-full">
@@ -761,8 +759,7 @@ export default function App() {
                     <th className="p-2 border-l w-24">נושאים</th>
                     <th className="p-2 border-l text-center w-12">עמ'</th>
                     <th className="p-2 border-l w-16">קישור</th>
-                    <th className="p-2 border-l w-16">הערות</th>
-                    <th className="p-2 text-center w-16">פעולות</th>
+                    <th className="p-2 text-center w-24">פעולות</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -772,23 +769,23 @@ export default function App() {
 
                       <td className="p-1 border-l align-middle">
                         {art.authors.map((auth, authIdx) => (
-                          <input key={`auth-pfx-${art.id}-${authIdx}`} value={auth.titlePrefix || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'titlePrefix', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate mb-1 last:mb-0" placeholder="תואר" />
+                          <input key={`auth-pfx-${art.id}-${authIdx}`} value={auth.titlePrefix || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'titlePrefix', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate mb-1 last:mb-0" placeholder="תואר" />
                         ))}
                       </td>
                       <td className="p-1 border-l align-middle">
                         {art.authors.map((auth, authIdx) => (
-                          <input key={`auth-fn-${art.id}-${authIdx}`} value={auth.firstName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'firstName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] truncate mb-1 last:mb-0" placeholder="פרטי" />
+                          <input key={`auth-fn-${art.id}-${authIdx}`} value={auth.firstName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'firstName', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate mb-1 last:mb-0" placeholder="פרטי" />
                         ))}
                       </td>
                       <td className="p-1 border-l align-middle">
                         {art.authors.map((auth, authIdx) => (
-                          <input key={`auth-ln-${art.id}-${authIdx}`} value={auth.lastName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'lastName', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate mb-1 last:mb-0" placeholder="משפחה" />
+                          <input key={`auth-ln-${art.id}-${authIdx}`} value={auth.lastName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'lastName', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate mb-1 last:mb-0" placeholder="משפחה" />
                         ))}
                       </td>
                       <td className="p-1 border-l align-middle">
                         {art.authors.map((auth, authIdx) => (
                           <div key={`auth-role-${art.id}-${authIdx}`} className="flex gap-1 items-center mb-1 last:mb-0">
-                            <input value={auth.role || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'role', e.target.value)} className="w-full border rounded h-8 px-1 text-[10px] font-bold truncate" placeholder="תפקיד" />
+                            <input value={auth.role || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'role', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" placeholder="תפקיד" />
                             {authIdx > 0 && !(isNotLoggedIn || (isViewer && !!art._id)) && (
                               <button onClick={() => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].authors.splice(authIdx, 1); setVolumes(nv) }} className="text-red-400 hover:text-red-600 px-1 font-bold">×</button>
                             )}
@@ -800,7 +797,7 @@ export default function App() {
                           placeholder="מדור..."
                           value={art.section || ''}
                           disabled={isNotLoggedIn || (isViewer && !!art._id)}
-                          className="w-full border border-slate-200 rounded h-8 px-2 text-[11px] focus:border-indigo-400 outline-none"
+                          className="w-full border border-slate-200 rounded h-8 px-2 text-[11px] font-semibold focus:border-indigo-400 outline-none"
                           onChange={e => {
                             const nv = [...volumes];
                             nv[activeVolume].articles[aIdx].section = e.target.value;
@@ -809,22 +806,24 @@ export default function App() {
                         />
                       </td>
                       <td className="p-1 border-l align-middle">
-                        <input value={art.contentTitle} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border border-slate-200 rounded h-8 px-2 font-bold text-[11px] focus:border-indigo-400 outline-none" placeholder="כותרת המאמר..." onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].contentTitle = e.target.value; setVolumes(nv) }} />
+                        <input value={art.contentTitle} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border border-slate-200 rounded h-8 px-2 font-semibold text-[11px] focus:border-indigo-400 outline-none" placeholder="כותרת המאמר..." onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].contentTitle = e.target.value; setVolumes(nv) }} />
                       </td>
 
                       <td className="p-1 border-l align-middle">
-                        <input placeholder="מקור" value={art.source || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[10px] truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].source = e.target.value; setVolumes(nv) }} />
+                        <input placeholder="מקור" value={art.source || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].source = e.target.value; setVolumes(nv) }} />
                       </td>
 
                       <td className="p-1 border-l align-middle">
-                        <input placeholder="נושא" value={art.generalTopic} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[10px] truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].generalTopic = e.target.value; setVolumes(nv) }} />
+                        <input placeholder="נושא" value={art.generalTopic} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].generalTopic = e.target.value; setVolumes(nv) }} />
                       </td>
                       <td className="p-1 border-l text-center align-middle">
-                        <input value={art.startPage} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full text-center border rounded h-8 px-1 text-[10px]" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].startPage = e.target.value; setVolumes(nv) }} />
+                        <input value={art.startPage} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full text-center border rounded h-8 px-1 text-[11px] font-semibold" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].startPage = e.target.value; setVolumes(nv) }} />
                       </td>
 
                       <td className="p-1 border-l bg-indigo-50/20 align-middle">
-                        <select className="w-full bg-white border rounded h-8 px-1 text-[10px] font-medium text-indigo-800 focus:ring-1 focus:ring-indigo-400 outline-none" value={art.linkedArticleId} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkedArticleId = e.target.value; setVolumes(nv) }}>
+                        <select
+                          data-last-article-field={aIdx === currentVolume.articles.length - 1 ? "true" : "false"}
+                          className="w-full bg-white border rounded h-8 px-1 text-[11px] font-semibold text-indigo-800 focus:ring-1 focus:ring-indigo-400 outline-none" value={art.linkedArticleId} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkedArticleId = e.target.value; setVolumes(nv) }}>
                           <option value=""></option>
                           {dbArticles && dbArticles.map(dbArt => (
                             <option key={dbArt._id} value={dbArt._id}>{dbArt.subtitleTitle || dbArt.contentTitle || 'ללא כותרת'}</option>
@@ -832,18 +831,8 @@ export default function App() {
                         </select>
                       </td>
 
-                      <td className="p-1 border-l bg-indigo-50/20 align-middle">
-                        <input
-                          data-last-article-field={aIdx === currentVolume.articles.length - 1 ? "true" : "false"}
-                          className="w-full bg-white border rounded h-8 px-1 text-[10px] font-bold text-indigo-900 focus:ring-1 focus:ring-indigo-400 outline-none"
-                          value={art.linkExplanation || ''}
-                          disabled={isNotLoggedIn || (isViewer && !!art._id)}
-                          onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkExplanation = e.target.value; setVolumes(nv) }}
-                        />
-                      </td>
-
                       <td className="p-1 text-center align-middle">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1 relative">
                           {canAddNew && !(isViewer && !!art._id) && (
                             <button
                               type="button"
@@ -864,6 +853,39 @@ export default function App() {
                               <Trash2 size={14} className="text-white"/>
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              if (openNoteFor === art.id) {
+                                setOpenNoteFor(null);
+                                return;
+                              }
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setNoteBoxPos({ top: rect.bottom + 4, left: rect.left });
+                              setOpenNoteFor(art.id);
+                            }}
+                            title={art.note ? art.note : 'הוסף הערה'}
+                            className={`custom-btn-style p-1.5 rounded flex items-center justify-center transition-colors shrink-0 ${art.note ? 'bg-indigo-600 text-white' : 'bg-white border text-slate-400 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                          >
+                            <MessageSquare size={14} className={art.note ? 'text-white' : ''} />
+                          </button>
+                          {openNoteFor === art.id && createPortal(
+                            <div
+                              className="fixed z-[9999] bg-white rounded-lg shadow-lg p-3 w-48"
+                              style={{ top: noteBoxPos.top, left: noteBoxPos.left }}
+                            >
+                              <textarea
+                                autoFocus
+                                value={art.note || ''}
+                                disabled={isNotLoggedIn || (isViewer && !!art._id)}
+                                onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].note = e.target.value; setVolumes(nv) }}
+                                onBlur={() => setOpenNoteFor(null)}
+                                className="w-full h-20 text-[11px] text-slate-800 bg-white border border-slate-200 rounded outline-none focus:border-indigo-400 resize-none font-semibold"
+                                placeholder="כתוב הערה..."
+                              />
+                            </div>,
+                            document.body
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -871,6 +893,18 @@ export default function App() {
                 </tbody>
               </table>
             </div>
+
+            {canAddNew && (
+              <div className="p-2 border-t bg-slate-50 sticky bottom-0 flex justify-center shrink-0 shadow-[0_-2px_6px_rgba(0,0,0,0.04)] z-10">
+                <button
+                  type="button"
+                  onClick={addNewArticle}
+                  className="custom-btn-style bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold px-4 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus size={13} className="text-white" /> הוסף מאמר חדש
+                </button>
+              </div>
+            )}
           </section>
         </div>
       </div>

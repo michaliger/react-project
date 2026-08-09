@@ -90,6 +90,23 @@ export default function LibraryApp() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [advancedSearch, setAdvancedSearch] = useState({
+    prefixName: '',
+    fileName: '',
+    identifierName: '',
+    details: '',
+    editor: '',
+    publicationPlace: '',
+    sector: '',
+    volumeTitle: '',
+    mainTopic: '',
+    publishedFor: '',
+    publicationYear: '',
+    contentTitle: '',
+    generalTopic: '',
+    source: ''
+  });
   const [filters, setFilters] = useState({
     place: '',
     sector: '',
@@ -217,6 +234,36 @@ export default function LibraryApp() {
   const handleLogout = () => {
     dispatch(logoutUser());
     window.location.reload();
+  };
+
+  const performAdvancedSearch = () => {
+    const searchArray = Object.values(advancedSearch).filter(val => val.toString().trim() !== '');
+    if (searchArray.length === 0) {
+      setSearchTerm('');
+    } else {
+      setSearchTerm(searchArray.join(' '));
+    }
+    setShowAdvancedSearch(false);
+  };
+
+  const clearAdvancedSearch = () => {
+    setAdvancedSearch({
+      prefixName: '',
+      fileName: '',
+      identifierName: '',
+      details: '',
+      editor: '',
+      publicationPlace: '',
+      sector: '',
+      volumeTitle: '',
+      mainTopic: '',
+      publishedFor: '',
+      publicationYear: '',
+      contentTitle: '',
+      generalTopic: '',
+      source: ''
+    });
+    setSearchTerm('');
   };
 
   const filteredData = useMemo(() => {
@@ -461,9 +508,53 @@ export default function LibraryApp() {
         </div>
       )}
 
+      {showAdvancedSearch && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99998, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200 border border-slate-200">
+            <div className="bg-[#4a3402] text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
+              <h3 className="text-lg font-black flex items-center gap-2">
+                <Search size={20} className="text-white" />
+                חיפוש מתקדם
+              </h3>
+              <button onClick={() => setShowAdvancedSearch(false)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
+              <div className="grid grid-cols-2 gap-4">
+                <input type="text" placeholder="אופי הכותר" value={advancedSearch.prefixName} onChange={e => setAdvancedSearch({...advancedSearch, prefixName: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שם הכותר" value={advancedSearch.fileName} onChange={e => setAdvancedSearch({...advancedSearch, fileName: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שם מזהה" value={advancedSearch.identifierName} onChange={e => setAdvancedSearch({...advancedSearch, identifierName: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="פרטים" value={advancedSearch.details} onChange={e => setAdvancedSearch({...advancedSearch, details: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שם העורך" value={advancedSearch.editor} onChange={e => setAdvancedSearch({...advancedSearch, editor: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="מקום הוצאה" value={advancedSearch.publicationPlace} onChange={e => setAdvancedSearch({...advancedSearch, publicationPlace: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="השתייכות" value={advancedSearch.sector} onChange={e => setAdvancedSearch({...advancedSearch, sector: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שם גליון" value={advancedSearch.volumeTitle} onChange={e => setAdvancedSearch({...advancedSearch, volumeTitle: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="נושא ראשי" value={advancedSearch.mainTopic} onChange={e => setAdvancedSearch({...advancedSearch, mainTopic: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="יצא לרגל" value={advancedSearch.publishedFor} onChange={e => setAdvancedSearch({...advancedSearch, publishedFor: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שנת הוצאה" value={advancedSearch.publicationYear} onChange={e => setAdvancedSearch({...advancedSearch, publicationYear: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="כותרת המאמר" value={advancedSearch.contentTitle} onChange={e => setAdvancedSearch({...advancedSearch, contentTitle: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="נושא כללי" value={advancedSearch.generalTopic} onChange={e => setAdvancedSearch({...advancedSearch, generalTopic: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="מקור" value={advancedSearch.source} onChange={e => setAdvancedSearch({...advancedSearch, source: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-200 bg-white rounded-b-xl shrink-0 flex justify-end gap-3">
+              <button onClick={clearAdvancedSearch} className="custom-btn-style px-6 py-2 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300 transition-colors">
+                נקה
+              </button>
+              <button onClick={performAdvancedSearch} className="custom-btn-style px-6 py-2 bg-[#755303] text-white font-bold rounded-lg hover:bg-[#5c4102] transition-colors">
+                חיפוש
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {deleteModal.show && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4">
+          <div className="bg-[#faf6f0] rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4">
             <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 size={32} className="text-red-600" />
             </div>
@@ -522,7 +613,7 @@ export default function LibraryApp() {
             )}
 
             <div className="flex bg-[#755303] p-1 rounded-lg mb-3 border border-[#5c4102]">
-              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 transition-colors border ${activeTab === 'series' ? 'bg-white text-[#5c4102] shadow border-white' : 'text-white/80 border-white/25 hover:bg-white/10'}`}><Book size={14} /> קבצים וגליונות</button>
+              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 transition-colors border ${activeTab === 'series' ? 'bg-white text-[#5c4102] shadow border-white' : 'text-white/80 border-white/25 hover:bg-white/10'}`}><Book size={14} /> קבצים</button>
               <button onClick={() => { setActiveTab('article'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 transition-colors border ${activeTab === 'article' ? 'bg-white text-[#5c4102] shadow border-white' : 'text-white/80 border-white/25 hover:bg-white/10'}`}><FileText size={14} /> מאמרים</button>
             </div>
 
@@ -531,6 +622,13 @@ export default function LibraryApp() {
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input type="text" placeholder="הקלד לחיפוש חופשי..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white border border-slate-300 pr-9 pl-3 py-2 rounded-lg text-[13px] font-medium outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1] transition-all shadow-sm" />
               </div>
+              <button
+                onClick={() => setShowAdvancedSearch(true)}
+                title="חיפוש מתקדם"
+                className={`custom-btn-style px-3 py-2 rounded-lg border-2 border-[#8a6410] bg-white text-[#755303] hover:bg-[#f7f3e8] shadow-sm transition-colors flex items-center justify-center`}
+              >
+                <Search size={18} />
+              </button>
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 title="סינון מתקדם"
@@ -674,7 +772,7 @@ export default function LibraryApp() {
             <>
               <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm z-0">
                 <div className="flex items-center gap-4 truncate min-w-0">
-                  <div className="bg-[#755303] p-2.5 rounded-lg text-white shadow shrink-0"><BookOpen size={22} /></div>
+                  <div className="bg-[#755303] p-2.5 rounded-lg text-[#3a2801] shadow shrink-0"><BookOpen size={22} /></div>
                   <div className="truncate min-w-0">
                     <h2 className="text-[18px] font-black text-gray-900 leading-none truncate">{selectedSeries.prefixName} {selectedSeries.fileName}</h2>
                     <div className="flex gap-3 mt-1.5 truncate">

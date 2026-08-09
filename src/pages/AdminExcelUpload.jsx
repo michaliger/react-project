@@ -1,8 +1,7 @@
-// src/components/AdminExcelUpload.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { UploadCloud, FileSpreadsheet, ArrowRight, AlertTriangle, CheckCircle2, Database } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, ArrowRight, AlertTriangle, CheckCircle2, Database, X, AlertCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '../api'; 
 
@@ -10,13 +9,14 @@ export default function AdminExcelUpload() {
   const navigate = useNavigate();
   const { currentUser } = useSelector((state) => state.user);
 
-  // בדיקת הרשאות מנהל
   const isAdmin = currentUser && currentUser.role === 'admin';
 
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [excelData, setExcelData] = useState(null); 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [error, setError] = useState(null);
 
   if (!isAdmin) {
     return (
@@ -29,12 +29,12 @@ export default function AdminExcelUpload() {
     );
   }
 
-  // פונקציה לקריאת כל הטאבים שיש בקובץ האקסל
   const handleFileUpload = (uploadedFile) => {
+    setError(null);
     if (!uploadedFile) return;
     
     if (!uploadedFile.name.match(/\.(xlsx|xls|csv)$/)) {
-      alert('נא להעלות קובץ אקסל תקין (.xlsx, .xls)');
+      setError('נא להעלות קובץ אקסל תקין (.xlsx, .xls)');
       return;
     }
 
@@ -42,131 +42,160 @@ export default function AdminExcelUpload() {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const data = e.target.result;
-      const workbook = XLSX.read(data, { type: 'binary' });
-      
-      const allSheetsData = {};
-      
-      workbook.SheetNames.forEach((sheetName) => {
-        const worksheet = workbook.Sheets[sheetName];
-        // קריאת הנתונים מהטאב הנוכחי
-        allSheetsData[sheetName] = XLSX.utils.sheet_to_json(worksheet);
-      });
-      
-      setExcelData(allSheetsData);
+      try {
+        const data = e.target.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        
+        const allSheetsData = {};
+        
+        workbook.SheetNames.forEach((sheetName) => {
+          const worksheet = workbook.Sheets[sheetName];
+          allSheetsData[sheetName] = XLSX.utils.sheet_to_json(worksheet);
+        });
+        
+        setExcelData(allSheetsData);
+        setPreviewMode(true);
+      } catch (err) {
+        setError('שגיאה בקריאת הקובץ. ודא שהקובץ תקין.');
+        console.error(err);
+      }
     };
     reader.readAsBinaryString(uploadedFile);
   };
 
-  // עיבוד משולב השומר על הקישור בין גליונות למאמרים לפי מפתח מספר המיקבץ
   const handleProcessData = async () => {
-    if (!excelData) {
-      alert("לא נמצאו נתונים לעיבוד בקובץ.");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          if (!excelData) {
+      setError("לא נמצאו נתונים לעיבוד בקובץ.");
       return;
     }
 
     setIsProcessing(true);
+    setError(null);
 
     try {
-      // חילוץ שם הסדרה משם הקובץ (ללא הסיומת)
-      const seriesName = file?.name?.replace(/\.[^/.]+$/, "") || "סדרה תורנית חדשה";
-      
+      // איתור הטאבים - תומך בעברית
       const sheetNames = Object.keys(excelData);
-      
-      // איתור הטאבים הנכונים באקסל (תומך גם בשמות בעברית וגם לפי מיקום הטאב)
-      const volumesRows = excelData['גליונות'] || excelData['גליונות '] || excelData[sheetNames[0]] || [];
-      const articlesRows = excelData['מאמרים'] || excelData['מאמרים '] || excelData[sheetNames[1]] || [];
+      const headerSheet = excelData['הכותר'] || excelData['כותר'] || excelData[sheetNames[0]] || [];
+      const volumesRows = excelData['הגליונות'] || excelData['גליונות'] || excelData[sheetNames[1]] || [];
+      const articlesRows = excelData['המאמרים'] || excelData['מאמרים'] || excelData[sheetNames[2]] || [];
 
-      // יצירת מבנה הנתונים הראשי של הסדרה
+      // בדיקה שיש נתונים
+      if (headerSheet.length === 0) {
+        setError("טאב הכותר ריק. נא וודא שקובץ ה-Excel תקין.");
+        setIsProcessing(false);
+        return;
+      }
+
+      // שליפת הנתונים של הסדרה מהשורה הראשונה של הכותר
+      const headerRow = headerSheet[0];
+      
       const seriesPayload = {
         seriesData: {
-          title: seriesName,
-          fileName: seriesName, // משמש כמזהה ייחודי לבדיקת כפילויות בשרת
-          publisher: '',
-          description: 'ייבוא אוטומטי משולב מאקסל',
-          enteredBy: currentUser?.username || 'מנהל'
+          prefixName: headerRow['אופי הכותר']?.toString().trim() || 'קובץ',  // ✅ אופי הכותר!
+          fileName: headerRow['שם הכותר']?.toString().trim() || 'סדרה',      // ✅ שם הכותר!
+          identifierName: headerRow['שם מזהה']?.toString().trim() || '',
+          details: headerRow['פרטי הקובץ']?.toString().trim() || '',
+          editor: headerRow['שם העורך']?.toString().trim() || '',
+          publicationPlace: headerRow['מקום הוצאה']?.toString().trim() || '',
+          sector: headerRow['מגזר']?.toString().trim() || '',
+          missingVolumesList: headerRow['גליונות חסרים']?.toString().trim() || '',
+          adminNotes: headerRow['הערות מנהל']?.toString().trim() || '',
+          catalogStatus: headerRow['סטטוס']?.toString().trim() || 'ממתין',
+          enteredBy: currentUser?.username || headerRow['הוזן ע"י']?.toString().trim() || 'מנהל'
         },
         volumesMap: {}
       };
 
-      // 1. שלב ראשון: מעבר על טאב גליונות ומיפוי לפי מספר מיקבץ
+      // 1. שלב ראשון: מעבר על טאב הגליונות ומיפוי לפי מ"ס
       volumesRows.forEach((row) => {
-        const mixbachNumber = row["מס' מיקבץ"]?.toString().trim() || row["מספר מיקבץ"]?.toString().trim();
-        if (!mixbachNumber) return;
+        const volumeNum = row["מ\"ס"]?.toString().trim() || row["מספר"]?.toString().trim();
+        if (!volumeNum) return;
 
-        seriesPayload.volumesMap[mixbachNumber] = {
-          volumeNumber: parseInt(mixbachNumber) || 1,
-          volumeTitle: row['שם גליון']?.toString().trim() || `גליון ${mixbachNumber}`,
+        seriesPayload.volumesMap[volumeNum] = {
+          volumeNumber: parseInt(volumeNum) || 1,
+          volumeTitle: row['שם גליון']?.toString().trim() || `גליון ${volumeNum}`,
           mainTopic: row['נושא ראשי']?.toString().trim() || '',
           publishedFor: row['יצא לרגל']?.toString().trim() || '',
+          volumeEditor: row['עורך גליון']?.toString().trim() || '',
           publicationYear: row['שנה']?.toString().trim() || '',
           publicationPeriod: row['חודש']?.toString().trim() || '',
-          articlesCatalogStatus: row['סטטוס גליון']?.toString().trim() || row['סטטוס']?.toString().trim() || 'ממתין',
+          articlesCatalogStatus: row['סטטוס']?.toString().trim() || 'ממתין',
           fileCompleteness: row['שלמות קובץ']?.toString().trim() || '',
           scanCompleteness: row['שלמות סריקה']?.toString().trim() || '',
-          articles: [] // פה ירוכזו המאמרים השייכים לגליון זה
+          volumeSize: '',
+          coverType: '',
+          booklet: '',
+          pdfFileName: '',
+          articles: []
         };
       });
 
-      // 2. שלב שני: מעבר על טאב מאמרים ושיוך לגליון המתאים לפי מספר המיקבץ
+      // 2. שלב שני: מעבר על טאב המאמרים ושיוך לגליון המתאים לפי מ"ס גליון
       articlesRows.forEach((row) => {
-        const mixbachNumber = row["מס' מיקבץ"]?.toString().trim() || row["מספר מיקבץ"]?.toString().trim();
-        if (!mixbachNumber) return;
+        const volumeNum = row["מ\"ס גליון"]?.toString().trim() || row["מספר גליון"]?.toString().trim();
+        if (!volumeNum) return;
 
-        // הגנת גיבוי: אם מספר המיקבץ מופיע במאמרים אך לא הוגדר בלשונית הגליונות, ניצור גליון ריק כדי שהמאמר לא יילך לאיבוד
-        if (!seriesPayload.volumesMap[mixbachNumber]) {
-          seriesPayload.volumesMap[mixbachNumber] = {
-            volumeNumber: parseInt(mixbachNumber) || 1,
-            volumeTitle: `גליון ${mixbachNumber} (נוצר אוטומטית)`,
-            mainTopic: '', publishedFor: '', publicationYear: '', publicationPeriod: '',
+        // הגנת גיבוי: אם מספר הגליון מופיע במאמרים אך לא הוגדר בטאב הגליונות, ניצור גליון ריק
+        if (!seriesPayload.volumesMap[volumeNum]) {
+          seriesPayload.volumesMap[volumeNum] = {
+            volumeNumber: parseInt(volumeNum) || 1,
+            volumeTitle: `גליון ${volumeNum} (נוצר אוטומטית)`,
+            mainTopic: '', publishedFor: '', volumeEditor: '', publicationYear: '', publicationPeriod: '',
             articlesCatalogStatus: 'ממתין', fileCompleteness: '', scanCompleteness: '',
+            volumeSize: '', coverType: '', booklet: '', pdfFileName: '',
             articles: []
           };
         }
 
-        // חילוץ שם המאמר או תוכן הכותרת
-        const articleTitle = row['שם המאמר']?.toString().trim() || row['כותרת']?.toString().trim() || row['כותרת המאמר']?.toString().trim();
+        // חילוץ שם המאמר
+        const articleTitle = row['כותרת המאמר']?.toString().trim() || row['כותרת']?.toString().trim() || 'ללא כותרת';
         
-        // שליפת שאר השדות בדיוק לפי המבנה המוצג בטופס שלך
+        // בנייה של עצם המאמר עם כל השדות הנכונים
         const articleObj = {
-          title: articleTitle || '',
-          contentTitle: articleTitle || 'ללא כותרת',
-          author: row['מחבר']?.toString().trim() || `${row['שם פרטי']?.toString().trim() || ''} ${row['שם משפחה']?.toString().trim() || ''}`.trim(),
-          source: row['מקור']?.toString().trim() || '',
-          section: row['מדור']?.toString().trim() || '',
-          generalTopic: row['נושא']?.toString().trim() || row['נושא כללי']?.toString().trim() || '',
-          page: row["עמ'"]?.toString().trim() || row["עמ' "]?.toString().trim() || row['עמוד']?.toString().trim() || '',
-          note: row['הערות']?.toString().trim() || '',
-          linkExplanation: row['קישור']?.toString().trim() || row['הסבר קישור']?.toString().trim() || '',
-          // שדות נוספים המופיעים בטבלה שלך:
+          contentTitle: articleTitle,
+          // ❌ בלי serialNumber - השרת יוצר אותו אוטומטית!
           authors: [{
             titlePrefix: row['תואר']?.toString().trim() || '',
-            firstName: row['שם פרטי']?.toString().trim() || '',
-            lastName: row['שם משפחה']?.toString().trim() || '',
+            firstName: row['פרטי']?.toString().trim() || '',
+            lastName: row['משפחה']?.toString().trim() || '',
             role: row['תפקיד']?.toString().trim() || ''
-          }]
+          }],
+          startPage: row["עמ'"]?.toString().trim() || row['עמוד']?.toString().trim() || '',
+          section: row['מדור']?.toString().trim() || '',
+          generalTopic: row['נושאים']?.toString().trim() || '',
+          source: row['על מקור']?.toString().trim() || '',
+          note: row['הערות']?.toString().trim() || '',
+          linkedArticleId: null
         };
 
-        // הוספת המאמר למערך המאמרים של הגליון בעל מספר המיקבץ הזהה
-        seriesPayload.volumesMap[mixbachNumber].articles.push(articleObj);
+        // הוספת המאמר למערך המאמרים של הגליון בעל מ"ס זהה
+        seriesPayload.volumesMap[volumeNum].articles.push(articleObj);
       });
 
       // הפיכת מפת הגליונות המאוגדת למערך חלק עבור ה-API
-      const volumesArray = Object.values(seriesPayload.volumesMap);
+      const volumesArray = Object.values(seriesPayload.volumesMap).sort((a, b) => a.volumeNumber - b.volumeNumber);
 
       const formData = new FormData();
       formData.append('seriesData', JSON.stringify(seriesPayload.seriesData));
       formData.append('volumes', JSON.stringify(volumesArray));
 
       // שליחה לראוט הייבוא המשולב בשרת
-      await api.post('/series/save-full-catalog', formData);
+      const response = await api.post('/series/save-full-catalog', formData);
+      
+      // הצגת הודעת הצלחה
+      setPreviewMode(false);
+      setFile(null);
+      setExcelData(null);
+      
+      setTimeout(() => {
+        navigate('/series');
+      }, 2000);
 
-      alert('כל הנתונים מהאקסל עובדו, שולבו וקושרו בהצלחה למערכת הקטלוג!');
-      navigate('/series');
-
+      setError(null);
     } catch (error) {
-      console.error("Error processing full excel:", error);
-      alert(error.response?.data?.message || "אירעה שגיאה בעיבוד וקישור הנתונים בשרת. ודא שמבנה הטאבים תקין.");
+      console.error("Error processing excel:", error);
+      const errorMsg = error.response?.data?.message || "אירעה שגיאה בעיבוד הנתונים בשרת.";
+      setError(errorMsg);
     } finally {
       setIsProcessing(false);
     }
@@ -188,20 +217,22 @@ export default function AdminExcelUpload() {
     handleFileUpload(droppedFile);
   };
 
-  const totalRowsCount = excelData ? Object.values(excelData).reduce((acc, sheet) => acc + sheet.length, 0) : 0;
+  const headerSheet = excelData?.['הכותר'] || excelData?.['כותר'] || [];
+  const volumesRows = excelData?.['הגליונות'] || excelData?.['גליונות'] || [];
+  const articlesRows = excelData?.['המאמרים'] || excelData?.['מאמרים'] || [];
 
   return (
     <div className="min-h-screen bg-slate-100 p-8 font-sans" dir="rtl">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
 
         {/* כותרת העמוד */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-              <FileSpreadsheet className="text-emerald-600" size={28} />
+            <h1 className="text-3xl font-black text-slate-800 flex items-center gap-2">
+              <FileSpreadsheet className="text-emerald-600" size={32} />
               ייבוא משולב מאקסל לספריה
             </h1>
-            <p className="text-slate-500 text-sm mt-1">סריקה, זיהוי כפילויות סדרות וקישור אוטומטי של מאמרים לגליונות לפי מספר מיקבץ</p>
+            <p className="text-slate-500 text-sm mt-2">העלאת סדרה חדשה עם גליונות ומאמרים בקובץ אחד</p>
           </div>
           <button
             onClick={() => navigate('/')}
@@ -211,64 +242,196 @@ export default function AdminExcelUpload() {
           </button>
         </div>
 
+        {/* הודעת שגיאה */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-red-800">שגיאה</h3>
+              <p className="text-red-700 text-sm">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-600 hover:text-red-800"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
+
         {/* אזור גרירה והעלאת קובץ */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
-              isDragging ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'
-            }`}
-          >
-            {file ? (
-              <div className="flex flex-col items-center">
-                <div className="bg-emerald-100 p-4 rounded-full mb-4">
-                  <CheckCircle2 size={48} className="text-emerald-600" />
+        {!previewMode && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
+                isDragging ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'
+              }`}
+            >
+              {file ? (
+                <div className="flex flex-col items-center">
+                  <div className="bg-emerald-100 p-4 rounded-full mb-4">
+                    <CheckCircle2 size={48} className="text-emerald-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 mb-1">{file.name}</h3>
+                  <p className="text-slate-500 text-sm mb-6">הקובץ נטען בהצלחה ✓</p>
+                  <button
+                    onClick={() => { setFile(null); setExcelData(null); setPreviewMode(false); }}
+                    className="text-sm font-bold text-red-500 hover:text-red-700"
+                    disabled={isProcessing}
+                  >
+                    הסר קובץ והעלה קובץ אחר
+                  </button>
                 </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-1">{file.name}</h3>
-                <p className="text-slate-500 text-sm mb-2">הקובץ נטען בהצלחה ומכיל {Object.keys(excelData || {}).length} לשוניות (טאבים)</p>
-                <p className="text-slate-400 text-xs mb-6">(זוהו {totalRowsCount} שורות נתונים לעיבוד משותף)</p>
-                <button
-                  onClick={() => { setFile(null); setExcelData(null); }}
-                  className="text-sm font-bold text-red-500 hover:text-red-700"
-                  disabled={isProcessing}
-                >
-                  הסר קובץ והעלה קובץ אחר
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center cursor-pointer" onClick={() => document.getElementById('excel-upload').click()}>
-                <div className="bg-slate-100 p-4 rounded-full mb-4">
-                  <UploadCloud size={48} className="text-slate-500" />
+              ) : (
+                <div className="flex flex-col items-center cursor-pointer" onClick={() => document.getElementById('excel-upload').click()}>
+                  <div className="bg-slate-100 p-4 rounded-full mb-4">
+                    <UploadCloud size={48} className="text-slate-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 mb-1">לחץ להעלאת קובץ אקסל או גרור לכאן</h3>
+                  <p className="text-slate-500 text-sm mb-4">הקובץ חייב להכיל 3 טאבים:</p>
+                  <ul className="text-slate-500 text-sm space-y-1">
+                    <li>✓ <span className="font-bold">הכותר</span> - סדרה אחת בשורה אחת</li>
+                    <li>✓ <span className="font-bold">הגליונות</span> - כל גליון בשורה</li>
+                    <li>✓ <span className="font-bold">המאמרים</span> - כל מאמר בשורה</li>
+                  </ul>
+                  <input
+                    type="file"
+                    id="excel-upload"
+                    className="hidden"
+                    accept=".xlsx, .xls"
+                    onChange={(e) => handleFileUpload(e.target.files[0])}
+                  />
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">לחץ להעלאת קובץ האקסל המלא או גרור לכאן</h3>
-                <p className="text-slate-500 text-sm mb-4">הקוד יקרא את הלשוניות "גליונות" ו"מאמרים" ויקשר ביניהן אוטומטית</p>
-                <input
-                  type="file"
-                  id="excel-upload"
-                  className="hidden"
-                  accept=".xlsx, .xls, .csv"
-                  onChange={(e) => handleFileUpload(e.target.files[0])}
-                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* תצוגת Preview */}
+        {previewMode && excelData && (
+          <div className="space-y-6">
+            {/* קורט הכותר */}
+            {headerSheet.length > 0 && (
+              <div className="bg-white rounded-lg shadow border border-slate-200 p-6">
+                <h2 className="text-lg font-bold text-slate-800 mb-4">📌 פרטי הסדרה</h2>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-bold text-slate-600">שם הכותר:</span>
+                    <p className="text-slate-900">{headerSheet[0]['שם הכותר'] || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-600">שם מזהה:</span>
+                    <p className="text-slate-900">{headerSheet[0]['שם מזהה'] || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-600">עורך:</span>
+                    <p className="text-slate-900">{headerSheet[0]['שם העורך'] || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-600">מקום הוצאה:</span>
+                    <p className="text-slate-900">{headerSheet[0]['מקום הוצאה'] || '—'}</p>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
 
-          {/* כפתור עיבוד ושליחה */}
-          {file && (
-            <div className="mt-8 border-t pt-6 flex justify-end">
+            {/* סיכום נתונים */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="text-3xl font-bold text-blue-600">{volumesRows.length}</div>
+                <p className="text-blue-700 text-sm font-bold">גליונות</p>
+              </div>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="text-3xl font-bold text-purple-600">{articlesRows.length}</div>
+                <p className="text-purple-700 text-sm font-bold">מאמרים</p>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                <div className="text-3xl font-bold text-emerald-600">✓</div>
+                <p className="text-emerald-700 text-sm font-bold">מוכן לייבוא</p>
+              </div>
+            </div>
+
+            {/* דוגמה מגליונות */}
+            {volumesRows.length > 0 && (
+              <div className="bg-white rounded-lg shadow border border-slate-200 p-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">📚 דוגמה מהגליונות</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 border-b">
+                      <tr>
+                        <th className="text-right p-2">מ"ס</th>
+                        <th className="text-right p-2">שם גליון</th>
+                        <th className="text-right p-2">שנה</th>
+                        <th className="text-right p-2">נושא ראשי</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {volumesRows.slice(0, 3).map((row, idx) => (
+                        <tr key={idx} className="border-b hover:bg-slate-50">
+                          <td className="p-2">{row["מ\"ס"] || '—'}</td>
+                          <td className="p-2">{row['שם גליון'] || '—'}</td>
+                          <td className="p-2">{row['שנה'] || '—'}</td>
+                          <td className="p-2">{row['נושא ראשי'] || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* דוגמה ממאמרים */}
+            {articlesRows.length > 0 && (
+              <div className="bg-white rounded-lg shadow border border-slate-200 p-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">📄 דוגמה מהמאמרים</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 border-b">
+                      <tr>
+                        <th className="text-right p-2">כותרת</th>
+                        <th className="text-right p-2">משפחה</th>
+                        <th className="text-right p-2">מ"ס גליון</th>
+                        <th className="text-right p-2">עמ'</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {articlesRows.slice(0, 3).map((row, idx) => (
+                        <tr key={idx} className="border-b hover:bg-slate-50">
+                          <td className="p-2">{row['כותרת המאמר'] || '—'}</td>
+                          <td className="p-2">{row['משפחה'] || '—'}</td>
+                          <td className="p-2">{row['מ"ס גליון'] || '—'}</td>
+                          <td className="p-2">{row["עמ'"] || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* כפתורים */}
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={() => { setFile(null); setExcelData(null); setPreviewMode(false); }}
+                disabled={isProcessing}
+                className="bg-slate-200 hover:bg-slate-300 disabled:bg-slate-300 text-slate-800 px-8 py-3 rounded-xl font-bold text-lg shadow-md transition-colors"
+              >
+                ביטול
+              </button>
               <button
                 onClick={handleProcessData}
                 disabled={isProcessing}
                 className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white px-8 py-3 rounded-xl font-black text-lg shadow-md transition-colors flex items-center gap-2"
               >
                 <Database size={20} />
-                {isProcessing ? 'מעבד ומקשר מאמרים לגליונות...' : 'בצע ייבוא משולב למערכת'}
+                {isProcessing ? 'מעבד ומעלה...' : 'בצע ייבוא לספריה'}
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
       </div>
     </div>
