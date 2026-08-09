@@ -5,7 +5,7 @@
 import axios from 'axios';
 
 // ✓ Vite (לא process.env של CRA)
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api' || 'https://node-project-cvek.onrender.com';
 
 const api = axios.create({ baseURL });
 
