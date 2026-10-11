@@ -819,6 +819,7 @@ export default function App() {
 
                         <input
                           type="text"
+                          value={art.startPage ?? ''}
                           disabled={isNotLoggedIn || (isViewer && !!art._id)}
                           className="w-full text-center border rounded h-8 px-1 text-[11px] font-semibold"
                           onChange={e => {
