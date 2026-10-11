@@ -817,19 +817,19 @@ export default function App() {
                           <input placeholder="נושא" value={art.generalTopic} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].generalTopic = e.target.value; setVolumes(nv) }} />
                         </td>
 
-                        <td className="p-1 border-l text-center align-middle">
-                          <input
-                            type="text"
-                            value={art.startPage}
-                            disabled={isNotLoggedIn || (isViewer && !!art._id)}
-                            className="w-full text-center border rounded h-8 px-1 text-[11px] font-semibold"
-                            onChange={e => {
-                              const nv = [...volumes];
-                              nv[activeVolume].articles[aIdx].startPage = e.target.value;
-                              setVolumes(nv);
-                            }}
-                          />
-                        </td>
+                        <input
+                          type="text"
+                          disabled={isNotLoggedIn || (isViewer && !!art._id)}
+                          className="w-full text-center border rounded h-8 px-1 text-[11px] font-semibold"
+                          onChange={e => {
+                            const nv = [...volumes];
+                            nv[activeVolume].articles[aIdx] = {
+                              ...nv[activeVolume].articles[aIdx],
+                              startPage: e.target.value
+                            };
+                            setVolumes(nv);
+                          }}
+                        />
 
 
                         <td className="p-1 border-l bg-indigo-50/20 align-middle">
