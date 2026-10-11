@@ -529,402 +529,414 @@ export default function App() {
 
   return (
     <div className="series-editor-page page-container min-h-screen">
-    <div className="flex flex-col min-h-screen bg-slate-100 font-sans text-right relative pb-10" dir="rtl" onKeyDown={handleKeyDown}>
+      <div className="flex flex-col min-h-screen bg-slate-100 font-sans text-right relative pb-10" dir="rtl" onKeyDown={handleKeyDown}>
 
-      {deletePrompt.show && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-center border border-gray-200">
-            <div className="bg-red-100 text-red-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={24} />
-            </div>
-            <h3 className="text-lg font-black text-gray-900 mb-2">אישור מחיקה</h3>
-            <p className="text-gray-700 mb-6 text-[14px]">
-              האם אתה בטוח שברצונך למחוק את {deletePrompt.type === 'volume' ? 'הגליון' : 'המאמר'}:<br />
-              <strong className="text-red-600 break-words">{deletePrompt.title}</strong> ?
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' })}
-                className="custom-btn-style px-5 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors"
-              >
-                ביטול
-              </button>
-              <button
-                onClick={executeDeleteAction}
-                className="custom-btn-style px-5 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors"
-              >
-                מחק
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {toastMessage && (
-        <div
-          className={`fixed top-14 left-1/2 -translate-x-1/2 ${toastType === 'warning' ? 'bg-amber-600' : 'bg-blue-600'} px-5 py-2.5 rounded-full shadow-lg text-[12px] font-bold flex items-center gap-2 z-50 animate-in fade-in slide-in-from-top-2`}
-          style={{ color: '#ffffff' }}
-        >
-          <Info size={16} />
-          {toastMessage}
-        </div>
-      )}
-
-      <header className="sticky top-0 z-50 h-12 bg-white border-b px-4 flex justify-between items-center shrink-0 shadow-sm w-full">
-        <div className="flex items-center gap-2">
-          <Database size={18} className="text-indigo-600" />
-          <span className="font-black text-sm text-slate-800">מערכת קטלוג תורני מאוחדת</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/series')}
-            className="custom-btn-style px-4 py-1.5 bg-slate-200 text-slate-700 rounded text-xs font-bold hover:bg-slate-300 transition-colors"
-          >
-            חזרה לסדרות
-          </button>
-          <button
-            onClick={handleFinalSave}
-            className="custom-btn-style px-6 py-1.5 bg-black text-white rounded text-xs font-bold hover:bg-slate-800 transition-colors ..."
-          >
-            {isSaving ? 'שומר נתונים...' : 'שמירה סופית'}
-          </button>
-        </div>
-      </header>
-
-      <div className="flex flex-1 p-3 gap-3 items-start">
-        <aside className="w-36 bg-white border rounded-xl flex flex-col shrink-0 shadow-sm sticky top-16" style={{ height: 'calc(100vh - 80px)' }}>
-          <div className="p-2 border-b bg-slate-50 shrink-0">
-            {canAddNew ? (
-              <button onClick={addNewVolume} className="custom-btn-style w-full py-2 bg-indigo-600 text-white rounded text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700">
-                <Plus size={14} className="text-white" /> הוסף גליון
-              </button>
-            ) : (
-              <div className="text-center text-[11px] font-bold text-slate-400 py-1">רשימת גליונות</div>
-            )}
-          </div>
-          <div className="overflow-y-auto flex-1 p-1.5 space-y-1 custom-scrollbar">
-            {volumes.map((v, i) => (
-              <div
-                key={v.id}
-                onClick={() => setActiveVolume(i)}
-                className={`group relative w-full text-right px-2 py-2.5 rounded text-[10px] font-bold cursor-pointer flex items-center justify-between transition-all ${activeVolume === i ? 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-600 shadow-sm' : 'hover:bg-slate-50 text-slate-600'}`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <FileText size={12} /> {v.volumeTitle || `גליון ${i + 1}`}
-                </div>
-                {canAddNew && volumes.length > 1 && !(isViewer && !!v._id) && (
-                  <X size={12} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600" onClick={(e) => promptRemoveVolume(e, i)} />
-                )}
+        {deletePrompt.show && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-center border border-gray-200">
+              <div className="bg-red-100 text-red-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={24} />
               </div>
-            ))}
-          </div>
-        </aside>
-
-        <div className="flex-1 flex flex-col gap-3 min-w-0">
-
-          <section className="bg-white p-3 rounded-xl border shadow-sm shrink-0">
-            <h3 className="text-[10px] font-black text-indigo-600 mb-2 border-b pb-1 flex items-center gap-1"><Info size={12} /> נתוני כותר כלליים</h3>
-            <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-10 grid grid-cols-10 gap-3 items-end">
-                <CompactField label="אופי הכותר" colSpan="col-span-1">
-                  <select value={series.prefixName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, prefixName: e.target.value })} className={inputClass}>
-                    <option value=""></option>
-                    <option>ספרי זכרון ויובל</option>
-                    <option>כתבי עת ותקופונים</option>
-                    <option>ספרי קהילות</option>
-                    <option>קבצי ישיבות</option>
-                    <option>קבצי כוללים</option>
-                    <option>קבצי קהילות ובתי כנסת</option>
-                    <option>הספדים ודרשות</option>
-                    <option>קבצים משפחתיים</option>
-                    <option>גנוזות וכתבי יד</option>
-                    <option>קבצים בודדים</option>
-                    <option>עלונים</option>
-                  </select>
-                </CompactField>
-                <CompactField label="שם הכותר" colSpan="col-span-2" required={true}>
-                  <input value={series.fileName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => updateSeriesField('fileName', e.target.value)} className={`${inputClass} font-semibold`} />
-                </CompactField>
-                <CompactField label="שם מזהה" colSpan="col-span-2">
-                  <input value={series.identifierName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, identifierName: e.target.value })} className={inputClass} />
-                </CompactField>
-                <CompactField label="פרטים" colSpan="col-span-5">
-                  <input value={series.details} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, details: e.target.value })} className={inputClass} />
-                </CompactField>
-                <CompactField label="שם העורך" colSpan="col-span-3">
-                  <input value={displayEditor} disabled className={`${inputClass} bg-slate-100 text-slate-500 font-semibold cursor-not-allowed`} title="שדה זה מתעדכן אוטומטית משדה 'עורך גליון'" />
-                </CompactField>
-                <CompactField label="מקום הוצאה" colSpan="col-span-2">
-                  <input list="places-list" value={series.publicationPlace} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, publicationPlace: e.target.value })} onBlur={e => addToSuggestionList(e.target.value, publicationPlaces, setPublicationPlaces)} className={inputClass} autoComplete="off" placeholder="הקלד או בחר..." />
-                  <datalist id="places-list">
-                    {publicationPlaces.map((place, idx) => (
-                      <option key={idx} value={place} />
-                    ))}
-                  </datalist>
-                </CompactField>
-                <CompactField label="השתייכות" colSpan="col-span-1">
-                  <select 
-                    value={series.sector} 
-                    disabled={isNotLoggedIn || (isViewer && !!editId)} 
-                    onChange={e => setSeries({ ...series, sector: e.target.value })} 
-                    onBlur={e => addToSuggestionList(e.target.value, sectors, setSectors)} 
-                    className={inputClass}
-                  >
-                    <option value=""></option>
-                    {sectors.map((s, idx) => (
-                      <option key={idx} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </CompactField>
-                <CompactField label="שנת הוצאה" colSpan="col-span-2">
-                  <input
-                    value={displayYears}
-                    disabled
-                    className={`${inputClass} bg-slate-100 text-slate-500 font-semibold cursor-not-allowed text-center`}
-                    dir="ltr"
-                  />
-                </CompactField>
-                <CompactField label="סטטוס" colSpan="col-span-2">
-                  <input value={series.catalogStatus} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, catalogStatus: e.target.value })} className={inputClass} />
-                </CompactField>
-                <CompactField label="גליונות חסרים" colSpan="col-span-3">
-                  <input value={series.missingVolumesList} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, missingVolumesList: e.target.value })} className={inputClass} />
-                </CompactField>
-                <CompactField label="הערות מנהל" colSpan="col-span-5">
-                  <input value={series.userNotes} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, userNotes: e.target.value })} className={inputClass} />
-                </CompactField>
-                <CompactField label="הוזן ע״י" colSpan="col-span-2">
-                  <input value={series.enteredBy} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, enteredBy: e.target.value })} className={inputClass} />
-                </CompactField>
-              </div>
-              <div className="col-span-2 flex items-center justify-center border-r pr-3">
-                <div onClick={() => { if (!(isNotLoggedIn || (isViewer && !!editId))) fileInputRef.current.click() }} className={`h-32 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-slate-50 overflow-hidden ${isNotLoggedIn || (isViewer && !!editId) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-100 transition-all'}`}>
-                  {series.coverPreview || series.coverImage ? (
-                    <img src={series.coverPreview || `${SERVER_BASE_URL}/uploads/${series.coverImage}`} className="h-full w-full object-contain" alt="כריכה" />
-                  ) : (
-                    <div className="text-center text-slate-400">
-                      <Upload size={24} className="mx-auto" />
-                      <span className="text-[10px] block mt-1 font-semibold">העלה כריכה</span>
-                    </div>
-                  )}
-                  <input type="file" ref={fileInputRef} hidden onChange={(e) => { const file = e.target.files[0]; if (file) { setSeries({ ...series, coverPreview: URL.createObjectURL(file), coverFile: file }); } }} />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white p-3 rounded-xl border shadow-sm w-full border-r-8 border-r-indigo-500">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-wider">נתוני גליון פעיל</h3>
-                <span className="bg-indigo-600 text-white text-[11px] px-3 py-0.5 rounded-full font-bold"> {activeVolume + 1}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-row gap-2 items-end w-full">
-              <CompactField label="שם גליון" widthClass="w-[8%]" required={true}><input value={currentVolume.volumeTitle} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('volumeTitle', e.target.value)} className={activeVolInputClass} /></CompactField>
-              <CompactField label="נושא ראשי" widthClass="w-[16%]"><input value={currentVolume.mainTopic} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('mainTopic', e.target.value)} className={activeVolInputClass} /></CompactField>
-              <CompactField label="יצא לרגל" widthClass="w-[16%]"><input value={currentVolume.publishedFor} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publishedFor', e.target.value)} className={activeVolInputClass} /></CompactField>
-              <CompactField label="שנה" widthClass="w-[3%] min-w-[56px]"><input value={currentVolume.publicationYear} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationYear', e.target.value)} className={activeVolInputClass} /></CompactField>
-              <CompactField label="חודש" widthClass="w-[6%] min-w-[60px]"><input value={currentVolume.publicationPeriod} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationPeriod', e.target.value)} className={activeVolInputClass} /></CompactField>
-              <CompactField label="עורך גליון" widthClass="w-[12%]"><input value={currentVolume.volumeEditor || ''} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('volumeEditor', e.target.value)} className={activeVolInputClass} placeholder="ניתן להזין מספר שמות מופרדים בפסיק" /></CompactField>
-              <CompactField label="הערות מערכת" widthClass="w-[15%]"><input value={currentVolume.scanCompleteness} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={activeVolInputClass} /></CompactField>
-              <CompactField label="קובץ" widthClass="w-[20%]">
-                <button onClick={() => { if (!(isNotLoggedIn || (isViewer && !!currentVolume?._id))) pdfInputRef.current.click() }} className={`w-full p-1.5 h-[30px] border rounded text-[11px] font-semibold flex items-center justify-center gap-1 shadow-inner ${isNotLoggedIn || (isViewer && !!currentVolume?._id) ? 'cursor-not-allowed opacity-60 bg-indigo-50' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all border-indigo-200'}`} title={currentVolume.pdfFileName || 'צרף קובץ PDF'}>
-                  <Link2 size={12} className={currentVolume.pdfFileName ? "text-green-600" : "text-indigo-600"} />
-                  <span className="truncate">{currentVolume.pdfFileName ? 'צורף' : 'העלה'}</span>
+              <h3 className="text-lg font-black text-gray-900 mb-2">אישור מחיקה</h3>
+              <p className="text-gray-700 mb-6 text-[14px]">
+                האם אתה בטוח שברצונך למחוק את {deletePrompt.type === 'volume' ? 'הגליון' : 'המאמר'}:<br />
+                <strong className="text-red-600 break-words">{deletePrompt.title}</strong> ?
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setDeletePrompt({ show: false, type: '', vIdx: null, aIdx: null, title: '' })}
+                  className="custom-btn-style px-5 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 w-1/2 transition-colors"
+                >
+                  ביטול
                 </button>
-                <input type="file" ref={pdfInputRef} hidden onChange={(e) => { const file = e.target.files[0]; if (file) { updateVolume('pdfFileName', file.name); updateVolume('pdfFile', file); } }} />
-              </CompactField>
+                <button
+                  onClick={executeDeleteAction}
+                  className="custom-btn-style px-5 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors"
+                >
+                  מחק
+                </button>
+              </div>
             </div>
-          </section>
+          </div>
+        )}
 
-          <section className="bg-white rounded-xl border shadow-sm flex flex-col w-full overflow-hidden">
-            <div className="p-2.5 border-b bg-slate-900 flex justify-between items-center shrink-0">
-              <h4 className="text-white text-[11px] font-bold flex items-center gap-2"><Users size={14} /> מאמרים בתוך הגליון</h4>
+        {toastMessage && (
+          <div
+            className={`fixed top-14 left-1/2 -translate-x-1/2 ${toastType === 'warning' ? 'bg-amber-600' : 'bg-blue-600'} px-5 py-2.5 rounded-full shadow-lg text-[12px] font-bold flex items-center gap-2 z-50 animate-in fade-in slide-in-from-top-2`}
+            style={{ color: '#ffffff' }}
+          >
+            <Info size={16} />
+            {toastMessage}
+          </div>
+        )}
+
+        <header className="sticky top-0 z-50 h-12 bg-white border-b px-4 flex justify-between items-center shrink-0 shadow-sm w-full">
+          <div className="flex items-center gap-2">
+            <Database size={18} className="text-indigo-600" />
+            <span className="font-black text-sm text-slate-800">מערכת קטלוג תורני מאוחדת</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/series')}
+              className="custom-btn-style px-4 py-1.5 bg-slate-200 text-slate-700 rounded text-xs font-bold hover:bg-slate-300 transition-colors"
+            >
+              חזרה לסדרות
+            </button>
+            <button
+              onClick={handleFinalSave}
+              className="custom-btn-style px-6 py-1.5 bg-black text-white rounded text-xs font-bold hover:bg-slate-800 transition-colors ..."
+            >
+              {isSaving ? 'שומר נתונים...' : 'שמירה סופית'}
+            </button>
+          </div>
+        </header>
+
+        <div className="flex flex-1 p-3 gap-3 items-start">
+          <aside className="w-36 bg-white border rounded-xl flex flex-col shrink-0 shadow-sm sticky top-16" style={{ height: 'calc(100vh - 80px)' }}>
+            <div className="p-2 border-b bg-slate-50 shrink-0">
+              {canAddNew ? (
+                <button onClick={addNewVolume} className="custom-btn-style w-full py-2 bg-indigo-600 text-white rounded text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-700">
+                  <Plus size={14} className="text-white" /> הוסף גליון
+                </button>
+              ) : (
+                <div className="text-center text-[11px] font-bold text-slate-400 py-1">רשימת גליונות</div>
+              )}
             </div>
+            <div className="overflow-y-auto flex-1 p-1.5 space-y-1 custom-scrollbar">
+              {volumes.map((v, i) => (
+                <div
+                  key={v.id}
+                  onClick={() => setActiveVolume(i)}
+                  className={`group relative w-full text-right px-2 py-2.5 rounded text-[10px] font-bold cursor-pointer flex items-center justify-between transition-all ${activeVolume === i ? 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-600 shadow-sm' : 'hover:bg-slate-50 text-slate-600'}`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <FileText size={12} /> {v.volumeTitle || `גליון ${i + 1}`}
+                  </div>
+                  {canAddNew && volumes.length > 1 && !(isViewer && !!v._id) && (
+                    <X size={12} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600" onClick={(e) => promptRemoveVolume(e, i)} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </aside>
 
-            <div className="w-full">
-              <table className="w-full text-right text-[11px] border-collapse table-fixed">
-                <thead>
-                  <tr className="bg-slate-50 border-b text-slate-700">
-                    <th className="p-2 border-l text-center w-9">#</th>
-                    <th className="p-2 border-l w-20">תואר</th>
-                    <th className="p-2 border-l w-28">שם משפחה</th>
-                    <th className="p-2 border-l w-24">שם פרטי</th>
-                    <th className="p-2 border-l w-24">תפקיד</th>
-                    <th className="p-2 border-l w-28">מדור</th>
-                    <th className="p-2 border-l w-[23%]">כותרת המאמר</th>
-                    <th className="p-2 border-l w-24">על מקור</th>
-                    <th className="p-2 border-l w-24">נושאים</th>
-                    <th className="p-2 border-l text-center w-12">עמ'</th>
-                    <th className="p-2 border-l w-16">קישור</th>
-                    <th className="p-2 text-center w-24">פעולות</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {currentVolume.articles.map((art, aIdx) => (
-                    <tr key={art.id} className="hover:bg-slate-50/30 transition-colors h-10">
-                      <td className="p-1 border-l text-center font-bold text-slate-400 align-middle">{art.autoId}</td>
+          <div className="flex-1 flex flex-col gap-3 min-w-0">
 
-                      <td className="p-1 border-l align-middle">
-                        {art.authors.map((auth, authIdx) => (
-                          <input key={`auth-pfx-${art.id}-${authIdx}`} value={auth.titlePrefix || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'titlePrefix', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate mb-1 last:mb-0" placeholder="תואר" />
-                        ))}
-                      </td>
-                      <td className="p-1 border-l align-middle">
-                        {art.authors.map((auth, authIdx) => (
-                          <input key={`auth-fn-${art.id}-${authIdx}`} value={auth.firstName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'firstName', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate mb-1 last:mb-0" placeholder="פרטי" />
-                        ))}
-                      </td>
-                      <td className="p-1 border-l align-middle">
-                        {art.authors.map((auth, authIdx) => (
-                          <input key={`auth-ln-${art.id}-${authIdx}`} value={auth.lastName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'lastName', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate mb-1 last:mb-0" placeholder="משפחה" />
-                        ))}
-                      </td>
-                      <td className="p-1 border-l align-middle">
-                        {art.authors.map((auth, authIdx) => (
-                          <div key={`auth-role-${art.id}-${authIdx}`} className="flex gap-1 items-center mb-1 last:mb-0">
-                            <input value={auth.role || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'role', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" placeholder="תפקיד" />
-                            {authIdx > 0 && !(isNotLoggedIn || (isViewer && !!art._id)) && (
-                              <button onClick={() => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].authors.splice(authIdx, 1); setVolumes(nv) }} className="text-red-400 hover:text-red-600 px-1 font-bold">×</button>
+            <section className="bg-white p-3 rounded-xl border shadow-sm shrink-0">
+              <h3 className="text-[10px] font-black text-indigo-600 mb-2 border-b pb-1 flex items-center gap-1"><Info size={12} /> נתוני כותר כלליים</h3>
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-10 grid grid-cols-10 gap-3 items-end">
+                  <CompactField label="אופי הכותר" colSpan="col-span-1">
+                    <select value={series.prefixName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, prefixName: e.target.value })} className={inputClass}>
+                      <option value=""></option>
+                      <option>ספרי זכרון ויובל</option>
+                      <option>כתבי עת ותקופונים</option>
+                      <option>ספרי קהילות</option>
+                      <option>קבצי ישיבות</option>
+                      <option>קבצי כוללים</option>
+                      <option>קבצי קהילות ובתי כנסת</option>
+                      <option>הספדים ודרשות</option>
+                      <option>קבצים משפחתיים</option>
+                      <option>גנוזות וכתבי יד</option>
+                      <option>קבצים בודדים</option>
+                      <option>עלונים</option>
+                    </select>
+                  </CompactField>
+                  <CompactField label="שם הכותר" colSpan="col-span-2" required={true}>
+                    <input value={series.fileName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => updateSeriesField('fileName', e.target.value)} className={`${inputClass} font-semibold`} />
+                  </CompactField>
+                  <CompactField label="שם מזהה" colSpan="col-span-2">
+                    <input value={series.identifierName} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, identifierName: e.target.value })} className={inputClass} />
+                  </CompactField>
+                  <CompactField label="פרטים" colSpan="col-span-5">
+                    <input value={series.details} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, details: e.target.value })} className={inputClass} />
+                  </CompactField>
+                  <CompactField label="שם העורך" colSpan="col-span-3">
+                    <input value={displayEditor} disabled className={`${inputClass} bg-slate-100 text-slate-500 font-semibold cursor-not-allowed`} title="שדה זה מתעדכן אוטומטית משדה 'עורך גליון'" />
+                  </CompactField>
+                  <CompactField label="מקום הוצאה" colSpan="col-span-2">
+                    <input list="places-list" value={series.publicationPlace} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, publicationPlace: e.target.value })} onBlur={e => addToSuggestionList(e.target.value, publicationPlaces, setPublicationPlaces)} className={inputClass} autoComplete="off" placeholder="הקלד או בחר..." />
+                    <datalist id="places-list">
+                      {publicationPlaces.map((place, idx) => (
+                        <option key={idx} value={place} />
+                      ))}
+                    </datalist>
+                  </CompactField>
+                  <CompactField label="השתייכות" colSpan="col-span-1">
+                    <select
+                      value={series.sector}
+                      disabled={isNotLoggedIn || (isViewer && !!editId)}
+                      onChange={e => setSeries({ ...series, sector: e.target.value })}
+                      onBlur={e => addToSuggestionList(e.target.value, sectors, setSectors)}
+                      className={inputClass}
+                    >
+                      <option value=""></option>
+                      {sectors.map((s, idx) => (
+                        <option key={idx} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </CompactField>
+                  <CompactField label="שנת הוצאה" colSpan="col-span-2">
+                    <input
+                      value={displayYears}
+                      disabled
+                      className={`${inputClass} bg-slate-100 text-slate-500 font-semibold cursor-not-allowed text-center`}
+                      dir="ltr"
+                    />
+                  </CompactField>
+                  <CompactField label="סטטוס" colSpan="col-span-2">
+                    <input value={series.catalogStatus} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, catalogStatus: e.target.value })} className={inputClass} />
+                  </CompactField>
+                  <CompactField label="גליונות חסרים" colSpan="col-span-3">
+                    <input value={series.missingVolumesList} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, missingVolumesList: e.target.value })} className={inputClass} />
+                  </CompactField>
+                  <CompactField label="הערות מנהל" colSpan="col-span-5">
+                    <input value={series.userNotes} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, userNotes: e.target.value })} className={inputClass} />
+                  </CompactField>
+                  <CompactField label="הוזן ע״י" colSpan="col-span-2">
+                    <input value={series.enteredBy} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, enteredBy: e.target.value })} className={inputClass} />
+                  </CompactField>
+                </div>
+                <div className="col-span-2 flex items-center justify-center border-r pr-3">
+                  <div onClick={() => { if (!(isNotLoggedIn || (isViewer && !!editId))) fileInputRef.current.click() }} className={`h-32 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-slate-50 overflow-hidden ${isNotLoggedIn || (isViewer && !!editId) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-100 transition-all'}`}>
+                    {series.coverPreview || series.coverImage ? (
+                      <img src={series.coverPreview || `${SERVER_BASE_URL}/uploads/${series.coverImage}`} className="h-full w-full object-contain" alt="כריכה" />
+                    ) : (
+                      <div className="text-center text-slate-400">
+                        <Upload size={24} className="mx-auto" />
+                        <span className="text-[10px] block mt-1 font-semibold">העלה כריכה</span>
+                      </div>
+                    )}
+                    <input type="file" ref={fileInputRef} hidden onChange={(e) => { const file = e.target.files[0]; if (file) { setSeries({ ...series, coverPreview: URL.createObjectURL(file), coverFile: file }); } }} />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white p-3 rounded-xl border shadow-sm w-full border-r-8 border-r-indigo-500">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-wider">נתוני גליון פעיל</h3>
+                  <span className="bg-indigo-600 text-white text-[11px] px-3 py-0.5 rounded-full font-bold"> {activeVolume + 1}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-row gap-2 items-end w-full">
+                <CompactField label="שם גליון" widthClass="w-[8%]" required={true}><input value={currentVolume.volumeTitle} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('volumeTitle', e.target.value)} className={activeVolInputClass} /></CompactField>
+                <CompactField label="נושא ראשי" widthClass="w-[16%]"><input value={currentVolume.mainTopic} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('mainTopic', e.target.value)} className={activeVolInputClass} /></CompactField>
+                <CompactField label="יצא לרגל" widthClass="w-[16%]"><input value={currentVolume.publishedFor} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publishedFor', e.target.value)} className={activeVolInputClass} /></CompactField>
+                <CompactField label="שנה" widthClass="w-[3%] min-w-[56px]"><input value={currentVolume.publicationYear} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationYear', e.target.value)} className={activeVolInputClass} /></CompactField>
+                <CompactField label="חודש" widthClass="w-[6%] min-w-[60px]"><input value={currentVolume.publicationPeriod} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('publicationPeriod', e.target.value)} className={activeVolInputClass} /></CompactField>
+                <CompactField label="עורך גליון" widthClass="w-[12%]"><input value={currentVolume.volumeEditor || ''} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('volumeEditor', e.target.value)} className={activeVolInputClass} placeholder="ניתן להזין מספר שמות מופרדים בפסיק" /></CompactField>
+                <CompactField label="הערות מערכת" widthClass="w-[15%]"><input value={currentVolume.scanCompleteness} disabled={isNotLoggedIn || (isViewer && !!currentVolume?._id)} onChange={e => updateVolume('scanCompleteness', e.target.value)} className={activeVolInputClass} /></CompactField>
+                <CompactField label="קובץ" widthClass="w-[20%]">
+                  <button onClick={() => { if (!(isNotLoggedIn || (isViewer && !!currentVolume?._id))) pdfInputRef.current.click() }} className={`w-full p-1.5 h-[30px] border rounded text-[11px] font-semibold flex items-center justify-center gap-1 shadow-inner ${isNotLoggedIn || (isViewer && !!currentVolume?._id) ? 'cursor-not-allowed opacity-60 bg-indigo-50' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all border-indigo-200'}`} title={currentVolume.pdfFileName || 'צרף קובץ PDF'}>
+                    <Link2 size={12} className={currentVolume.pdfFileName ? "text-green-600" : "text-indigo-600"} />
+                    <span className="truncate">{currentVolume.pdfFileName ? 'צורף' : 'העלה'}</span>
+                  </button>
+                  <input type="file" ref={pdfInputRef} hidden onChange={(e) => { const file = e.target.files[0]; if (file) { updateVolume('pdfFileName', file.name); updateVolume('pdfFile', file); } }} />
+                </CompactField>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-xl border shadow-sm flex flex-col w-full overflow-hidden">
+              <div className="p-2.5 border-b bg-slate-900 flex justify-between items-center shrink-0">
+                <h4 className="text-white text-[11px] font-bold flex items-center gap-2"><Users size={14} /> מאמרים בתוך הגליון</h4>
+              </div>
+
+              <div className="w-full">
+                <table className="w-full text-right text-[11px] border-collapse table-fixed">
+                  <thead>
+                    <tr className="bg-slate-50 border-b text-slate-700">
+                      <th className="p-2 border-l text-center w-9">#</th>
+                      <th className="p-2 border-l w-20">תואר</th>
+                      <th className="p-2 border-l w-28">שם משפחה</th>
+                      <th className="p-2 border-l w-24">שם פרטי</th>
+                      <th className="p-2 border-l w-24">תפקיד</th>
+                      <th className="p-2 border-l w-28">מדור</th>
+                      <th className="p-2 border-l w-[23%]">כותרת המאמר</th>
+                      <th className="p-2 border-l w-24">על מקור</th>
+                      <th className="p-2 border-l w-24">נושאים</th>
+                      <th className="p-2 border-l text-center w-12">עמ'</th>
+                      <th className="p-2 border-l w-16">קישור</th>
+                      <th className="p-2 text-center w-24">פעולות</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {currentVolume.articles.map((art, aIdx) => (
+                      <tr key={art.id} className="hover:bg-slate-50/30 transition-colors h-10">
+                        <td className="p-1 border-l text-center font-bold text-slate-400 align-middle">{art.autoId}</td>
+
+                        <td className="p-1 border-l align-middle">
+                          {art.authors.map((auth, authIdx) => (
+                            <input key={`auth-pfx-${art.id}-${authIdx}`} value={auth.titlePrefix || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'titlePrefix', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate mb-1 last:mb-0" placeholder="תואר" />
+                          ))}
+                        </td>
+                        <td className="p-1 border-l align-middle">
+                          {art.authors.map((auth, authIdx) => (
+                            <input key={`auth-fn-${art.id}-${authIdx}`} value={auth.firstName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'firstName', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate mb-1 last:mb-0" placeholder="פרטי" />
+                          ))}
+                        </td>
+                        <td className="p-1 border-l align-middle">
+                          {art.authors.map((auth, authIdx) => (
+                            <input key={`auth-ln-${art.id}-${authIdx}`} value={auth.lastName || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'lastName', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate mb-1 last:mb-0" placeholder="משפחה" />
+                          ))}
+                        </td>
+                        <td className="p-1 border-l align-middle">
+                          {art.authors.map((auth, authIdx) => (
+                            <div key={`auth-role-${art.id}-${authIdx}`} className="flex gap-1 items-center mb-1 last:mb-0">
+                              <input value={auth.role || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => updateAuthor(activeVolume, aIdx, authIdx, 'role', e.target.value)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" placeholder="תפקיד" />
+                              {authIdx > 0 && !(isNotLoggedIn || (isViewer && !!art._id)) && (
+                                <button onClick={() => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].authors.splice(authIdx, 1); setVolumes(nv) }} className="text-red-400 hover:text-red-600 px-1 font-bold">×</button>
+                              )}
+                            </div>
+                          ))}
+                        </td>
+                        <td className="p-1 border-l align-middle">
+                          <input
+                            placeholder="מדור..."
+                            value={art.section || ''}
+                            disabled={isNotLoggedIn || (isViewer && !!art._id)}
+                            className="w-full border border-slate-200 rounded h-8 px-2 text-[11px] font-semibold focus:border-indigo-400 outline-none"
+                            onChange={e => {
+                              const nv = [...volumes];
+                              nv[activeVolume].articles[aIdx].section = e.target.value;
+                              setVolumes(nv);
+                            }}
+                          />
+                        </td>
+                        <td className="p-1 border-l align-middle">
+                          <input value={art.contentTitle} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border border-slate-200 rounded h-8 px-2 font-semibold text-[11px] focus:border-indigo-400 outline-none" placeholder="כותרת המאמר..." onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].contentTitle = e.target.value; setVolumes(nv) }} />
+                        </td>
+
+                        <td className="p-1 border-l align-middle">
+                          <input placeholder="מקור" value={art.source || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].source = e.target.value; setVolumes(nv) }} />
+                        </td>
+
+                        <td className="p-1 border-l align-middle">
+                          <input placeholder="נושא" value={art.generalTopic} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].generalTopic = e.target.value; setVolumes(nv) }} />
+                        </td>
+
+                        <td className="p-1 border-l text-center align-middle">
+                          <input
+                            type="text"
+                            value={art.startPage}
+                            disabled={isNotLoggedIn || (isViewer && !!art._id)}
+                            className="w-full text-center border rounded h-8 px-1 text-[11px] font-semibold"
+                            onChange={e => {
+                              const nv = [...volumes];
+                              nv[activeVolume].articles[aIdx].startPage = e.target.value;
+                              setVolumes(nv);
+                            }}
+                          />
+                        </td>
+
+
+                        <td className="p-1 border-l bg-indigo-50/20 align-middle">
+                          <select
+                            data-last-article-field={aIdx === currentVolume.articles.length - 1 ? "true" : "false"}
+                            className="w-full bg-white border rounded h-8 px-1 text-[11px] font-semibold text-indigo-800 focus:ring-1 focus:ring-indigo-400 outline-none" value={art.linkedArticleId} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkedArticleId = e.target.value; setVolumes(nv) }}>
+                            <option value=""></option>
+                            {dbArticles && dbArticles.map(dbArt => (
+                              <option key={dbArt._id} value={dbArt._id}>{dbArt.subtitleTitle || dbArt.contentTitle || 'ללא כותרת'}</option>
+                            ))}
+                          </select>
+                        </td>
+
+                        <td className="p-1 text-center align-middle">
+                          <div className="flex items-center justify-center gap-1 relative">
+                            {canAddNew && !(isViewer && !!art._id) && (
+                              <button
+                                type="button"
+                                title="הוסף מחבר"
+                                onClick={() => addAuthorRow(activeVolume, aIdx)}
+                                className="custom-btn-style text-white p-1.5 rounded transition-colors"
+                              >
+                                <UserPlus size={14} className="text-white" />
+                              </button>
+                            )}
+                            {canAddNew && !(isViewer && !!art._id) && (
+                              <button
+                                type="button"
+                                title="מחק מאמר"
+                                onClick={() => promptRemoveArticle(activeVolume, aIdx)}
+                                className="custom-btn-style text-white p-1.5 rounded transition-colors"
+                              >
+                                <Trash2 size={14} className="text-white" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                if (openNoteFor === art.id) {
+                                  setOpenNoteFor(null);
+                                  return;
+                                }
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setNoteBoxPos({ top: rect.bottom + 4, left: rect.left });
+                                setOpenNoteFor(art.id);
+                              }}
+                              title={art.note ? art.note : 'הוסף הערה'}
+                              className={`custom-btn-style p-1.5 rounded flex items-center justify-center transition-colors shrink-0 ${art.note ? 'bg-indigo-600 text-white' : 'bg-white border text-slate-400 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                            >
+                              <MessageSquare size={14} className={art.note ? 'text-white' : ''} />
+                            </button>
+                            {openNoteFor === art.id && createPortal(
+                              <div
+                                className="fixed z-[9999] bg-white rounded-lg shadow-lg p-3 w-48"
+                                style={{ top: noteBoxPos.top, left: noteBoxPos.left }}
+                              >
+                                <textarea
+                                  autoFocus
+                                  value={art.note || ''}
+                                  disabled={isNotLoggedIn || (isViewer && !!art._id)}
+                                  onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].note = e.target.value; setVolumes(nv) }}
+                                  onBlur={() => setOpenNoteFor(null)}
+                                  className="w-full h-20 text-[11px] text-slate-800 bg-white border border-slate-200 rounded outline-none focus:border-indigo-400 resize-none font-semibold"
+                                  placeholder="כתוב הערה..."
+                                />
+                              </div>,
+                              document.body
                             )}
                           </div>
-                        ))}
-                      </td>
-                      <td className="p-1 border-l align-middle">
-                        <input
-                          placeholder="מדור..."
-                          value={art.section || ''}
-                          disabled={isNotLoggedIn || (isViewer && !!art._id)}
-                          className="w-full border border-slate-200 rounded h-8 px-2 text-[11px] font-semibold focus:border-indigo-400 outline-none"
-                          onChange={e => {
-                            const nv = [...volumes];
-                            nv[activeVolume].articles[aIdx].section = e.target.value;
-                            setVolumes(nv);
-                          }}
-                        />
-                      </td>
-                      <td className="p-1 border-l align-middle">
-                        <input value={art.contentTitle} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border border-slate-200 rounded h-8 px-2 font-semibold text-[11px] focus:border-indigo-400 outline-none" placeholder="כותרת המאמר..." onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].contentTitle = e.target.value; setVolumes(nv) }} />
-                      </td>
-
-                      <td className="p-1 border-l align-middle">
-                        <input placeholder="מקור" value={art.source || ''} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].source = e.target.value; setVolumes(nv) }} />
-                      </td>
-
-                      <td className="p-1 border-l align-middle">
-                        <input placeholder="נושא" value={art.generalTopic} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full border rounded h-8 px-1 text-[11px] font-semibold truncate" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].generalTopic = e.target.value; setVolumes(nv) }} />
-                      </td>
-                      <td className="p-1 border-l text-center align-middle">
-                        <input value={art.startPage} disabled={isNotLoggedIn || (isViewer && !!art._id)} className="w-full text-center border rounded h-8 px-1 text-[11px] font-semibold" onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].startPage = e.target.value; setVolumes(nv) }} />
-                      </td>
-
-                      <td className="p-1 border-l bg-indigo-50/20 align-middle">
-                        <select
-                          data-last-article-field={aIdx === currentVolume.articles.length - 1 ? "true" : "false"}
-                          className="w-full bg-white border rounded h-8 px-1 text-[11px] font-semibold text-indigo-800 focus:ring-1 focus:ring-indigo-400 outline-none" value={art.linkedArticleId} disabled={isNotLoggedIn || (isViewer && !!art._id)} onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].linkedArticleId = e.target.value; setVolumes(nv) }}>
-                          <option value=""></option>
-                          {dbArticles && dbArticles.map(dbArt => (
-                            <option key={dbArt._id} value={dbArt._id}>{dbArt.subtitleTitle || dbArt.contentTitle || 'ללא כותרת'}</option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="p-1 text-center align-middle">
-                        <div className="flex items-center justify-center gap-1 relative">
-                          {canAddNew && !(isViewer && !!art._id) && (
-                            <button
-                              type="button"
-                              title="הוסף מחבר"
-                              onClick={() => addAuthorRow(activeVolume, aIdx)}
-                              className="custom-btn-style text-white p-1.5 rounded transition-colors"
-                            >
-                              <UserPlus size={14} className="text-white"/>
-                            </button>
-                          )}
-                          {canAddNew && !(isViewer && !!art._id) && (
-                            <button
-                              type="button"
-                              title="מחק מאמר"
-                              onClick={() => promptRemoveArticle(activeVolume, aIdx)}
-                              className="custom-btn-style text-white p-1.5 rounded transition-colors"
-                            >
-                              <Trash2 size={14} className="text-white"/>
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              if (openNoteFor === art.id) {
-                                setOpenNoteFor(null);
-                                return;
-                              }
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setNoteBoxPos({ top: rect.bottom + 4, left: rect.left });
-                              setOpenNoteFor(art.id);
-                            }}
-                            title={art.note ? art.note : 'הוסף הערה'}
-                            className={`custom-btn-style p-1.5 rounded flex items-center justify-center transition-colors shrink-0 ${art.note ? 'bg-indigo-600 text-white' : 'bg-white border text-slate-400 hover:bg-indigo-50 hover:text-indigo-600'}`}
-                          >
-                            <MessageSquare size={14} className={art.note ? 'text-white' : ''} />
-                          </button>
-                          {openNoteFor === art.id && createPortal(
-                            <div
-                              className="fixed z-[9999] bg-white rounded-lg shadow-lg p-3 w-48"
-                              style={{ top: noteBoxPos.top, left: noteBoxPos.left }}
-                            >
-                              <textarea
-                                autoFocus
-                                value={art.note || ''}
-                                disabled={isNotLoggedIn || (isViewer && !!art._id)}
-                                onChange={e => { const nv = [...volumes]; nv[activeVolume].articles[aIdx].note = e.target.value; setVolumes(nv) }}
-                                onBlur={() => setOpenNoteFor(null)}
-                                className="w-full h-20 text-[11px] text-slate-800 bg-white border border-slate-200 rounded outline-none focus:border-indigo-400 resize-none font-semibold"
-                                placeholder="כתוב הערה..."
-                              />
-                            </div>,
-                            document.body
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {canAddNew && (
-              <div className="p-2 border-t bg-slate-50 sticky bottom-0 flex justify-center shrink-0 shadow-[0_-2px_6px_rgba(0,0,0,0.04)] z-10">
-                <button
-                  type="button"
-                  onClick={addNewArticle}
-                  className="custom-btn-style bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold px-4 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
-                >
-                  <Plus size={13} className="text-white" /> הוסף מאמר חדש
-                </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </section>
+
+              {canAddNew && (
+                <div className="p-2 border-t bg-slate-50 sticky bottom-0 flex justify-center shrink-0 shadow-[0_-2px_6px_rgba(0,0,0,0.04)] z-10">
+                  <button
+                    type="button"
+                    onClick={addNewArticle}
+                    className="custom-btn-style bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold px-4 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus size={13} className="text-white" /> הוסף מאמר חדש
+                  </button>
+                </div>
+              )}
+            </section>
+          </div>
         </div>
+        {showSuccessMessage && (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#876003ae',
+            color: 'white',
+            padding: '15px 20px',
+            borderRadius: '5px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            zIndex: 1000
+          }}>
+            השמירה בוצעה בהצלחה! מעביר אותך לדף הספרייה...
+          </div>
+        )}
       </div>
-      {showSuccessMessage && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: '#876003ae',
-          color: 'white',
-          padding: '15px 20px',
-          borderRadius: '5px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          zIndex: 1000
-        }}>
-          השמירה בוצעה בהצלחה! מעביר אותך לדף הספרייה...
-        </div>
-      )}
-    </div>
     </div>
   )
 }
