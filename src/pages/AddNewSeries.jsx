@@ -468,7 +468,13 @@ export default function App() {
 
         const { pdfFile, coverFile, coverPreview, ...restOfVol } = vol;
 
-        return { ...restOfVol, articles: cleanArticles };
+        return {
+          ...restOfVol,
+          articles: cleanArticles.map(art => ({
+            ...art,
+            startPage: pageToNumber(art.startPage)
+          }))
+        };
       }).filter(vol => {
         if (vol._id) return true;
 
@@ -525,6 +531,16 @@ export default function App() {
 
   const updateSeriesField = (field, value) => {
     setSeries(prev => ({ ...prev, [field]: value }));
+  };
+
+  const pageToNumber = (value) => {
+    const str = (value ?? '').toString().trim();
+    if (!str) return '';
+    if (/^\d+$/.test(str)) return parseInt(str, 10);
+    const values = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9, 'י': 10, 'כ': 20, 'ל': 30, 'מ': 40, 'נ': 50, 'ס': 60, 'ע': 70, 'פ': 80, 'צ': 90, 'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400, 'ך': 20, 'ם': 40, 'ן': 50, 'ף': 80, 'ץ': 90 };
+    let sum = 0;
+    for (const ch of str.replace(/[^א-ת]/g, '')) sum += values[ch] || 0;
+    return sum || '';
   };
 
   return (

@@ -105,6 +105,7 @@ export default function HomePage() {
         .animate-fadeInUp {
           opacity: 0;
           animation: fadeInUp 0.8s ease-out forwards;
+          margin-top: 10rem;
         }
         @keyframes fadeIn {
           from { opacity: 0; }

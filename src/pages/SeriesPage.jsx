@@ -72,6 +72,16 @@ const getYearValue = (yearStr) => {
   return sum;
 };
 
+const pageToNumber = (value) => {
+  const str = (value ?? '').toString().trim();
+  if (!str) return '';
+  if (/^\d+$/.test(str)) return parseInt(str, 10);
+  const values = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9, 'י': 10, 'כ': 20, 'ל': 30, 'מ': 40, 'נ': 50, 'ס': 60, 'ע': 70, 'פ': 80, 'צ': 90, 'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400, 'ך': 20, 'ם': 40, 'ן': 50, 'ף': 80, 'ץ': 90 };
+  let sum = 0;
+  for (const ch of str.replace(/[^א-ת]/g, '')) sum += values[ch] || 0;
+  return sum || '';
+};
+
 export default function LibraryApp() {
   const { currentUser } = useSelector((state) => state.user);
   const dispatch = useDispatch();
@@ -399,11 +409,9 @@ export default function LibraryApp() {
     if (activeArticleId && currentVol.articles) {
       const activeArt = currentVol.articles.find(a => (a._id || a.id) === activeArticleId);
       const targetPage = activeArt?.startPage || activeArt?.page;
-      if (targetPage) {
-        const pageNum = String(targetPage).match(/\d+/);
-        if (pageNum) {
-          pageParam = `#page=${pageNum[0]}`;
-        }
+      const pageNum = pageToNumber(targetPage);
+      if (pageNum) {
+        pageParam = `#page=${pageNum}`;
       }
     }
 
@@ -523,20 +531,20 @@ export default function LibraryApp() {
 
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
               <div className="grid grid-cols-2 gap-4">
-                <input type="text" placeholder="אופי הכותר" value={advancedSearch.prefixName} onChange={e => setAdvancedSearch({...advancedSearch, prefixName: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שם הכותר" value={advancedSearch.fileName} onChange={e => setAdvancedSearch({...advancedSearch, fileName: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שם מזהה" value={advancedSearch.identifierName} onChange={e => setAdvancedSearch({...advancedSearch, identifierName: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="פרטים" value={advancedSearch.details} onChange={e => setAdvancedSearch({...advancedSearch, details: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שם העורך" value={advancedSearch.editor} onChange={e => setAdvancedSearch({...advancedSearch, editor: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="מקום הוצאה" value={advancedSearch.publicationPlace} onChange={e => setAdvancedSearch({...advancedSearch, publicationPlace: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="השתייכות" value={advancedSearch.sector} onChange={e => setAdvancedSearch({...advancedSearch, sector: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שם גליון" value={advancedSearch.volumeTitle} onChange={e => setAdvancedSearch({...advancedSearch, volumeTitle: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="נושא ראשי" value={advancedSearch.mainTopic} onChange={e => setAdvancedSearch({...advancedSearch, mainTopic: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="יצא לרגל" value={advancedSearch.publishedFor} onChange={e => setAdvancedSearch({...advancedSearch, publishedFor: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שנת הוצאה" value={advancedSearch.publicationYear} onChange={e => setAdvancedSearch({...advancedSearch, publicationYear: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="כותרת המאמר" value={advancedSearch.contentTitle} onChange={e => setAdvancedSearch({...advancedSearch, contentTitle: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="נושא כללי" value={advancedSearch.generalTopic} onChange={e => setAdvancedSearch({...advancedSearch, generalTopic: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="מקור" value={advancedSearch.source} onChange={e => setAdvancedSearch({...advancedSearch, source: e.target.value})} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="אופי הכותר" value={advancedSearch.prefixName} onChange={e => setAdvancedSearch({ ...advancedSearch, prefixName: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שם הכותר" value={advancedSearch.fileName} onChange={e => setAdvancedSearch({ ...advancedSearch, fileName: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שם מזהה" value={advancedSearch.identifierName} onChange={e => setAdvancedSearch({ ...advancedSearch, identifierName: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="פרטים" value={advancedSearch.details} onChange={e => setAdvancedSearch({ ...advancedSearch, details: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שם העורך" value={advancedSearch.editor} onChange={e => setAdvancedSearch({ ...advancedSearch, editor: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="מקום הוצאה" value={advancedSearch.publicationPlace} onChange={e => setAdvancedSearch({ ...advancedSearch, publicationPlace: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="השתייכות" value={advancedSearch.sector} onChange={e => setAdvancedSearch({ ...advancedSearch, sector: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שם גליון" value={advancedSearch.volumeTitle} onChange={e => setAdvancedSearch({ ...advancedSearch, volumeTitle: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="נושא ראשי" value={advancedSearch.mainTopic} onChange={e => setAdvancedSearch({ ...advancedSearch, mainTopic: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="יצא לרגל" value={advancedSearch.publishedFor} onChange={e => setAdvancedSearch({ ...advancedSearch, publishedFor: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="שנת הוצאה" value={advancedSearch.publicationYear} onChange={e => setAdvancedSearch({ ...advancedSearch, publicationYear: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="כותרת המאמר" value={advancedSearch.contentTitle} onChange={e => setAdvancedSearch({ ...advancedSearch, contentTitle: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="נושא כללי" value={advancedSearch.generalTopic} onChange={e => setAdvancedSearch({ ...advancedSearch, generalTopic: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                <input type="text" placeholder="מקור" value={advancedSearch.source} onChange={e => setAdvancedSearch({ ...advancedSearch, source: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
               </div>
             </div>
 
@@ -733,8 +741,8 @@ export default function LibraryApp() {
                                 handleResultClick({ originalSeries: item, volIndex: vIdx, type: 'volume' });
                               }}
                               className={`w-full text-right py-1.5 px-2.5 rounded-lg text-[11px] flex items-center justify-between transition-all duration-200 border ${isVolActive
-                                  ? 'bg-[#f0e0b8] border-[#d2b48c] text-[#3a2801] font-black shadow-sm'
-                                  : 'border-transparent text-gray-700 hover:bg-[#f7f3e8] hover:border-[#e3d3ad] hover:text-[#3a2801] hover:shadow-sm hover:translate-x-[-2px]'
+                                ? 'bg-[#f0e0b8] border-[#d2b48c] text-[#3a2801] font-black shadow-sm'
+                                : 'border-transparent text-gray-700 hover:bg-[#f7f3e8] hover:border-[#e3d3ad] hover:text-[#3a2801] hover:shadow-sm hover:translate-x-[-2px]'
                                 }`}
                             >
                               <span className="truncate">{v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`}</span>
