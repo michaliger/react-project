@@ -447,6 +447,8 @@ export default function App() {
     try {
       const dataToSave = {
         ...series,
+        editor: displayEditor,
+        enteredBy: series.enteredBy || loggedInUser.name || '',
         sector: (series.sector || '').trim()
       };
 
@@ -710,8 +712,7 @@ export default function App() {
                     <input value={series.userNotes} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, userNotes: e.target.value })} className={inputClass} />
                   </CompactField>
                   <CompactField label="הוזן ע״י" colSpan="col-span-2">
-                    <input value={series.enteredBy} disabled={isNotLoggedIn || (isViewer && !!editId)} onChange={e => setSeries({ ...series, enteredBy: e.target.value })} className={inputClass} />
-                  </CompactField>
+                    <input value={series.enteredBy || loggedInUser.name || ''} disabled className={`${inputClass} bg-slate-100 text-slate-500 font-semibold cursor-not-allowed`} />                  </CompactField>
                 </div>
                 <div className="col-span-2 flex items-center justify-center border-r pr-3">
                   <div onClick={() => { if (!(isNotLoggedIn || (isViewer && !!editId))) fileInputRef.current.click() }} className={`h-32 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-slate-50 overflow-hidden ${isNotLoggedIn || (isViewer && !!editId) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-100 transition-all'}`}>
