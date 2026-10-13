@@ -198,3 +198,9 @@ button:hover.text-indigo-600 svg {
 .max-h-\[85vh\] .overflow-y-auto {
   min-height: 0 !important;
 }
+/* רקע לבן מלא לכל החלונות הקופצים */
+div[style*="position: fixed"] > div {
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+}
