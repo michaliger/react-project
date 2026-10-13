@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { UploadCloud, FileSpreadsheet, ArrowRight, AlertTriangle, CheckCircle2, Database, X, AlertCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import api from '../api'; 
+import api from '../api';
 
 export default function AdminExcelUpload() {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export default function AdminExcelUpload() {
 
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [excelData, setExcelData] = useState(null); 
+  const [excelData, setExcelData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [error, setError] = useState(null);
@@ -32,7 +32,7 @@ export default function AdminExcelUpload() {
   const handleFileUpload = (uploadedFile) => {
     setError(null);
     if (!uploadedFile) return;
-    
+
     if (!uploadedFile.name.match(/\.(xlsx|xls|csv)$/)) {
       setError('נא להעלות קובץ אקסל תקין (.xlsx, .xls)');
       return;
@@ -45,14 +45,14 @@ export default function AdminExcelUpload() {
       try {
         const data = e.target.result;
         const workbook = XLSX.read(data, { type: 'binary' });
-        
+
         const allSheetsData = {};
-        
+
         workbook.SheetNames.forEach((sheetName) => {
           const worksheet = workbook.Sheets[sheetName];
           allSheetsData[sheetName] = XLSX.utils.sheet_to_json(worksheet);
         });
-        
+
         setExcelData(allSheetsData);
         setPreviewMode(true);
       } catch (err) {
@@ -64,7 +64,7 @@ export default function AdminExcelUpload() {
   };
 
   const handleProcessData = async () => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          if (!excelData) {
+    if (!excelData) {
       setError("לא נמצאו נתונים לעיבוד בקובץ.");
       return;
     }
@@ -88,7 +88,7 @@ export default function AdminExcelUpload() {
 
       // שליפת הנתונים של הסדרה מהשורה הראשונה של הכותר
       const headerRow = headerSheet[0];
-      
+
       const seriesPayload = {
         seriesData: {
           prefixName: headerRow['אופי הכותר']?.toString().trim() || 'קובץ',  // ✅ אופי הכותר!
@@ -149,7 +149,7 @@ export default function AdminExcelUpload() {
 
         // חילוץ שם המאמר
         const articleTitle = row['כותרת המאמר']?.toString().trim() || row['כותרת']?.toString().trim() || 'ללא כותרת';
-        
+
         // בנייה של עצם המאמר עם כל השדות הנכונים
         const articleObj = {
           contentTitle: articleTitle,
@@ -181,12 +181,12 @@ export default function AdminExcelUpload() {
 
       // שליחה לראוט הייבוא המשולב בשרת
       const response = await api.post('/series/save-full-catalog', formData);
-      
+
       // הצגת הודעת הצלחה
       setPreviewMode(false);
       setFile(null);
       setExcelData(null);
-      
+
       setTimeout(() => {
         navigate('/series');
       }, 2000);
@@ -243,7 +243,7 @@ export default function AdminExcelUpload() {
         </div>
 
         {/* הודעת שגיאה */}
-        {error && (
+        {error && !previewMode && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
             <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
             <div>
@@ -266,9 +266,8 @@ export default function AdminExcelUpload() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
-                isDragging ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'
-              }`}
+              className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${isDragging ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'
+                }`}
             >
               {file ? (
                 <div className="flex flex-col items-center">
@@ -429,6 +428,24 @@ export default function AdminExcelUpload() {
                 <Database size={20} />
                 {isProcessing ? 'מעבד ומעלה...' : 'בצע ייבוא לספריה'}
               </button>
+              {error && (
+                <div
+                  className="rounded-lg p-4 flex items-start gap-3"
+                  style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5' }}
+                >
+                  <AlertCircle size={20} color="#dc2626" className="flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-bold" style={{ color: '#991b1b' }}>הייבוא נכשל</h3>
+                    <p className="text-sm" style={{ color: '#b91c1c' }}>{error}</p>
+                  </div>
+                  <button
+                    onClick={() => setError(null)}
+                    style={{ backgroundColor: 'transparent', border: 'none', color: '#dc2626' }}
+                  >
+                    <X size={18} color="#dc2626" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
