@@ -519,13 +519,20 @@ export default function LibraryApp() {
       {showAdvancedSearch && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99998, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200 border border-slate-200">
-            <div className="bg-[#4a3402] text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
-              <h3 className="text-lg font-black flex items-center gap-2">
-                <Search size={20} className="text-white" />
+            <div
+              className="px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md"
+              style={{ backgroundColor: '#755303', color: '#ffffff' }}
+            >
+              <h3 className="text-lg font-black flex items-center gap-2" style={{ color: '#ffffff' }}>
+                <Search size={20} color="#ffffff" />
                 חיפוש מתקדם
               </h3>
-              <button onClick={() => setShowAdvancedSearch(false)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors">
-                <X size={20} />
+              <button
+                onClick={() => setShowAdvancedSearch(false)}
+                className="p-1.5 rounded-full transition-colors hover:bg-white/10"
+                style={{ backgroundColor: 'transparent', color: '#ffffff', border: 'none' }}
+              >
+                <X size={20} color="#ffffff" />
               </button>
             </div>
 
@@ -562,8 +569,10 @@ export default function LibraryApp() {
 
       {deleteModal.show && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="bg-[#faf6f0] rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4">
-            <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div
+            className="rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4"
+            style={{ backgroundColor: '#ffffff', opacity: 1 }}
+          >            <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 size={32} className="text-red-600" />
             </div>
             <h3 className="text-xl font-black text-gray-900 mb-2">אזהרת מחיקה!</h3>
