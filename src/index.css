@@ -148,3 +148,37 @@ button:hover.text-indigo-600 svg {
 .custom-btn-style:hover svg {
   color: #755303 !important;
 }
+/* ===== חלונות קופצים ===== */
+.modal-box {
+  background-color: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 90vh !important;
+  overflow: hidden !important;
+}
+
+.modal-header {
+  background-color: #755303 !important;
+  color: #ffffff !important;
+}
+.modal-header * {
+  color: #ffffff !important;
+}
+.modal-header button {
+  background-color: transparent !important;
+  border: none !important;
+}
+.modal-header button:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.modal-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  background-color: #f8fafc !important;
+}
+
+.modal-bg {
+  background-color: #ffffff !important;
+}

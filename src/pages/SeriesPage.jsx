@@ -429,97 +429,95 @@ export default function LibraryApp() {
 
       {infoModal.show && infoModal.data && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200 border border-slate-200">
-            <div className="bg-slate-900 text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
-              <h3 className="text-lg font-black flex items-center gap-2">
-                <Info size={20} className="text-white" />
-                פרטי {infoModal.type === 'series' ? 'קובץ' : infoModal.type === 'volume' ? 'גליון' : 'מאמר'} מלאים
-              </h3>
+          <div className="modal-box rounded-xl shadow-2xl w-full max-w-3xl m-4 relative border border-slate-200">
+            <div className="modal-header px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">            <h3 className="text-lg font-black flex items-center gap-2">
+              <Info size={20} className="text-white" />
+              פרטי {infoModal.type === 'series' ? 'קובץ' : infoModal.type === 'volume' ? 'גליון' : 'מאמר'} מלאים
+            </h3>
               <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="hover:bg-white/10 p-1.5 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-                {infoModal.type === 'series' ? (
-                  <>
-                    {renderInfoRow("אופי הכותר", infoModal.data.prefixName)}
-                    {renderInfoRow("שם הכותר", infoModal.data.fileName)}
-                    {renderInfoRow("שם מזהה", infoModal.data.identifierName)}
-                    {renderInfoRow("פרטים", infoModal.data.details)}
-                    {renderInfoRow("שם העורך", infoModal.data.editor)}
-                    {renderInfoRow("מקום הוצאה", infoModal.data.publicationPlace)}
-                    {renderInfoRow("השתייכות", infoModal.data.sector)}
-                    {renderInfoRow("סטטוס", infoModal.data.catalogStatus)}
-                    {renderInfoRow("גליונות חסרים", infoModal.data.missingVolumesList)}
-                    {renderInfoRow("הערות מנהל", infoModal.data.userNotes)}
-                    {renderInfoRow("הוזן ע״י", infoModal.data.enteredBy)}
-                  </>
-                ) : infoModal.type === 'volume' ? (
+            <div className="modal-body p-5 custom-scrollbar">
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 grid grid-cols-2 gap-x-8">                {infoModal.type === 'series' ? (
+                <>
+                  {renderInfoRow("אופי הכותר", infoModal.data.prefixName)}
+                  {renderInfoRow("שם הכותר", infoModal.data.fileName)}
+                  {renderInfoRow("שם מזהה", infoModal.data.identifierName)}
+                  {renderInfoRow("פרטים", infoModal.data.details)}
+                  {renderInfoRow("שם העורך", infoModal.data.editor)}
+                  {renderInfoRow("מקום הוצאה", infoModal.data.publicationPlace)}
+                  {renderInfoRow("השתייכות", infoModal.data.sector)}
+                  {renderInfoRow("סטטוס", infoModal.data.catalogStatus)}
+                  {renderInfoRow("גליונות חסרים", infoModal.data.missingVolumesList)}
+                  {renderInfoRow("הערות מנהל", infoModal.data.userNotes)}
+                  {renderInfoRow("הוזן ע״י", infoModal.data.enteredBy)}
+                </>
+              ) : infoModal.type === 'volume' ? (
 
-                  <>
-                    {renderInfoRow("שם הגליון / כותרת", infoModal.data.volumeTitle || infoModal.data.title)}
-                    {renderInfoRow("מספר הגליון", infoModal.data.volumeNumber)}
-                    {renderInfoRow("חוברת", infoModal.data.booklet)}
-                    {renderInfoRow("נושא ראשי", infoModal.data.mainTopic)}
-                    {renderInfoRow("יצא לרגל", infoModal.data.publishedFor)}
-                    {renderInfoRow("שנת הוצאה", infoModal.data.publicationYear)}
-                    {renderInfoRow("תקופה", infoModal.data.publicationPeriod)}
-                    {renderInfoRow("סוג כריכה", infoModal.data.coverType)}
-                    {renderInfoRow("גודל", infoModal.data.volumeSize)}
-                    {renderInfoRow("שלמות קובץ", infoModal.data.fileCompleteness)}
-                    {renderInfoRow("שלמות סריקה", infoModal.data.scanCompleteness)}
-                    {renderInfoRow("סטטוס קטלוג", infoModal.data.articlesCatalogStatus)}
-                    {renderInfoRow("קובץ PDF מחובר", infoModal.data.pdfFileName || (infoModal.data.pdfPath ? "קיים במערכת" : "לא צורף"))}
-                  </>
-                ) : (
-                  <>
-                    {renderInfoRow("כותרת המאמר", infoModal.data.contentTitle || infoModal.data.title)}
-                    {renderInfoRow("מחברים", formatAuthors(infoModal.data.authors))}
-                    {renderInfoRow("נושא כללי", infoModal.data.generalTopic)}
-                    {renderInfoRow("עמוד התחלה", infoModal.data.startPage || infoModal.data.page)}
-                    {renderInfoRow("מקור", infoModal.data.source)}
-                    {renderInfoRow("הסבר קישור", infoModal.data.linkExplanation)}
+                <>
+                  {renderInfoRow("שם הגליון / כותרת", infoModal.data.volumeTitle || infoModal.data.title)}
+                  {renderInfoRow("מספר הגליון", infoModal.data.volumeNumber)}
+                  {renderInfoRow("חוברת", infoModal.data.booklet)}
+                  {renderInfoRow("נושא ראשי", infoModal.data.mainTopic)}
+                  {renderInfoRow("יצא לרגל", infoModal.data.publishedFor)}
+                  {renderInfoRow("שנת הוצאה", infoModal.data.publicationYear)}
+                  {renderInfoRow("תקופה", infoModal.data.publicationPeriod)}
+                  {renderInfoRow("סוג כריכה", infoModal.data.coverType)}
+                  {renderInfoRow("גודל", infoModal.data.volumeSize)}
+                  {renderInfoRow("שלמות קובץ", infoModal.data.fileCompleteness)}
+                  {renderInfoRow("שלמות סריקה", infoModal.data.scanCompleteness)}
+                  {renderInfoRow("סטטוס קטלוג", infoModal.data.articlesCatalogStatus)}
+                  {renderInfoRow("קובץ PDF מחובר", infoModal.data.pdfFileName || (infoModal.data.pdfPath ? "קיים במערכת" : "לא צורף"))}
+                </>
+              ) : (
+                <>
+                  {renderInfoRow("כותרת המאמר", infoModal.data.contentTitle || infoModal.data.title)}
+                  {renderInfoRow("מחברים", formatAuthors(infoModal.data.authors))}
+                  {renderInfoRow("נושא כללי", infoModal.data.generalTopic)}
+                  {renderInfoRow("עמוד התחלה", infoModal.data.startPage || infoModal.data.page)}
+                  {renderInfoRow("מקור", infoModal.data.source)}
+                  {renderInfoRow("הסבר קישור", infoModal.data.linkExplanation)}
 
-                    {infoModal.data.linkedArticleId && (
-                      <div className="flex flex-col border-b border-gray-100 py-2 last:border-0">
-                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">מאמר מקושר בספרייה</span>
-                        <button
-                          onClick={() => {
-                            let found = false;
-                            for (let i = 0; i < allSeries.length; i++) {
-                              const s = allSeries[i];
-                              if (s.volumes) {
-                                for (let j = 0; j < s.volumes.length; j++) {
-                                  const v = s.volumes[j];
-                                  if (v.articles) {
-                                    const a = v.articles.find(art => (art._id || art.id) === infoModal.data.linkedArticleId);
-                                    if (a) {
-                                      setSelectedSeries(s);
-                                      setActiveVolIdx(j);
-                                      setActiveArticleId(a._id || a.id);
-                                      setInfoModal({ show: false, type: '', data: null });
-                                      found = true;
-                                      break;
-                                    }
+                  {infoModal.data.linkedArticleId && (
+                    <div className="flex flex-col border-b border-gray-100 py-2 last:border-0">
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">מאמר מקושר בספרייה</span>
+                      <button
+                        onClick={() => {
+                          let found = false;
+                          for (let i = 0; i < allSeries.length; i++) {
+                            const s = allSeries[i];
+                            if (s.volumes) {
+                              for (let j = 0; j < s.volumes.length; j++) {
+                                const v = s.volumes[j];
+                                if (v.articles) {
+                                  const a = v.articles.find(art => (art._id || art.id) === infoModal.data.linkedArticleId);
+                                  if (a) {
+                                    setSelectedSeries(s);
+                                    setActiveVolIdx(j);
+                                    setActiveArticleId(a._id || a.id);
+                                    setInfoModal({ show: false, type: '', data: null });
+                                    found = true;
+                                    break;
                                   }
                                 }
                               }
-                              if (found) break;
                             }
-                            if (!found) alert('המאמר המקושר לא נמצא בספרייה כרגע.');
-                          }}
-                          className="text-[13px] text-[#755303] font-bold hover:text-[#5c4102] hover:underline text-right w-fit flex items-center gap-1.5 mt-0.5 transition-colors"
-                        >
-                          <Link2 size={14} className="text-white" />
-                          {getLinkedArticleName(infoModal.data.linkedArticleId)}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )
-                }
+                            if (found) break;
+                          }
+                          if (!found) alert('המאמר המקושר לא נמצא בספרייה כרגע.');
+                        }}
+                        className="text-[13px] text-[#755303] font-bold hover:text-[#5c4102] hover:underline text-right w-fit flex items-center gap-1.5 mt-0.5 transition-colors"
+                      >
+                        <Link2 size={14} className="text-white" />
+                        {getLinkedArticleName(infoModal.data.linkedArticleId)}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )
+              }
               </div>
             </div>
 
@@ -534,10 +532,10 @@ export default function LibraryApp() {
 
       {showAdvancedSearch && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99998, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200 border border-slate-200">
+          <div className="modal-box rounded-xl shadow-2xl w-full max-w-2xl m-4 relative border border-slate-200">
             <div
               className="px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md"
-              style={{ backgroundColor: '#755303', color: '#ffffff' }}
+              style={{ backgroundColor: '#4a3402', color: '#ffffff' }}
             >
               <h3 className="text-lg font-black flex items-center gap-2" style={{ color: '#ffffff' }}>
                 <Search size={20} color="#ffffff" />
@@ -585,12 +583,9 @@ export default function LibraryApp() {
 
       {deleteModal.show && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div
-            className="rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4"
-            style={{ backgroundColor: '#ffffff', opacity: 1 }}
-          >            <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={32} className="text-red-600" />
-            </div>
+          <div className="modal-bg rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4">           <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trash2 size={32} className="text-red-600" />
+          </div>
             <h3 className="text-xl font-black text-gray-900 mb-2">אזהרת מחיקה!</h3>
             <p className="text-gray-700 mb-6 text-[15px]">
               האם אתה בטוח שברצונך למחוק לחלוטין את הקובץ:<br />
