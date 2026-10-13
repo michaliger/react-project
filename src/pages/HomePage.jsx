@@ -3,10 +3,10 @@ import { UserCircle, LogOut } from 'lucide-react';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  
+
   // חילוץ כתובת השרת מתוך משתני הסביבה או כתובת הדיפולט
   const API_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api';
-  
+
   // הסרת ה-'/api' מסוף הכתובת כדי לקבל את כתובת השורש של השרת שבו נמצאת תיקיית ה-uploads
   const SERVER_BASE_URL = API_URL.replace('/api', '');
 
@@ -18,18 +18,18 @@ export default function HomePage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.reload(); 
+    window.location.reload();
   };
 
   return (
     <>
       {/* Container ראשי שעוטף הכל בגובה המסך בדיוק */}
       <section className="relative h-screen w-full overflow-hidden" dir="rtl">
-        
+
         {/* תמונת רקע דינמית מהשרת */}
         <img
-          src={`${SERVER_BASE_URL}/uploads/books.jpg`}
-          alt="רקע"
+          src="./public/books.webp"
+          alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-black/60" />
@@ -46,8 +46,8 @@ export default function HomePage() {
                     <span className="text-[10px] px-2 py-0.5 rounded font-bold ml-1 bg-indigo-700 text-white">מנהל</span>
                   )}
                 </div>
-                <button 
-                  onClick={handleLogout} 
+                <button
+                  onClick={handleLogout}
                   className="px-5 py-2.5 text-sm md:text-base font-medium rounded-full backdrop-blur-md transition-all shadow-lg flex items-center gap-1.5 text-indigo-600 bg-indigo-50"
                 >
                   <LogOut size={16} /> התנתקות
@@ -68,7 +68,7 @@ export default function HomePage() {
 
         {/* כיתוב ראשי וכפתור כניסה */}
         <div className="relative h-full flex flex-col items-center justify-center text-center px-6 z-20">
-          
+
           <div className="animate-fadeIn mb-10">
             <h1
               className="text-6xl md:text-7xl lg:text-9xl font-black text-white drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] leading-tight"
