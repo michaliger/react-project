@@ -433,7 +433,7 @@ export default function LibraryApp() {
             <div className="bg-slate-900 text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
               <h3 className="text-lg font-black flex items-center gap-2">
                 <Info size={20} className="text-white" />
-                פרטי {infoModal.type === 'volume' ? 'גליון' : 'מאמר'} מלאים
+                פרטי {infoModal.type === 'series' ? 'קובץ' : infoModal.type === 'volume' ? 'גליון' : 'מאמר'} מלאים
               </h3>
               <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="hover:bg-white/10 p-1.5 rounded-full transition-colors">
                 <X size={20} />
@@ -442,7 +442,22 @@ export default function LibraryApp() {
 
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
               <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-                {infoModal.type === 'volume' ? (
+                {infoModal.type === 'series' ? (
+                  <>
+                    {renderInfoRow("אופי הכותר", infoModal.data.prefixName)}
+                    {renderInfoRow("שם הכותר", infoModal.data.fileName)}
+                    {renderInfoRow("שם מזהה", infoModal.data.identifierName)}
+                    {renderInfoRow("פרטים", infoModal.data.details)}
+                    {renderInfoRow("שם העורך", infoModal.data.editor)}
+                    {renderInfoRow("מקום הוצאה", infoModal.data.publicationPlace)}
+                    {renderInfoRow("השתייכות", infoModal.data.sector)}
+                    {renderInfoRow("סטטוס", infoModal.data.catalogStatus)}
+                    {renderInfoRow("גליונות חסרים", infoModal.data.missingVolumesList)}
+                    {renderInfoRow("הערות מנהל", infoModal.data.userNotes)}
+                    {renderInfoRow("הוזן ע״י", infoModal.data.enteredBy)}
+                  </>
+                ) : infoModal.type === 'volume' ? (
+
                   <>
                     {renderInfoRow("שם הגליון / כותרת", infoModal.data.volumeTitle || infoModal.data.title)}
                     {renderInfoRow("מספר הגליון", infoModal.data.volumeNumber)}
@@ -503,7 +518,8 @@ export default function LibraryApp() {
                       </div>
                     )}
                   </>
-                )}
+                )
+                }
               </div>
             </div>
 
@@ -701,7 +717,7 @@ export default function LibraryApp() {
                     {/* שורת הסדרה הניתנת ללחיצה */}
                     <div
                       onClick={() => handleResultClick({ ...item, volIndex: 0 })}
-                      className={`w-full flex items-center justify-between p-2 transition-all duration-200 cursor-pointer ${isActiveSeries ? 'bg-[#f7f3e8]/80 border-r-4 border-r-[#755303] hover:bg-[#efe6d1] hover:shadow-md' : 'border-r-4 border-r-transparent hover:bg-gradient-to-l hover:from-[#f7f3e8] hover:to-white hover:border-r-[#d2b48c] hover:shadow-md'}`}
+                      className={`group w-full flex items-center justify-between p-2 transition-all duration-200 cursor-pointer ${isActiveSeries ? 'bg-[#f7f3e8]/80 border-r-4 border-r-[#755303] hover:bg-[#efe6d1] hover:shadow-md' : 'border-r-4 border-r-transparent hover:bg-gradient-to-l hover:from-[#f7f3e8] hover:to-white hover:border-r-[#d2b48c] hover:shadow-md'}`}
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <div className="w-5 h-7 bg-white rounded border border-slate-200 shrink-0 overflow-hidden shadow-sm transition-transform hover:scale-110">
@@ -722,6 +738,13 @@ export default function LibraryApp() {
                           </h3>
                         </div>
                       </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'series', data: item }); }}
+                        className="p-1 text-gray-300 hover:text-[#755303] opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                        title="פרטי קובץ"
+                      >
+                        <Info size={13} />
+                      </button>
 
                       {/* מספר הגליונות + כפתור פתיחה/סגירה מהירה */}
                       {item.volumes && item.volumes.length > 0 && (
@@ -749,14 +772,24 @@ export default function LibraryApp() {
                                 e.stopPropagation();
                                 handleResultClick({ originalSeries: item, volIndex: vIdx, type: 'volume' });
                               }}
-                              className={`w-full text-right py-1.5 px-2.5 rounded-lg text-[11px] flex items-center justify-between transition-all duration-200 border ${isVolActive
+                              className={`group w-full text-right py-1.5 px-2.5 rounded-lg text-[11px] flex items-center justify-between transition-all duration-200 border ${isVolActive
                                 ? 'bg-[#f0e0b8] border-[#d2b48c] text-[#3a2801] font-black shadow-sm'
                                 : 'border-transparent text-gray-700 hover:bg-[#f7f3e8] hover:border-[#e3d3ad] hover:text-[#3a2801] hover:shadow-sm hover:translate-x-[-2px]'
                                 }`}
                             >
                               <span className="truncate">{v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`}</span>
-                              <span className={`text-[9px] font-bold ${isVolActive ? 'text-[#5c4102]' : 'text-gray-400'}`}>
-                                {v.articles?.length || 0}
+                              <span className="flex items-center gap-1.5 shrink-0">
+                                <span
+                                  role="button"
+                                  title="פרטי גליון"
+                                  onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'volume', data: v }); }}
+                                  className="text-gray-300 hover:text-[#755303] opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                                >
+                                  <Info size={13} />
+                                </span>
+                                <span className={`text-[9px] font-bold ${isVolActive ? 'text-[#5c4102]' : 'text-gray-400'}`}>
+                                  {v.articles?.length || 0}
+                                </span>
                               </span>
                             </button>
                           );
