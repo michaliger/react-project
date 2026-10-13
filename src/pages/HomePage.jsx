@@ -28,7 +28,7 @@ export default function HomePage() {
 
         {/* תמונת רקע דינמית מהשרת */}
         <img
-          src="./public/books.webp"
+          src="/books.webp"
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
