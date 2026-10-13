@@ -148,37 +148,53 @@ button:hover.text-indigo-600 svg {
 .custom-btn-style:hover svg {
   color: #755303 !important;
 }
-/* ===== חלונות קופצים ===== */
-.modal-box {
-  background-color: #ffffff !important;
-  display: flex !important;
-  flex-direction: column !important;
-  max-height: 90vh !important;
-  overflow: hidden !important;
-}
+/* ===== חלונות קופצים - צבע חום #755303 ===== */
 
-.modal-header {
+/* הפס העליון של כל החלונות (פרטים, חיפוש מתקדם) */
+.rounded-t-xl.shrink-0.shadow-md {
   background-color: #755303 !important;
   color: #ffffff !important;
 }
-.modal-header * {
+.rounded-t-xl.shrink-0.shadow-md h3,
+.rounded-t-xl.shrink-0.shadow-md svg {
   color: #ffffff !important;
 }
-.modal-header button {
+.rounded-t-xl.shrink-0.shadow-md button {
   background-color: transparent !important;
   border: none !important;
+  color: #ffffff !important;
 }
-.modal-header button:hover {
+.rounded-t-xl.shrink-0.shadow-md button:hover {
   background-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-.modal-body {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow-y: auto !important;
-  background-color: #f8fafc !important;
+/* רקע לבן לחלון מחיקת סדרה */
+.border-red-500.rounded-xl.shadow-2xl {
+  background-color: #ffffff !important;
 }
 
-.modal-bg {
+/* חלון הפרטים: רחב יותר, שתי עמודות, ולא נחתך */
+.max-h-\[80vh\].flex-col {
+  max-width: 48rem !important;
+  max-height: 90vh !important;
+  overflow: hidden !important;
   background-color: #ffffff !important;
+}
+.max-h-\[80vh\] .overflow-y-auto {
+  min-height: 0 !important;
+}
+.max-h-\[80vh\] .p-4.rounded-lg.shadow-sm {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  column-gap: 2rem !important;
+}
+
+/* חלון החיפוש המתקדם: לא נחתך */
+.max-h-\[85vh\].flex-col {
+  max-height: 90vh !important;
+  overflow: hidden !important;
+  background-color: #ffffff !important;
+}
+.max-h-\[85vh\] .overflow-y-auto {
+  min-height: 0 !important;
 }
