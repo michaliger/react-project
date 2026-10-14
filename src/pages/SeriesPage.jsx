@@ -183,789 +183,791 @@ export default function LibraryApp() {
     };
   }, [allSeries]);
 
-  const fetchSeries = () => {
-    setLoading(true);
-    api.get('/series')
-      .then(res => {
-        const seriesArray = res.data?.data?.series || [];
-        setAllSeries(seriesArray);
-        if (seriesArray.length > 0 && !selectedSeries) {
-          setSelectedSeries(seriesArray[0]);
-          // פתיחת הסדרה הראשונה כברירת מחדל
-          if (seriesArray[0]._id) {
-            setExpandedSeries(prev => ({ ...prev, [seriesArray[0]._id]: true }));
+    const fetchSeries = () => {
+      setLoading(true);
+      const request = window.__seriesPromise || api.get('/series');
+      window.__seriesPromise = null;
+      request
+        .then(res => {
+          const seriesArray = res.data?.data?.series || [];
+          setAllSeries(seriesArray);
+          if (seriesArray.length > 0 && !selectedSeries) {
+            setSelectedSeries(seriesArray[0]);
+            // פתיחת הסדרה הראשונה כברירת מחדל
+            if (seriesArray[0]._id) {
+              setExpandedSeries(prev => ({ ...prev, [seriesArray[0]._id]: true }));
+            }
           }
-        }
-        setLoading(false);
-      }).catch(err => {
-        console.error("Error fetching series:", err);
-        setLoading(false);
-      });
-  };
+          setLoading(false);
+        }).catch(err => {
+          console.error("Error fetching series:", err);
+          setLoading(false);
+        });
+    };
 
-  useEffect(() => {
-    fetchSeries();
-  }, []);
+    useEffect(() => {
+      fetchSeries();
+    }, []);
 
-  useEffect(() => {
-    if (activeArticleId) {
-      setTimeout(() => {
-        const el = document.getElementById(`art-${activeArticleId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
-    }
-  }, [activeArticleId, activeVolIdx]);
-
-  const confirmDelete = (series) => {
-    setDeleteModal({
-      show: true,
-      seriesId: series._id,
-      seriesName: `${series.prefixName || ''} ${series.fileName || ''}`.trim()
-    });
-  };
-
-  const executeDelete = async () => {
-    const id = deleteModal.seriesId;
-    if (!id) return;
-
-    try {
-      await api.delete(`/series/id/${id}`);
-      setAllSeries(prev => prev.filter(s => s._id !== id));
-      setSelectedSeries(null);
-      setDeleteModal({ show: false, seriesId: null, seriesName: '' });
-    } catch (err) {
-      alert("שגיאה במחיקת הקובץ. ודאי שהשרת פועל ויש לך הרשאות מתאימות.");
-      setDeleteModal({ show: false, seriesId: null, seriesName: '' });
-    }
-  };
-
-  const handleLogout = () => {
-    dispatch(logoutUser());
-    window.location.reload();
-  };
-
-  const performAdvancedSearch = () => {
-    const searchArray = Object.values(advancedSearch).filter(val => val.toString().trim() !== '');
-    if (searchArray.length === 0) {
-      setSearchTerm('');
-    } else {
-      setSearchTerm(searchArray.join(' '));
-    }
-    setShowAdvancedSearch(false);
-  };
-
-  const clearAdvancedSearch = () => {
-    setAdvancedSearch({
-      prefixName: '',
-      fileName: '',
-      identifierName: '',
-      details: '',
-      editor: '',
-      publicationPlace: '',
-      sector: '',
-      volumeTitle: '',
-      mainTopic: '',
-      publishedFor: '',
-      publicationYear: '',
-      contentTitle: '',
-      generalTopic: '',
-      source: ''
-    });
-    setSearchTerm('');
-  };
-
-  const filteredData = useMemo(() => {
-    let resultList = [];
-
-    if (activeTab === 'series') {
-      resultList = allSeries.filter(s =>
-        isSmartMatch([s.prefixName, s.fileName, s.identifierName, s.details, s.editor, s.publicationPlace, s.sector, s.adminNotes, s.missingVolumesList, s.catalogStatus, s.enteredBy], searchTerm)
-      ).map(s => ({ ...s, type: 'series' }));
-
-    } else if (activeTab === 'volume') {
-      allSeries.forEach(s => {
-        if (s.volumes && s.volumes.length > 0) {
-          s.volumes.forEach((v, vIdx) => {
-            const volTitle = v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`;
-            if (isSmartMatch([volTitle, v.volumeNumber, v.booklet, v.mainTopic, v.publishedFor, v.publicationYear, v.publicationPeriod, v.coverType, v.volumeSize, v.fileCompleteness, v.scanCompleteness, v.articlesCatalogStatus], searchTerm)) {
-              resultList.push({ ...v, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, originalSeries: s, volIndex: vIdx, type: 'volume' });
-            }
-          });
-        }
-      });
-
-    } else if (activeTab === 'article') {
-      allSeries.forEach(s => {
-        if (s.volumes && s.volumes.length > 0) {
-          s.volumes.forEach((v, vIdx) => {
-            if (v.articles && v.articles.length > 0) {
-              v.articles.forEach(art => {
-                const artTitle = art.contentTitle || art.title || '';
-                const authorNames = art.authors ? art.authors.map(a => `${a.titlePrefix || ''} ${a.firstName || ''} ${a.lastName || ''} ${a.role || ''}`).join(' ') : '';
-                if (isSmartMatch([artTitle, authorNames, art.generalTopic, art.source, art.startPage, art.page, art.linkExplanation], searchTerm)) {
-                  resultList.push({ ...art, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, volTitle: v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`, originalSeries: s, volIndex: vIdx, type: 'article' });
-                }
-              });
-            }
-          });
-        }
-      });
-    }
-
-    if (activeTab === 'series') {
-      if (filters.place) resultList = resultList.filter(item => item.publicationPlace === filters.place);
-      if (filters.sector) resultList = resultList.filter(item => item.sector === filters.sector);
-    }
-
-    if (activeTab === 'volume' || activeTab === 'article') {
-      if (filters.topic) {
-        if (activeTab === 'volume') resultList = resultList.filter(item => item.mainTopic === filters.topic);
-        if (activeTab === 'article') resultList = resultList.filter(item => item.generalTopic === filters.topic);
+    useEffect(() => {
+      if (activeArticleId) {
+        setTimeout(() => {
+          const el = document.getElementById(`art-${activeArticleId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
       }
+    }, [activeArticleId, activeVolIdx]);
 
-      if (filters.yearFrom || filters.yearTo) {
-        const fromVal = filters.yearFrom ? getYearValue(filters.yearFrom) : 0;
-        const toVal = filters.yearTo ? getYearValue(filters.yearTo) : Infinity;
+    const confirmDelete = (series) => {
+      setDeleteModal({
+        show: true,
+        seriesId: series._id,
+        seriesName: `${series.prefixName || ''} ${series.fileName || ''}`.trim()
+      });
+    };
 
-        resultList = resultList.filter(item => {
-          let yStr = '';
-          if (item.type === 'volume') yStr = item.publicationYear;
-          if (item.type === 'article') yStr = item.originalSeries?.volumes?.[item.volIndex]?.publicationYear;
+    const executeDelete = async () => {
+      const id = deleteModal.seriesId;
+      if (!id) return;
 
-          if (!yStr) return false;
-          const yVal = getYearValue(yStr);
-          return yVal >= fromVal && yVal <= toVal;
+      try {
+        await api.delete(`/series/id/${id}`);
+        setAllSeries(prev => prev.filter(s => s._id !== id));
+        setSelectedSeries(null);
+        setDeleteModal({ show: false, seriesId: null, seriesName: '' });
+      } catch (err) {
+        alert("שגיאה במחיקת הקובץ. ודאי שהשרת פועל ויש לך הרשאות מתאימות.");
+        setDeleteModal({ show: false, seriesId: null, seriesName: '' });
+      }
+    };
+
+    const handleLogout = () => {
+      dispatch(logoutUser());
+      window.location.reload();
+    };
+
+    const performAdvancedSearch = () => {
+      const searchArray = Object.values(advancedSearch).filter(val => val.toString().trim() !== '');
+      if (searchArray.length === 0) {
+        setSearchTerm('');
+      } else {
+        setSearchTerm(searchArray.join(' '));
+      }
+      setShowAdvancedSearch(false);
+    };
+
+    const clearAdvancedSearch = () => {
+      setAdvancedSearch({
+        prefixName: '',
+        fileName: '',
+        identifierName: '',
+        details: '',
+        editor: '',
+        publicationPlace: '',
+        sector: '',
+        volumeTitle: '',
+        mainTopic: '',
+        publishedFor: '',
+        publicationYear: '',
+        contentTitle: '',
+        generalTopic: '',
+        source: ''
+      });
+      setSearchTerm('');
+    };
+
+    const filteredData = useMemo(() => {
+      let resultList = [];
+
+      if (activeTab === 'series') {
+        resultList = allSeries.filter(s =>
+          isSmartMatch([s.prefixName, s.fileName, s.identifierName, s.details, s.editor, s.publicationPlace, s.sector, s.adminNotes, s.missingVolumesList, s.catalogStatus, s.enteredBy], searchTerm)
+        ).map(s => ({ ...s, type: 'series' }));
+
+      } else if (activeTab === 'volume') {
+        allSeries.forEach(s => {
+          if (s.volumes && s.volumes.length > 0) {
+            s.volumes.forEach((v, vIdx) => {
+              const volTitle = v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`;
+              if (isSmartMatch([volTitle, v.volumeNumber, v.booklet, v.mainTopic, v.publishedFor, v.publicationYear, v.publicationPeriod, v.coverType, v.volumeSize, v.fileCompleteness, v.scanCompleteness, v.articlesCatalogStatus], searchTerm)) {
+                resultList.push({ ...v, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, originalSeries: s, volIndex: vIdx, type: 'volume' });
+              }
+            });
+          }
+        });
+
+      } else if (activeTab === 'article') {
+        allSeries.forEach(s => {
+          if (s.volumes && s.volumes.length > 0) {
+            s.volumes.forEach((v, vIdx) => {
+              if (v.articles && v.articles.length > 0) {
+                v.articles.forEach(art => {
+                  const artTitle = art.contentTitle || art.title || '';
+                  const authorNames = art.authors ? art.authors.map(a => `${a.titlePrefix || ''} ${a.firstName || ''} ${a.lastName || ''} ${a.role || ''}`).join(' ') : '';
+                  if (isSmartMatch([artTitle, authorNames, art.generalTopic, art.source, art.startPage, art.page, art.linkExplanation], searchTerm)) {
+                    resultList.push({ ...art, seriesId: s._id, seriesName: `${s.prefixName || ''} ${s.fileName || ''}`, volTitle: v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`, originalSeries: s, volIndex: vIdx, type: 'article' });
+                  }
+                });
+              }
+            });
+          }
         });
       }
-    }
 
-    return resultList;
-  }, [searchTerm, filters, allSeries, activeTab]);
+      if (activeTab === 'series') {
+        if (filters.place) resultList = resultList.filter(item => item.publicationPlace === filters.place);
+        if (filters.sector) resultList = resultList.filter(item => item.sector === filters.sector);
+      }
 
-  const handleResultClick = (item) => {
-    setSelectedSeries(item.originalSeries || item);
-    setActiveVolIdx(item.volIndex || 0);
-    if (item.type === 'article') {
-      setActiveArticleId(item._id || item.id);
-    } else {
-      setActiveArticleId(null);
-    }
+      if (activeTab === 'volume' || activeTab === 'article') {
+        if (filters.topic) {
+          if (activeTab === 'volume') resultList = resultList.filter(item => item.mainTopic === filters.topic);
+          if (activeTab === 'article') resultList = resultList.filter(item => item.generalTopic === filters.topic);
+        }
 
-    // פתיחה אוטומטית של האקורדיון של הסדרה שנבחרה
-    const targetSeriesId = item.originalSeries?._id || item._id;
-    if (targetSeriesId) {
-      setExpandedSeries(prev => ({ ...prev, [targetSeriesId]: true }));
-    }
-  };
+        if (filters.yearFrom || filters.yearTo) {
+          const fromVal = filters.yearFrom ? getYearValue(filters.yearFrom) : 0;
+          const toVal = filters.yearTo ? getYearValue(filters.yearTo) : Infinity;
 
-  const getLinkedArticleName = (linkedId) => {
-    for (const s of allSeries) {
-      if (s.volumes) {
-        for (const v of s.volumes) {
-          if (v.articles) {
-            const a = v.articles.find(art => (art._id || art.id) === linkedId);
-            if (a) return a.contentTitle || a.title || 'למעבר למאמר המקושר';
+          resultList = resultList.filter(item => {
+            let yStr = '';
+            if (item.type === 'volume') yStr = item.publicationYear;
+            if (item.type === 'article') yStr = item.originalSeries?.volumes?.[item.volIndex]?.publicationYear;
+
+            if (!yStr) return false;
+            const yVal = getYearValue(yStr);
+            return yVal >= fromVal && yVal <= toVal;
+          });
+        }
+      }
+
+      return resultList;
+    }, [searchTerm, filters, allSeries, activeTab]);
+
+    const handleResultClick = (item) => {
+      setSelectedSeries(item.originalSeries || item);
+      setActiveVolIdx(item.volIndex || 0);
+      if (item.type === 'article') {
+        setActiveArticleId(item._id || item.id);
+      } else {
+        setActiveArticleId(null);
+      }
+
+      // פתיחה אוטומטית של האקורדיון של הסדרה שנבחרה
+      const targetSeriesId = item.originalSeries?._id || item._id;
+      if (targetSeriesId) {
+        setExpandedSeries(prev => ({ ...prev, [targetSeriesId]: true }));
+      }
+    };
+
+    const getLinkedArticleName = (linkedId) => {
+      for (const s of allSeries) {
+        if (s.volumes) {
+          for (const v of s.volumes) {
+            if (v.articles) {
+              const a = v.articles.find(art => (art._id || art.id) === linkedId);
+              if (a) return a.contentTitle || a.title || 'למעבר למאמר המקושר';
+            }
           }
         }
       }
-    }
-    return 'למעבר למאמר המקושר';
-  };
+      return 'למעבר למאמר המקושר';
+    };
 
-  const renderInfoRow = (label, value) => {
-    if (!value || value.toString().trim() === '') return null;
-    return (
-      <div className="flex flex-col border-b border-gray-100 py-2 last:border-0">
-        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">{label}</span>
-        <span className="text-[13px] text-gray-900 font-medium">{value}</span>
+    const renderInfoRow = (label, value) => {
+      if (!value || value.toString().trim() === '') return null;
+      return (
+        <div className="flex flex-col border-b border-gray-100 py-2 last:border-0">
+          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">{label}</span>
+          <span className="text-[13px] text-gray-900 font-medium">{value}</span>
+        </div>
+      );
+    };
+
+    const formatAuthors = (authors) => {
+      if (!authors || !Array.isArray(authors) || authors.length === 0) return null;
+      return authors.map(a => {
+        const name = `${a.titlePrefix || ''} ${a.firstName || ''} ${a.lastName || ''}`.trim();
+        return name + (a.role ? ` (${a.role})` : '');
+      }).filter(n => n.trim() !== '').join(' | ');
+    };
+
+    if (loading) return (
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-100">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-[#755303] mb-4"></div>
+        <p className="text-gray-700 text-lg font-bold">טוען נתונים למערכת...</p>
       </div>
     );
-  };
 
-  const formatAuthors = (authors) => {
-    if (!authors || !Array.isArray(authors) || authors.length === 0) return null;
-    return authors.map(a => {
-      const name = `${a.titlePrefix || ''} ${a.firstName || ''} ${a.lastName || ''}`.trim();
-      return name + (a.role ? ` (${a.role})` : '');
-    }).filter(n => n.trim() !== '').join(' | ');
-  };
+    const currentVol = selectedSeries?.volumes?.[activeVolIdx];
 
-  if (loading) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-slate-100">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-[#755303] mb-4"></div>
-      <p className="text-gray-700 text-lg font-bold">טוען נתונים למערכת...</p>
-    </div>
-  );
+    let pdfFinalUrl = '';
+    let externalPdfUrl = '';
 
-  const currentVol = selectedSeries?.volumes?.[activeVolIdx];
-
-  let pdfFinalUrl = '';
-  let externalPdfUrl = '';
-
-  if (currentVol && currentVol.pdfPath) {
-    let pageParam = '';
-    if (activeArticleId && currentVol.articles) {
-      const activeArt = currentVol.articles.find(a => (a._id || a.id) === activeArticleId);
-      const targetPage = activeArt?.startPage || activeArt?.page;
-      const pageNum = pageToNumber(targetPage);
-      if (pageNum) {
-        pageParam = `#page=${pageNum}`;
+    if (currentVol && currentVol.pdfPath) {
+      let pageParam = '';
+      if (activeArticleId && currentVol.articles) {
+        const activeArt = currentVol.articles.find(a => (a._id || a.id) === activeArticleId);
+        const targetPage = activeArt?.startPage || activeArt?.page;
+        const pageNum = pageToNumber(targetPage);
+        if (pageNum) {
+          pageParam = `#page=${pageNum}`;
+        }
       }
+
+      const rawPath = currentVol.pdfPath.trim();
+      const basePdfUrl = rawPath.startsWith('http')
+        ? rawPath
+        : `https://node-project-cvek.onrender.com/uploads/${rawPath}`;
+
+      pdfFinalUrl = `${basePdfUrl}${pageParam}${pageParam ? '&' : '#'}view=FitH&toolbar=0`;
+      externalPdfUrl = `${basePdfUrl}${pageParam}`;
     }
 
-    const rawPath = currentVol.pdfPath.trim();
-    const basePdfUrl = rawPath.startsWith('http')
-      ? rawPath
-      : `https://node-project-cvek.onrender.com/uploads/${rawPath}`;
+    return (
+      <div className="h-screen bg-slate-100 text-gray-900 font-sans flex flex-col overflow-hidden selection:bg-[#e3d3ad]" dir="rtl">
 
-    pdfFinalUrl = `${basePdfUrl}${pageParam}${pageParam ? '&' : '#'}view=FitH&toolbar=0`;
-    externalPdfUrl = `${basePdfUrl}${pageParam}`;
-  }
+        {infoModal.show && infoModal.data && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="modal-box rounded-xl shadow-2xl w-full max-w-3xl m-4 relative border border-slate-200">            <div className="bg-slate-900 text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
+              <h3 className="text-lg font-black flex items-center gap-2">
+                <Info size={20} className="text-white" />
+                פרטי {infoModal.type === 'series' ? 'קובץ' : infoModal.type === 'volume' ? 'גליון' : 'מאמר'} מלאים
+              </h3>
+              <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="hover:bg-white/10 p-1.5 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
 
-  return (
-    <div className="h-screen bg-slate-100 text-gray-900 font-sans flex flex-col overflow-hidden selection:bg-[#e3d3ad]" dir="rtl">
+              <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                  {infoModal.type === 'series' ? (
+                    <>
+                      {renderInfoRow("אופי הכותר", infoModal.data.prefixName)}
+                      {renderInfoRow("שם הכותר", infoModal.data.fileName)}
+                      {renderInfoRow("שם מזהה", infoModal.data.identifierName)}
+                      {renderInfoRow("פרטים", infoModal.data.details)}
+                      {renderInfoRow("שם העורך", infoModal.data.editor)}
+                      {renderInfoRow("מקום הוצאה", infoModal.data.publicationPlace)}
+                      {renderInfoRow("השתייכות", infoModal.data.sector)}
+                      {renderInfoRow("סטטוס", infoModal.data.catalogStatus)}
+                      {renderInfoRow("גליונות חסרים", infoModal.data.missingVolumesList)}
+                      {renderInfoRow("הערות מנהל", infoModal.data.userNotes)}
+                      {renderInfoRow("הוזן ע״י", infoModal.data.enteredBy)}
+                    </>
+                  ) : infoModal.type === 'volume' ? (
 
-      {infoModal.show && infoModal.data && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-box rounded-xl shadow-2xl w-full max-w-3xl m-4 relative border border-slate-200">            <div className="bg-slate-900 text-white px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md">
-            <h3 className="text-lg font-black flex items-center gap-2">
-              <Info size={20} className="text-white" />
-              פרטי {infoModal.type === 'series' ? 'קובץ' : infoModal.type === 'volume' ? 'גליון' : 'מאמר'} מלאים
-            </h3>
-            <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="hover:bg-white/10 p-1.5 rounded-full transition-colors">
-              <X size={20} />
-            </button>
-          </div>
+                    <>
+                      {renderInfoRow("שם הגליון / כותרת", infoModal.data.volumeTitle || infoModal.data.title)}
+                      {renderInfoRow("מספר הגליון", infoModal.data.volumeNumber)}
+                      {renderInfoRow("חוברת", infoModal.data.booklet)}
+                      {renderInfoRow("נושא ראשי", infoModal.data.mainTopic)}
+                      {renderInfoRow("יצא לרגל", infoModal.data.publishedFor)}
+                      {renderInfoRow("שנת הוצאה", infoModal.data.publicationYear)}
+                      {renderInfoRow("תקופה", infoModal.data.publicationPeriod)}
+                      {renderInfoRow("סוג כריכה", infoModal.data.coverType)}
+                      {renderInfoRow("גודל", infoModal.data.volumeSize)}
+                      {renderInfoRow("שלמות קובץ", infoModal.data.fileCompleteness)}
+                      {renderInfoRow("שלמות סריקה", infoModal.data.scanCompleteness)}
+                      {renderInfoRow("סטטוס קטלוג", infoModal.data.articlesCatalogStatus)}
+                      {renderInfoRow("קובץ PDF מחובר", infoModal.data.pdfFileName || (infoModal.data.pdfPath ? "קיים במערכת" : "לא צורף"))}
+                    </>
+                  ) : (
+                    <>
+                      {renderInfoRow("כותרת המאמר", infoModal.data.contentTitle || infoModal.data.title)}
+                      {renderInfoRow("מחברים", formatAuthors(infoModal.data.authors))}
+                      {renderInfoRow("נושא כללי", infoModal.data.generalTopic)}
+                      {renderInfoRow("עמוד התחלה", infoModal.data.startPage || infoModal.data.page)}
+                      {renderInfoRow("מקור", infoModal.data.source)}
+                      {renderInfoRow("הסבר קישור", infoModal.data.linkExplanation)}
 
-            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-                {infoModal.type === 'series' ? (
-                  <>
-                    {renderInfoRow("אופי הכותר", infoModal.data.prefixName)}
-                    {renderInfoRow("שם הכותר", infoModal.data.fileName)}
-                    {renderInfoRow("שם מזהה", infoModal.data.identifierName)}
-                    {renderInfoRow("פרטים", infoModal.data.details)}
-                    {renderInfoRow("שם העורך", infoModal.data.editor)}
-                    {renderInfoRow("מקום הוצאה", infoModal.data.publicationPlace)}
-                    {renderInfoRow("השתייכות", infoModal.data.sector)}
-                    {renderInfoRow("סטטוס", infoModal.data.catalogStatus)}
-                    {renderInfoRow("גליונות חסרים", infoModal.data.missingVolumesList)}
-                    {renderInfoRow("הערות מנהל", infoModal.data.userNotes)}
-                    {renderInfoRow("הוזן ע״י", infoModal.data.enteredBy)}
-                  </>
-                ) : infoModal.type === 'volume' ? (
-
-                  <>
-                    {renderInfoRow("שם הגליון / כותרת", infoModal.data.volumeTitle || infoModal.data.title)}
-                    {renderInfoRow("מספר הגליון", infoModal.data.volumeNumber)}
-                    {renderInfoRow("חוברת", infoModal.data.booklet)}
-                    {renderInfoRow("נושא ראשי", infoModal.data.mainTopic)}
-                    {renderInfoRow("יצא לרגל", infoModal.data.publishedFor)}
-                    {renderInfoRow("שנת הוצאה", infoModal.data.publicationYear)}
-                    {renderInfoRow("תקופה", infoModal.data.publicationPeriod)}
-                    {renderInfoRow("סוג כריכה", infoModal.data.coverType)}
-                    {renderInfoRow("גודל", infoModal.data.volumeSize)}
-                    {renderInfoRow("שלמות קובץ", infoModal.data.fileCompleteness)}
-                    {renderInfoRow("שלמות סריקה", infoModal.data.scanCompleteness)}
-                    {renderInfoRow("סטטוס קטלוג", infoModal.data.articlesCatalogStatus)}
-                    {renderInfoRow("קובץ PDF מחובר", infoModal.data.pdfFileName || (infoModal.data.pdfPath ? "קיים במערכת" : "לא צורף"))}
-                  </>
-                ) : (
-                  <>
-                    {renderInfoRow("כותרת המאמר", infoModal.data.contentTitle || infoModal.data.title)}
-                    {renderInfoRow("מחברים", formatAuthors(infoModal.data.authors))}
-                    {renderInfoRow("נושא כללי", infoModal.data.generalTopic)}
-                    {renderInfoRow("עמוד התחלה", infoModal.data.startPage || infoModal.data.page)}
-                    {renderInfoRow("מקור", infoModal.data.source)}
-                    {renderInfoRow("הסבר קישור", infoModal.data.linkExplanation)}
-
-                    {infoModal.data.linkedArticleId && (
-                      <div className="flex flex-col border-b border-gray-100 py-2 last:border-0">
-                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">מאמר מקושר בספרייה</span>
-                        <button
-                          onClick={() => {
-                            let found = false;
-                            for (let i = 0; i < allSeries.length; i++) {
-                              const s = allSeries[i];
-                              if (s.volumes) {
-                                for (let j = 0; j < s.volumes.length; j++) {
-                                  const v = s.volumes[j];
-                                  if (v.articles) {
-                                    const a = v.articles.find(art => (art._id || art.id) === infoModal.data.linkedArticleId);
-                                    if (a) {
-                                      setSelectedSeries(s);
-                                      setActiveVolIdx(j);
-                                      setActiveArticleId(a._id || a.id);
-                                      setInfoModal({ show: false, type: '', data: null });
-                                      found = true;
-                                      break;
+                      {infoModal.data.linkedArticleId && (
+                        <div className="flex flex-col border-b border-gray-100 py-2 last:border-0">
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">מאמר מקושר בספרייה</span>
+                          <button
+                            onClick={() => {
+                              let found = false;
+                              for (let i = 0; i < allSeries.length; i++) {
+                                const s = allSeries[i];
+                                if (s.volumes) {
+                                  for (let j = 0; j < s.volumes.length; j++) {
+                                    const v = s.volumes[j];
+                                    if (v.articles) {
+                                      const a = v.articles.find(art => (art._id || art.id) === infoModal.data.linkedArticleId);
+                                      if (a) {
+                                        setSelectedSeries(s);
+                                        setActiveVolIdx(j);
+                                        setActiveArticleId(a._id || a.id);
+                                        setInfoModal({ show: false, type: '', data: null });
+                                        found = true;
+                                        break;
+                                      }
                                     }
                                   }
                                 }
+                                if (found) break;
                               }
-                              if (found) break;
-                            }
-                            if (!found) alert('המאמר המקושר לא נמצא בספרייה כרגע.');
-                          }}
-                          className="text-[13px] text-[#755303] font-bold hover:text-[#5c4102] hover:underline text-right w-fit flex items-center gap-1.5 mt-0.5 transition-colors"
-                        >
-                          <Link2 size={14} className="text-white" />
-                          {getLinkedArticleName(infoModal.data.linkedArticleId)}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )
-                }
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-slate-200 bg-white rounded-b-xl shrink-0 flex justify-end">
-              <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="custom-btn-style px-6 py-2 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300 transition-colors">
-                סגירה
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAdvancedSearch && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99998, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200 border border-slate-200">
-            <div
-              className="px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md"
-              style={{ backgroundColor: '#755303', color: '#ffffff' }}
-            >
-              <h3 className="text-lg font-black flex items-center gap-2" style={{ color: '#ffffff' }}>
-                <Search size={20} color="#ffffff" />
-                חיפוש מתקדם
-              </h3>
-              <button
-                onClick={() => setShowAdvancedSearch(false)}
-                className="p-1.5 rounded-full transition-colors hover:bg-white/10"
-                style={{ backgroundColor: 'transparent', color: '#ffffff', border: 'none' }}
-              >
-                <X size={20} color="#ffffff" />
-              </button>
-            </div>
-
-            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
-              <div className="grid grid-cols-2 gap-4">
-                <input type="text" placeholder="אופי הכותר" value={advancedSearch.prefixName} onChange={e => setAdvancedSearch({ ...advancedSearch, prefixName: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שם הכותר" value={advancedSearch.fileName} onChange={e => setAdvancedSearch({ ...advancedSearch, fileName: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שם מזהה" value={advancedSearch.identifierName} onChange={e => setAdvancedSearch({ ...advancedSearch, identifierName: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="פרטים" value={advancedSearch.details} onChange={e => setAdvancedSearch({ ...advancedSearch, details: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שם העורך" value={advancedSearch.editor} onChange={e => setAdvancedSearch({ ...advancedSearch, editor: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="מקום הוצאה" value={advancedSearch.publicationPlace} onChange={e => setAdvancedSearch({ ...advancedSearch, publicationPlace: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="השתייכות" value={advancedSearch.sector} onChange={e => setAdvancedSearch({ ...advancedSearch, sector: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שם גליון" value={advancedSearch.volumeTitle} onChange={e => setAdvancedSearch({ ...advancedSearch, volumeTitle: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="נושא ראשי" value={advancedSearch.mainTopic} onChange={e => setAdvancedSearch({ ...advancedSearch, mainTopic: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="יצא לרגל" value={advancedSearch.publishedFor} onChange={e => setAdvancedSearch({ ...advancedSearch, publishedFor: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="שנת הוצאה" value={advancedSearch.publicationYear} onChange={e => setAdvancedSearch({ ...advancedSearch, publicationYear: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="כותרת המאמר" value={advancedSearch.contentTitle} onChange={e => setAdvancedSearch({ ...advancedSearch, contentTitle: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="נושא כללי" value={advancedSearch.generalTopic} onChange={e => setAdvancedSearch({ ...advancedSearch, generalTopic: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-                <input type="text" placeholder="מקור" value={advancedSearch.source} onChange={e => setAdvancedSearch({ ...advancedSearch, source: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-slate-200 bg-white rounded-b-xl shrink-0 flex justify-end gap-3">
-              <button onClick={clearAdvancedSearch} className="custom-btn-style px-6 py-2 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300 transition-colors">
-                נקה
-              </button>
-              <button onClick={performAdvancedSearch} className="custom-btn-style px-6 py-2 bg-[#755303] text-white font-bold rounded-lg hover:bg-[#5c4102] transition-colors">
-                חיפוש
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {deleteModal.show && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div
-            className="rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4"
-            style={{ backgroundColor: '#ffffff', opacity: 1 }}
-          >            <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={32} className="text-red-600" />
-            </div>
-            <h3 className="text-xl font-black text-gray-900 mb-2">אזהרת מחיקה!</h3>
-            <p className="text-gray-700 mb-6 text-[15px]">
-              האם אתה בטוח שברצונך למחוק לחלוטין את הקובץ:<br />
-              <strong className="text-red-600 text-lg">{deleteModal.seriesName}</strong> ?<br />
-              <span className="text-[13px] text-gray-500 block mt-2 font-bold bg-slate-100 p-2 rounded">שימו לב: פעולה זו תמחק גם את כל הגליונות והמאמרים שבתוכה, ולא ניתנת לביטול.</span>
-            </p>
-            <div className="flex gap-4 justify-center">
-              <button onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} className="custom-btn-style px-6 py-2.5 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300 w-1/2 transition-colors">ביטול</button>
-              <button onClick={executeDelete} className="custom-btn-style px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors">כן, מחק קובץ</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="h-12 bg-[#4a3402] border-b border-[#3a2801] text-white flex items-center justify-between px-5 shrink-0 shadow-sm z-20">
-        <div className="flex items-center gap-5">
-          {isAdmin && <span className="flex items-center gap-1.5 text-[12px] font-black bg-[#755303] px-3 py-1 rounded text-white shadow-sm border border-[#8a6410]"><ShieldCheck size={14} /> מנהל מערכת ראשי</span>}
-          {isViewer && <span className="flex items-center gap-1.5 text-[12px] font-black bg-[#755303] px-3 py-1 rounded text-white shadow-sm border border-[#8a6410]"><UserCircle size={14} /> משתמש רשום (צפייה והוספה)</span>}
-          {isNotLoggedIn && <span className="flex items-center gap-1.5 text-[12px] font-black bg-red-600 px-3 py-1 rounded text-white shadow-sm"><ShieldAlert size={14} /> אורח מנותק (צפייה בלבד)</span>}
-
-          {hasUser && (
-            <div className="text-[13px] text-[#e7d8b4] border-r border-white/20 pr-5 flex items-center gap-2">
-              <span className="font-bold text-white">{loggedInUser.name || 'משתמש'}</span>
-              <span className="opacity-40">|</span>
-              <span className="opacity-80">{loggedInUser.email}</span>
-            </div>
-          )}
-        </div>
-        <div>
-          {hasUser ? (
-            <button onClick={handleLogout} className="custom-btn-style flex items-center gap-2 text-[12px] font-bold text-white bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg transition-colors border border-white/25"><LogOut size={14} /> התנתקות</button>
-          ) : (
-            <button onClick={() => navigate('/login')} className="custom-btn-style flex items-center gap-2 text-[12px] font-black text-white bg-[#755303] hover:bg-[#5c4102] px-5 py-1.5 rounded-lg transition-colors shadow-sm border border-[#8a6410]"><LogIn size={14} /> התחברות למערכת</button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 flex overflow-hidden">
-
-        <aside className="border-l border-slate-200 flex flex-col bg-white shrink-0 overflow-hidden shadow-sm z-10" style={{ width: '340px', minWidth: '340px', maxWidth: '340px' }}>
-          <div className="p-3 border-b border-slate-200 bg-[#f7f3e8] shrink-0">
-
-            {canAddNew && (
-              <button onClick={() => navigate('/add-series')} className="custom-btn-style w-full mb-2 flex items-center justify-center gap-2 py-2 bg-[#755303] hover:bg-[#5c4102] text-white text-[13px] font-black rounded-lg transition-colors shadow-sm">
-                <Plus size={16} className="text-white" /> הוספת קובץ חדש
-              </button>
-            )}
-
-            {isAdmin && (
-              <button onClick={() => navigate('/admin/import')} className="custom-btn-style w-full mb-3 flex items-center justify-center gap-2 py-1.5 bg-[#4a3402] hover:bg-[#3a2801] text-white text-[12px] font-black rounded-lg transition-colors shadow-sm">
-                <FileSpreadsheet size={14} className="text-white" /> ייבוא קבצים מאקסל
-              </button>
-            )}
-
-            <div className="flex bg-[#755303] p-1 rounded-lg mb-3 border border-[#5c4102]">
-              <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 transition-colors border ${activeTab === 'series' ? 'bg-white text-[#5c4102] shadow border-white' : 'text-white/80 border-white/25 hover:bg-white/10'}`}><Book size={14} /> קבצים</button>
-              <button onClick={() => { setActiveTab('article'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 transition-colors border ${activeTab === 'article' ? 'bg-white text-[#5c4102] shadow border-white' : 'text-white/80 border-white/25 hover:bg-white/10'}`}><FileText size={14} /> מאמרים</button>
-            </div>
-
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input type="text" placeholder="הקלד לחיפוש חופשי..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white border border-slate-300 pr-9 pl-3 py-2 rounded-lg text-[13px] font-medium outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1] transition-all shadow-sm" />
-              </div>
-              <button
-                onClick={() => setShowAdvancedSearch(true)}
-                title="חיפוש מתקדם"
-                className={`custom-btn-style px-3 py-2 rounded-lg border-2 border-[#8a6410] bg-white text-[#755303] hover:bg-[#f7f3e8] shadow-sm transition-colors flex items-center justify-center`}
-              >
-                <Search size={18} />
-              </button>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                title="סינון מתקדם"
-                className={`custom-btn-style px-3 py-2 rounded-lg border transition-colors flex items-center justify-center ${showFilters ? 'bg-[#f7f3e8] border-[#d2b48c] text-[#5c4102]' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50 shadow-sm'}`}
-              >
-                <Filter size={18} />
-              </button>
-            </div>
-
-            {showFilters && (
-              <div className="mt-2 p-3 bg-white rounded-lg border border-slate-200 shadow-sm space-y-2 text-[12px] animate-in fade-in slide-in-from-top-2">
-
-                {activeTab === 'series' && (
-                  <>
-                    <select value={filters.place} onChange={e => setFilters({ ...filters, place: e.target.value })} className="w-full p-2 rounded border border-slate-200 outline-none focus:border-[#d2b48c] bg-slate-50">
-                      <option value="">כל מקומות ההוצאה</option>
-                      {filterOptions.places.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                    <select value={filters.sector} onChange={e => setFilters({ ...filters, sector: e.target.value })} className="w-full p-2 rounded border border-slate-200 outline-none focus:border-[#d2b48c] bg-slate-50">
-                      <option value="">כל המגזרים</option>
-                      {filterOptions.sectors.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </>
-                )}
-
-                {activeTab === 'article' && (
-                  <>
-                    <select value={filters.topic} onChange={e => setFilters({ ...filters, topic: e.target.value })} className="w-full p-2 rounded border border-slate-200 outline-none focus:border-[#d2b48c] bg-slate-50">
-                      <option value="">כל הנושאים הכלליים</option>
-                      {filterOptions.topics.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </>
-                )}
-
-                {(filters.place || filters.sector || filters.yearFrom || filters.yearTo || filters.topic) && (
-                  <button onClick={() => setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' })} className="w-full text-center text-red-500 font-bold mt-2 hover:text-red-700 transition-colors">
-                    נקה פילטרים
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-scroll overflow-x-hidden custom-scrollbar bg-white min-w-0">
-            {filteredData.length > 0 ? filteredData.map((item, idx) => {
-              if (item.type === 'series') {
-                const isActiveSeries = selectedSeries?._id === item._id;
-                const isExpanded = !!expandedSeries[item._id];
-                const imageUrl = getCoverImageUrl(item.coverImage);
-
-                return (
-                  <div key={item._id} className="border-b border-slate-100">
-                    {/* שורת הסדרה הניתנת ללחיצה */}
-                    <div
-                      onClick={() => handleResultClick({ ...item, volIndex: 0 })}
-                      className={`group w-full flex items-center justify-between p-2 transition-all duration-200 cursor-pointer ${isActiveSeries ? 'bg-[#f7f3e8]/80 border-r-4 border-r-[#755303] hover:bg-[#efe6d1] hover:shadow-md' : 'border-r-4 border-r-transparent hover:bg-gradient-to-l hover:from-[#f7f3e8] hover:to-white hover:border-r-[#d2b48c] hover:shadow-md'}`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="w-5 h-7 bg-white rounded border border-slate-200 shrink-0 overflow-hidden shadow-sm transition-transform hover:scale-110">
-                          <img
-                            src={imageUrl}
-                            className="w-full h-full object-cover"
-                            alt=""
-                            onError={(e) => {
-                              if (e.target.src !== DEFAULT_COVER_IMAGE) {
-                                e.target.src = DEFAULT_COVER_IMAGE;
-                              }
+                              if (!found) alert('המאמר המקושר לא נמצא בספרייה כרגע.');
                             }}
-                          />
-                        </div>
-                        <div className="text-right min-w-0 flex-1">
-                          <h3 className={`font-black text-[12px] truncate leading-snug ${isActiveSeries ? 'text-[#4a3402]' : 'text-gray-900'}`}>
-                            {item.prefixName} {item.fileName}
-                          </h3>
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'series', data: item }); }}
-                        className="p-1 text-gray-300 hover:text-[#755303] opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
-                        title="פרטי קובץ"
-                      >
-                        <Info size={13} />
-                      </button>
-
-                      {/* מספר הגליונות + כפתור פתיחה/סגירה מהירה */}
-                      {item.volumes && item.volumes.length > 0 && (
-                        <div className="flex items-center gap-1 mr-2 shrink-0">
-                          <span className="text-[10px] font-bold text-gray-400">{item.volumes.length}</span>
-                          <button
-                            onClick={(e) => toggleSeriesExpand(item._id, e)}
-                            className="p-1 rounded-lg hover:bg-[#efe6d1] text-gray-400 hover:text-[#5c4102] transition-colors"
+                            className="text-[13px] text-[#755303] font-bold hover:text-[#5c4102] hover:underline text-right w-fit flex items-center gap-1.5 mt-0.5 transition-colors"
                           >
-                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            <Link2 size={14} className="text-white" />
+                            {getLinkedArticleName(infoModal.data.linkedArticleId)}
                           </button>
                         </div>
                       )}
-                    </div>
+                    </>
+                  )
+                  }
+                </div>
+              </div>
 
-                    {/* רשימת גליונות נפתחת (Accordion) בתוך הסדרה */}
-                    {isExpanded && item.volumes && item.volumes.length > 0 && (
-                      <div style={{ backgroundColor: '#fbf8f1' }}>
-                        {item.volumes.map((v, vIdx) => {
-                          const isVolActive = isActiveSeries && activeVolIdx === vIdx;
-                          return (
-                            <button
-                              key={vIdx}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleResultClick({ originalSeries: item, volIndex: vIdx, type: 'volume' });
-                              }}
-                              className="group w-full text-right py-1.5 pr-8 pl-3 text-[11px] flex items-center justify-between transition-colors hover:!bg-[#f5eedc]"
-                              style={{
-                                backgroundColor: isVolActive ? '#f3e9d2' : '#fbf8f1',
-                                color: isVolActive ? '#3a2801' : '#374151',
-                                fontWeight: isVolActive ? 800 : 500,
-                                border: 'none',
-                                borderRadius: 0,
-                                borderBottom: '1px solid #f0e8d6'
-                              }}
-                            >
-                              <span className="truncate">{v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`}</span>
-                              <span className="flex items-center gap-1.5 shrink-0">
-                                <span
-                                  role="button"
-                                  title="פרטי גליון"
-                                  onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'volume', data: v }); }}
-                                  className="text-gray-300 hover:text-[#755303] opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
-                                >
-                                  <Info size={13} />
-                                </span>
-                                <span className="text-[9px] font-bold text-gray-400">{v.articles?.length || 0}</span>
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              } else if (item.type === 'article') {
-                const isActive = activeArticleId === (item._id || item.id);
-                return (
-                  <button key={`${item.seriesId}-${idx}`} onClick={() => handleResultClick(item)} className={`w-full text-right p-2 border-b border-r-4 flex flex-col min-w-0 transition-all duration-200 ${isActive ? 'bg-[#f5ead1] border-[#d2b48c] border-r-[#755303] shadow-inner' : 'border-slate-100 border-r-transparent hover:bg-[#f7f3e8] hover:border-r-[#d2b48c] hover:shadow-md hover:pr-1'}`}>
-                    <div className="flex justify-between items-start mb-1 w-full">
-                      <div className="text-[9px] text-gray-600 font-bold truncate flex-1 min-w-0">{item.seriesName} / {item.volTitle}</div>
-                      {item.startPage && <div className="text-[9px] bg-slate-200 px-1.5 rounded text-gray-700 shrink-0 mr-2 font-mono">עמ' {item.startPage}</div>}
-                    </div>
-                    <div className={`font-bold text-[12px] truncate leading-tight w-full ${isActive ? 'text-[#5c4102]' : 'text-[#4a3402]'}`}>{item.contentTitle || item.title}</div>
-                  </button>
-                )
-              }
-              return null;
-            }) : (
-              <div className="text-center p-8 text-gray-500 font-medium text-[13px]">לא נמצאו תוצאות התואמות לסינון.</div>
+              <div className="p-4 border-t border-slate-200 bg-white rounded-b-xl shrink-0 flex justify-end">
+                <button onClick={() => setInfoModal({ show: false, type: '', data: null })} className="custom-btn-style px-6 py-2 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300 transition-colors">
+                  סגירה
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showAdvancedSearch && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99998, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m-4 relative animate-in fade-in zoom-in-95 duration-200 border border-slate-200">
+              <div
+                className="px-5 py-4 rounded-t-xl flex items-center justify-between shrink-0 shadow-md"
+                style={{ backgroundColor: '#755303', color: '#ffffff' }}
+              >
+                <h3 className="text-lg font-black flex items-center gap-2" style={{ color: '#ffffff' }}>
+                  <Search size={20} color="#ffffff" />
+                  חיפוש מתקדם
+                </h3>
+                <button
+                  onClick={() => setShowAdvancedSearch(false)}
+                  className="p-1.5 rounded-full transition-colors hover:bg-white/10"
+                  style={{ backgroundColor: 'transparent', color: '#ffffff', border: 'none' }}
+                >
+                  <X size={20} color="#ffffff" />
+                </button>
+              </div>
+
+              <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
+                <div className="grid grid-cols-2 gap-4">
+                  <input type="text" placeholder="אופי הכותר" value={advancedSearch.prefixName} onChange={e => setAdvancedSearch({ ...advancedSearch, prefixName: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="שם הכותר" value={advancedSearch.fileName} onChange={e => setAdvancedSearch({ ...advancedSearch, fileName: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="שם מזהה" value={advancedSearch.identifierName} onChange={e => setAdvancedSearch({ ...advancedSearch, identifierName: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="פרטים" value={advancedSearch.details} onChange={e => setAdvancedSearch({ ...advancedSearch, details: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="שם העורך" value={advancedSearch.editor} onChange={e => setAdvancedSearch({ ...advancedSearch, editor: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="מקום הוצאה" value={advancedSearch.publicationPlace} onChange={e => setAdvancedSearch({ ...advancedSearch, publicationPlace: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="השתייכות" value={advancedSearch.sector} onChange={e => setAdvancedSearch({ ...advancedSearch, sector: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="שם גליון" value={advancedSearch.volumeTitle} onChange={e => setAdvancedSearch({ ...advancedSearch, volumeTitle: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="נושא ראשי" value={advancedSearch.mainTopic} onChange={e => setAdvancedSearch({ ...advancedSearch, mainTopic: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="יצא לרגל" value={advancedSearch.publishedFor} onChange={e => setAdvancedSearch({ ...advancedSearch, publishedFor: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="שנת הוצאה" value={advancedSearch.publicationYear} onChange={e => setAdvancedSearch({ ...advancedSearch, publicationYear: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="כותרת המאמר" value={advancedSearch.contentTitle} onChange={e => setAdvancedSearch({ ...advancedSearch, contentTitle: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="נושא כללי" value={advancedSearch.generalTopic} onChange={e => setAdvancedSearch({ ...advancedSearch, generalTopic: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                  <input type="text" placeholder="מקור" value={advancedSearch.source} onChange={e => setAdvancedSearch({ ...advancedSearch, source: e.target.value })} className="p-2 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1]" />
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-slate-200 bg-white rounded-b-xl shrink-0 flex justify-end gap-3">
+                <button onClick={clearAdvancedSearch} className="custom-btn-style px-6 py-2 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300 transition-colors">
+                  נקה
+                </button>
+                <button onClick={performAdvancedSearch} className="custom-btn-style px-6 py-2 bg-[#755303] text-white font-bold rounded-lg hover:bg-[#5c4102] transition-colors">
+                  חיפוש
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {deleteModal.show && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div
+              className="rounded-xl shadow-2xl w-full max-w-md p-6 text-center border-2 border-red-500 m-4"
+              style={{ backgroundColor: '#ffffff', opacity: 1 }}
+            >            <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} className="text-red-600" />
+              </div>
+              <h3 className="text-xl font-black text-gray-900 mb-2">אזהרת מחיקה!</h3>
+              <p className="text-gray-700 mb-6 text-[15px]">
+                האם אתה בטוח שברצונך למחוק לחלוטין את הקובץ:<br />
+                <strong className="text-red-600 text-lg">{deleteModal.seriesName}</strong> ?<br />
+                <span className="text-[13px] text-gray-500 block mt-2 font-bold bg-slate-100 p-2 rounded">שימו לב: פעולה זו תמחק גם את כל הגליונות והמאמרים שבתוכה, ולא ניתנת לביטול.</span>
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button onClick={() => setDeleteModal({ show: false, seriesId: null, seriesName: '' })} className="custom-btn-style px-6 py-2.5 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300 w-1/2 transition-colors">ביטול</button>
+                <button onClick={executeDelete} className="custom-btn-style px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 w-1/2 transition-colors">כן, מחק קובץ</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="h-12 bg-[#4a3402] border-b border-[#3a2801] text-white flex items-center justify-between px-5 shrink-0 shadow-sm z-20">
+          <div className="flex items-center gap-5">
+            {isAdmin && <span className="flex items-center gap-1.5 text-[12px] font-black bg-[#755303] px-3 py-1 rounded text-white shadow-sm border border-[#8a6410]"><ShieldCheck size={14} /> מנהל מערכת ראשי</span>}
+            {isViewer && <span className="flex items-center gap-1.5 text-[12px] font-black bg-[#755303] px-3 py-1 rounded text-white shadow-sm border border-[#8a6410]"><UserCircle size={14} /> משתמש רשום (צפייה והוספה)</span>}
+            {isNotLoggedIn && <span className="flex items-center gap-1.5 text-[12px] font-black bg-red-600 px-3 py-1 rounded text-white shadow-sm"><ShieldAlert size={14} /> אורח מנותק (צפייה בלבד)</span>}
+
+            {hasUser && (
+              <div className="text-[13px] text-[#e7d8b4] border-r border-white/20 pr-5 flex items-center gap-2">
+                <span className="font-bold text-white">{loggedInUser.name || 'משתמש'}</span>
+                <span className="opacity-40">|</span>
+                <span className="opacity-80">{loggedInUser.email}</span>
+              </div>
             )}
           </div>
-        </aside>
+          <div>
+            {hasUser ? (
+              <button onClick={handleLogout} className="custom-btn-style flex items-center gap-2 text-[12px] font-bold text-white bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg transition-colors border border-white/25"><LogOut size={14} /> התנתקות</button>
+            ) : (
+              <button onClick={() => navigate('/login')} className="custom-btn-style flex items-center gap-2 text-[12px] font-black text-white bg-[#755303] hover:bg-[#5c4102] px-5 py-1.5 rounded-lg transition-colors shadow-sm border border-[#8a6410]"><LogIn size={14} /> התחברות למערכת</button>
+            )}
+          </div>
+        </div>
 
-        <main className="flex-1 flex flex-col min-w-0 bg-slate-100 overflow-hidden">
-          {selectedSeries ? (
-            <>
-              <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm z-0">
-                <div className="flex items-center gap-4 truncate min-w-0">
-                  <div className="bg-[#755303] p-2.5 rounded-lg text-[#3a2801] shadow shrink-0"><BookOpen size={22} /></div>
-                  <div className="truncate min-w-0">
-                    <h2 className="text-[18px] font-black text-gray-900 leading-none truncate">{selectedSeries.prefixName} {selectedSeries.fileName}</h2>
-                    <div className="flex gap-3 mt-1.5 truncate">
-                      {selectedSeries.sector && <span className="text-[11px] font-bold text-[#5c4102] bg-[#efe6d1] px-2 rounded border border-[#e3d3ad] shrink-0">{selectedSeries.sector}</span>}
-                      {selectedSeries.publicationPlace && <span className="text-[12px] text-gray-600 font-bold truncate">{selectedSeries.publicationPlace}</span>}
-                    </div>
-                  </div>
+        <div className="flex-1 flex overflow-hidden">
+
+          <aside className="border-l border-slate-200 flex flex-col bg-white shrink-0 overflow-hidden shadow-sm z-10" style={{ width: '340px', minWidth: '340px', maxWidth: '340px' }}>
+            <div className="p-3 border-b border-slate-200 bg-[#f7f3e8] shrink-0">
+
+              {canAddNew && (
+                <button onClick={() => navigate('/add-series')} className="custom-btn-style w-full mb-2 flex items-center justify-center gap-2 py-2 bg-[#755303] hover:bg-[#5c4102] text-white text-[13px] font-black rounded-lg transition-colors shadow-sm">
+                  <Plus size={16} className="text-white" /> הוספת קובץ חדש
+                </button>
+              )}
+
+              {isAdmin && (
+                <button onClick={() => navigate('/admin/import')} className="custom-btn-style w-full mb-3 flex items-center justify-center gap-2 py-1.5 bg-[#4a3402] hover:bg-[#3a2801] text-white text-[12px] font-black rounded-lg transition-colors shadow-sm">
+                  <FileSpreadsheet size={14} className="text-white" /> ייבוא קבצים מאקסל
+                </button>
+              )}
+
+              <div className="flex bg-[#755303] p-1 rounded-lg mb-3 border border-[#5c4102]">
+                <button onClick={() => { setActiveTab('series'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 transition-colors border ${activeTab === 'series' ? 'bg-white text-[#5c4102] shadow border-white' : 'text-white/80 border-white/25 hover:bg-white/10'}`}><Book size={14} /> קבצים</button>
+                <button onClick={() => { setActiveTab('article'); setSearchTerm(""); setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' }) }} className={`flex-1 py-1.5 text-[12px] font-bold rounded flex justify-center items-center gap-1.5 transition-colors border ${activeTab === 'article' ? 'bg-white text-[#5c4102] shadow border-white' : 'text-white/80 border-white/25 hover:bg-white/10'}`}><FileText size={14} /> מאמרים</button>
+              </div>
+
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input type="text" placeholder="הקלד לחיפוש חופשי..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white border border-slate-300 pr-9 pl-3 py-2 rounded-lg text-[13px] font-medium outline-none focus:border-[#755303] focus:ring-2 focus:ring-[#efe6d1] transition-all shadow-sm" />
                 </div>
+                <button
+                  onClick={() => setShowAdvancedSearch(true)}
+                  title="חיפוש מתקדם"
+                  className={`custom-btn-style px-3 py-2 rounded-lg border-2 border-[#8a6410] bg-white text-[#755303] hover:bg-[#f7f3e8] shadow-sm transition-colors flex items-center justify-center`}
+                >
+                  <Search size={18} />
+                </button>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  title="סינון מתקדם"
+                  className={`custom-btn-style px-3 py-2 rounded-lg border transition-colors flex items-center justify-center ${showFilters ? 'bg-[#f7f3e8] border-[#d2b48c] text-[#5c4102]' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50 shadow-sm'}`}
+                >
+                  <Filter size={18} />
+                </button>
+              </div>
 
-                <div className="flex gap-3 shrink-0">
-                  {canAddNew && (
-                    <button
-                      onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=volume`)}
-                      className="custom-btn-style flex items-center gap-1.5 px-3.5 py-2 bg-[#f7f3e8] border border-[#d2b48c] text-[#5c4102] rounded-lg text-[13px] font-bold hover:bg-[#efe6d1] transition-colors shadow-sm"
-                    >
-                      <Plus size={15} /> הוספת גליון
-                    </button>
-                  )}
-                  {isAdmin && (
+              {showFilters && (
+                <div className="mt-2 p-3 bg-white rounded-lg border border-slate-200 shadow-sm space-y-2 text-[12px] animate-in fade-in slide-in-from-top-2">
+
+                  {activeTab === 'series' && (
                     <>
-                      <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} className="custom-btn-style flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-300 text-gray-800 rounded-lg text-[13px] font-bold hover:bg-slate-100 transition-colors shadow-sm">
-                        <Edit3 size={16} className="text-[#755303]" /> עריכת קובץ
-                      </button>
-                      <button onClick={() => confirmDelete(selectedSeries)} className="custom-btn-style flex items-center gap-1.5 px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors shadow-sm">
-                        <Trash2 size={16} /> מחיקה
-                      </button>
+                      <select value={filters.place} onChange={e => setFilters({ ...filters, place: e.target.value })} className="w-full p-2 rounded border border-slate-200 outline-none focus:border-[#d2b48c] bg-slate-50">
+                        <option value="">כל מקומות ההוצאה</option>
+                        {filterOptions.places.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                      <select value={filters.sector} onChange={e => setFilters({ ...filters, sector: e.target.value })} className="w-full p-2 rounded border border-slate-200 outline-none focus:border-[#d2b48c] bg-slate-50">
+                        <option value="">כל המגזרים</option>
+                        {filterOptions.sectors.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
                     </>
                   )}
-                </div>
-              </header>
 
-              <div className="flex-1 flex overflow-hidden">
-                <div className="flex-1 flex overflow-hidden min-w-0">
-                  {currentVol ? (
+                  {activeTab === 'article' && (
                     <>
-                      <div className="border-l border-slate-200 flex flex-col bg-white shrink-0 shadow-sm z-0" style={{ width: '380px', minWidth: '380px', maxWidth: '380px' }}>
-                        <div className="p-4 pb-3 border-b border-[#4a3402] flex justify-between items-center bg-[#4a3402] shrink-0">
-                          <div className="min-w-0 flex-1">
-                            <h3 className="text-[15px] font-black text-white truncate">
-                              {currentVol.volumeTitle || currentVol.title || `גליון ${currentVol.volumeNumber}`}
-                            </h3>
-                            <p className="text-[11px] text-[#e7d8b4] font-bold mt-0.5">רשימת מאמרים מפורטת</p>
+                      <select value={filters.topic} onChange={e => setFilters({ ...filters, topic: e.target.value })} className="w-full p-2 rounded border border-slate-200 outline-none focus:border-[#d2b48c] bg-slate-50">
+                        <option value="">כל הנושאים הכלליים</option>
+                        {filterOptions.topics.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </>
+                  )}
+
+                  {(filters.place || filters.sector || filters.yearFrom || filters.yearTo || filters.topic) && (
+                    <button onClick={() => setFilters({ place: '', sector: '', yearFrom: '', yearTo: '', topic: '' })} className="w-full text-center text-red-500 font-bold mt-2 hover:text-red-700 transition-colors">
+                      נקה פילטרים
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-scroll overflow-x-hidden custom-scrollbar bg-white min-w-0">
+              {filteredData.length > 0 ? filteredData.map((item, idx) => {
+                if (item.type === 'series') {
+                  const isActiveSeries = selectedSeries?._id === item._id;
+                  const isExpanded = !!expandedSeries[item._id];
+                  const imageUrl = getCoverImageUrl(item.coverImage);
+
+                  return (
+                    <div key={item._id} className="border-b border-slate-100">
+                      {/* שורת הסדרה הניתנת ללחיצה */}
+                      <div
+                        onClick={() => handleResultClick({ ...item, volIndex: 0 })}
+                        className={`group w-full flex items-center justify-between p-2 transition-all duration-200 cursor-pointer ${isActiveSeries ? 'bg-[#f7f3e8]/80 border-r-4 border-r-[#755303] hover:bg-[#efe6d1] hover:shadow-md' : 'border-r-4 border-r-transparent hover:bg-gradient-to-l hover:from-[#f7f3e8] hover:to-white hover:border-r-[#d2b48c] hover:shadow-md'}`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className="w-5 h-7 bg-white rounded border border-slate-200 shrink-0 overflow-hidden shadow-sm transition-transform hover:scale-110">
+                            <img
+                              src={imageUrl}
+                              className="w-full h-full object-cover"
+                              alt=""
+                              onError={(e) => {
+                                if (e.target.src !== DEFAULT_COVER_IMAGE) {
+                                  e.target.src = DEFAULT_COVER_IMAGE;
+                                }
+                              }}
+                            />
                           </div>
-                          <span className="text-[11px] font-bold text-[#4a3402] bg-[#efe6d1] px-2.5 py-1 rounded border border-[#e3d3ad] shadow-sm shrink-0">{currentVol.articles?.length || 0} מאמרים</span>
+                          <div className="text-right min-w-0 flex-1">
+                            <h3 className={`font-black text-[12px] truncate leading-snug ${isActiveSeries ? 'text-[#4a3402]' : 'text-gray-900'}`}>
+                              {item.prefixName} {item.fileName}
+                            </h3>
+                          </div>
                         </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'series', data: item }); }}
+                          className="p-1 text-gray-300 hover:text-[#755303] opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                          title="פרטי קובץ"
+                        >
+                          <Info size={13} />
+                        </button>
 
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white custom-scrollbar">
-                          {currentVol.articles && currentVol.articles.length > 0 ? (
-                            currentVol.articles.map((art, aIdx) => {
-                              const isHighlighted = activeArticleId === (art._id || art.id);
-                              return (
-                                <div
-                                  id={`art-${art._id || art.id}`}
-                                  key={aIdx}
-                                  onClick={() => setActiveArticleId(art._id || art.id)}
-                                  className={`group cursor-pointer p-2 border-b border-slate-100 border-r-4 transition-all duration-200 flex items-center gap-2 ${isHighlighted ? 'bg-[#f5ead1] border-r-[#755303]' : 'border-r-transparent hover:bg-[#f7f3e8] hover:border-r-[#d2b48c] hover:shadow-sm hover:pr-1'}`}
-                                >
-                                  {/* מספר עמוד - קומפקטי */}
-                                  <div className="text-[9px] font-mono text-gray-400 w-7 text-center shrink-0">
-                                    {art.startPage || art.page || '-'}
-                                  </div>
+                        {/* מספר הגליונות + כפתור פתיחה/סגירה מהירה */}
+                        {item.volumes && item.volumes.length > 0 && (
+                          <div className="flex items-center gap-1 mr-2 shrink-0">
+                            <span className="text-[10px] font-bold text-gray-400">{item.volumes.length}</span>
+                            <button
+                              onClick={(e) => toggleSeriesExpand(item._id, e)}
+                              className="p-1 rounded-lg hover:bg-[#efe6d1] text-gray-400 hover:text-[#5c4102] transition-colors"
+                            >
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
-                                  {/* תוכן המאמר */}
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className={`text-[11.5px] font-bold leading-tight truncate ${isHighlighted ? 'text-[#5c4102]' : 'text-gray-900'}`}>
-                                      {art.contentTitle || art.title}
-                                    </h4>
-                                    <div className="text-[10px] text-gray-500 truncate mt-0.5">
-                                      {art.authors?.[0]?.firstName} {art.authors?.[0]?.lastName || ''}
-                                      {art.generalTopic && <span className="mr-2 text-[#755303]">| {art.generalTopic}</span>}
-                                    </div>
-                                  </div>
-
-                                  {/* כפתור מידע - מופיע בריחוף */}
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'article', data: art }); }}
-                                    className="p-1 text-gray-300 hover:text-[#755303] opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
-                                    title="פרטי מאמר"
+                      {/* רשימת גליונות נפתחת (Accordion) בתוך הסדרה */}
+                      {isExpanded && item.volumes && item.volumes.length > 0 && (
+                        <div style={{ backgroundColor: '#fbf8f1' }}>
+                          {item.volumes.map((v, vIdx) => {
+                            const isVolActive = isActiveSeries && activeVolIdx === vIdx;
+                            return (
+                              <button
+                                key={vIdx}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleResultClick({ originalSeries: item, volIndex: vIdx, type: 'volume' });
+                                }}
+                                className="group w-full text-right py-1.5 pr-8 pl-3 text-[11px] flex items-center justify-between transition-colors hover:!bg-[#f5eedc]"
+                                style={{
+                                  backgroundColor: isVolActive ? '#f3e9d2' : '#fbf8f1',
+                                  color: isVolActive ? '#3a2801' : '#374151',
+                                  fontWeight: isVolActive ? 800 : 500,
+                                  border: 'none',
+                                  borderRadius: 0,
+                                  borderBottom: '1px solid #f0e8d6'
+                                }}
+                              >
+                                <span className="truncate">{v.volumeTitle || v.title || `גליון ${v.volumeNumber || vIdx + 1}`}</span>
+                                <span className="flex items-center gap-1.5 shrink-0">
+                                  <span
+                                    role="button"
+                                    title="פרטי גליון"
+                                    onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'volume', data: v }); }}
+                                    className="text-gray-300 hover:text-[#755303] opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
                                   >
                                     <Info size={13} />
-                                  </button>
-                                </div>
-                              )
-                            })
-                          ) : (
-                            <div className="p-8 text-center text-gray-400 text-[12px]">אין מאמרים רשומים לגליון זה</div>
+                                  </span>
+                                  <span className="text-[9px] font-bold text-gray-400">{v.articles?.length || 0}</span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                } else if (item.type === 'article') {
+                  const isActive = activeArticleId === (item._id || item.id);
+                  return (
+                    <button key={`${item.seriesId}-${idx}`} onClick={() => handleResultClick(item)} className={`w-full text-right p-2 border-b border-r-4 flex flex-col min-w-0 transition-all duration-200 ${isActive ? 'bg-[#f5ead1] border-[#d2b48c] border-r-[#755303] shadow-inner' : 'border-slate-100 border-r-transparent hover:bg-[#f7f3e8] hover:border-r-[#d2b48c] hover:shadow-md hover:pr-1'}`}>
+                      <div className="flex justify-between items-start mb-1 w-full">
+                        <div className="text-[9px] text-gray-600 font-bold truncate flex-1 min-w-0">{item.seriesName} / {item.volTitle}</div>
+                        {item.startPage && <div className="text-[9px] bg-slate-200 px-1.5 rounded text-gray-700 shrink-0 mr-2 font-mono">עמ' {item.startPage}</div>}
+                      </div>
+                      <div className={`font-bold text-[12px] truncate leading-tight w-full ${isActive ? 'text-[#5c4102]' : 'text-[#4a3402]'}`}>{item.contentTitle || item.title}</div>
+                    </button>
+                  )
+                }
+                return null;
+              }) : (
+                <div className="text-center p-8 text-gray-500 font-medium text-[13px]">לא נמצאו תוצאות התואמות לסינון.</div>
+              )}
+            </div>
+          </aside>
+
+          <main className="flex-1 flex flex-col min-w-0 bg-slate-100 overflow-hidden">
+            {selectedSeries ? (
+              <>
+                <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm z-0">
+                  <div className="flex items-center gap-4 truncate min-w-0">
+                    <div className="bg-[#755303] p-2.5 rounded-lg text-[#3a2801] shadow shrink-0"><BookOpen size={22} /></div>
+                    <div className="truncate min-w-0">
+                      <h2 className="text-[18px] font-black text-gray-900 leading-none truncate">{selectedSeries.prefixName} {selectedSeries.fileName}</h2>
+                      <div className="flex gap-3 mt-1.5 truncate">
+                        {selectedSeries.sector && <span className="text-[11px] font-bold text-[#5c4102] bg-[#efe6d1] px-2 rounded border border-[#e3d3ad] shrink-0">{selectedSeries.sector}</span>}
+                        {selectedSeries.publicationPlace && <span className="text-[12px] text-gray-600 font-bold truncate">{selectedSeries.publicationPlace}</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 shrink-0">
+                    {canAddNew && (
+                      <button
+                        onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=volume`)}
+                        className="custom-btn-style flex items-center gap-1.5 px-3.5 py-2 bg-[#f7f3e8] border border-[#d2b48c] text-[#5c4102] rounded-lg text-[13px] font-bold hover:bg-[#efe6d1] transition-colors shadow-sm"
+                      >
+                        <Plus size={15} /> הוספת גליון
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <>
+                        <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}`)} className="custom-btn-style flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-300 text-gray-800 rounded-lg text-[13px] font-bold hover:bg-slate-100 transition-colors shadow-sm">
+                          <Edit3 size={16} className="text-[#755303]" /> עריכת קובץ
+                        </button>
+                        <button onClick={() => confirmDelete(selectedSeries)} className="custom-btn-style flex items-center gap-1.5 px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors shadow-sm">
+                          <Trash2 size={16} /> מחיקה
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </header>
+
+                <div className="flex-1 flex overflow-hidden">
+                  <div className="flex-1 flex overflow-hidden min-w-0">
+                    {currentVol ? (
+                      <>
+                        <div className="border-l border-slate-200 flex flex-col bg-white shrink-0 shadow-sm z-0" style={{ width: '380px', minWidth: '380px', maxWidth: '380px' }}>
+                          <div className="p-4 pb-3 border-b border-[#4a3402] flex justify-between items-center bg-[#4a3402] shrink-0">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-[15px] font-black text-white truncate">
+                                {currentVol.volumeTitle || currentVol.title || `גליון ${currentVol.volumeNumber}`}
+                              </h3>
+                              <p className="text-[11px] text-[#e7d8b4] font-bold mt-0.5">רשימת מאמרים מפורטת</p>
+                            </div>
+                            <span className="text-[11px] font-bold text-[#4a3402] bg-[#efe6d1] px-2.5 py-1 rounded border border-[#e3d3ad] shadow-sm shrink-0">{currentVol.articles?.length || 0} מאמרים</span>
+                          </div>
+
+                          <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white custom-scrollbar">
+                            {currentVol.articles && currentVol.articles.length > 0 ? (
+                              currentVol.articles.map((art, aIdx) => {
+                                const isHighlighted = activeArticleId === (art._id || art.id);
+                                return (
+                                  <div
+                                    id={`art-${art._id || art.id}`}
+                                    key={aIdx}
+                                    onClick={() => setActiveArticleId(art._id || art.id)}
+                                    className={`group cursor-pointer p-2 border-b border-slate-100 border-r-4 transition-all duration-200 flex items-center gap-2 ${isHighlighted ? 'bg-[#f5ead1] border-r-[#755303]' : 'border-r-transparent hover:bg-[#f7f3e8] hover:border-r-[#d2b48c] hover:shadow-sm hover:pr-1'}`}
+                                  >
+                                    {/* מספר עמוד - קומפקטי */}
+                                    <div className="text-[9px] font-mono text-gray-400 w-7 text-center shrink-0">
+                                      {art.startPage || art.page || '-'}
+                                    </div>
+
+                                    {/* תוכן המאמר */}
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className={`text-[11.5px] font-bold leading-tight truncate ${isHighlighted ? 'text-[#5c4102]' : 'text-gray-900'}`}>
+                                        {art.contentTitle || art.title}
+                                      </h4>
+                                      <div className="text-[10px] text-gray-500 truncate mt-0.5">
+                                        {art.authors?.[0]?.firstName} {art.authors?.[0]?.lastName || ''}
+                                        {art.generalTopic && <span className="mr-2 text-[#755303]">| {art.generalTopic}</span>}
+                                      </div>
+                                    </div>
+
+                                    {/* כפתור מידע - מופיע בריחוף */}
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setInfoModal({ show: true, type: 'article', data: art }); }}
+                                      className="p-1 text-gray-300 hover:text-[#755303] opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                                      title="פרטי מאמר"
+                                    >
+                                      <Info size={13} />
+                                    </button>
+                                  </div>
+                                )
+                              })
+                            ) : (
+                              <div className="p-8 text-center text-gray-400 text-[12px]">אין מאמרים רשומים לגליון זה</div>
+                            )}
+                          </div>
+
+                          {canAddNew && (
+                            <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+                              <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=article&volId=${currentVol._id || activeVolIdx}`)} className="custom-btn-style w-full py-2 bg-[#efe6d1] border border-[#d2b48c] text-[#4a3402] rounded-lg text-[13px] font-black hover:bg-[#e3d3ad] transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                                <Plus size={16} /> הוספת מאמר לגליון
+                              </button>
+                            </div>
                           )}
                         </div>
 
-                        {canAddNew && (
-                          <div className="p-3 bg-white border-t border-slate-200 shrink-0">
-                            <button onClick={() => navigate(`/add-series?edit=${selectedSeries._id}&target=article&volId=${currentVol._id || activeVolIdx}`)} className="custom-btn-style w-full py-2 bg-[#efe6d1] border border-[#d2b48c] text-[#4a3402] rounded-lg text-[13px] font-black hover:bg-[#e3d3ad] transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                              <Plus size={16} /> הוספת מאמר לגליון
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 bg-slate-300 relative shadow-inner overflow-hidden min-w-[300px]">
-                        {currentVol.pdfPath ? (
-                          <div className="h-full flex flex-col">
-                            <div className="bg-slate-900 h-10 flex justify-between items-center text-white px-4 shrink-0 shadow-md">
-                              <span className="text-[12px] font-bold tracking-wide flex items-center gap-2"><Eye size={14} /> תצוגת מסמך מלאה</span>
-                              <a href={externalPdfUrl} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-gray-200 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5 border border-slate-700">
-                                <ExternalLink size={12} /> פתיחה בחלון נפרד
-                              </a>
+                        <div className="flex-1 bg-slate-300 relative shadow-inner overflow-hidden min-w-[300px]">
+                          {currentVol.pdfPath ? (
+                            <div className="h-full flex flex-col">
+                              <div className="bg-slate-900 h-10 flex justify-between items-center text-white px-4 shrink-0 shadow-md">
+                                <span className="text-[12px] font-bold tracking-wide flex items-center gap-2"><Eye size={14} /> תצוגת מסמך מלאה</span>
+                                <a href={externalPdfUrl} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-gray-200 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5 border border-slate-700">
+                                  <ExternalLink size={12} /> פתיחה בחלון נפרד
+                                </a>
+                              </div>
+                              <iframe key={pdfFinalUrl} src={pdfFinalUrl} className="w-full h-full border-none bg-gray-300" title="Preview" />
                             </div>
-                            <iframe key={pdfFinalUrl} src={pdfFinalUrl} className="w-full h-full border-none bg-gray-300" title="Preview" />
-                          </div>
-                        ) : (
-                          <div className="h-full flex flex-col items-center justify-center text-gray-500 p-8 text-center bg-slate-100 border-l border-slate-200">
-                            <Eye size={48} className="text-slate-300 mb-4" />
-                            <h4 className="font-black text-gray-700 text-[16px]">קובץ ה-PDF לא נמצא</h4>
-                            <p className="text-[13px] mt-1.5 text-gray-500 max-w-[250px] leading-relaxed">הקובץ רשום במערכת אך טרם הועלה PDF לגליון זה.</p>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center text-gray-500 text-[15px] font-bold bg-white">אנא בחר גליון מתוך אחת הסדרות בצד ימין</div>
-                  )}
+                          ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-gray-500 p-8 text-center bg-slate-100 border-l border-slate-200">
+                              <Eye size={48} className="text-slate-300 mb-4" />
+                              <h4 className="font-black text-gray-700 text-[16px]">קובץ ה-PDF לא נמצא</h4>
+                              <p className="text-[13px] mt-1.5 text-gray-500 max-w-[250px] leading-relaxed">הקובץ רשום במערכת אך טרם הועלה PDF לגליון זה.</p>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-gray-500 text-[15px] font-bold bg-white">אנא בחר גליון מתוך אחת הסדרות בצד ימין</div>
+                    )}
+                  </div>
                 </div>
+              </>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center bg-slate-100 text-gray-500">
+                <BookOpen size={80} className="mb-5 text-slate-300" strokeWidth={1} />
+                <p className="text-2xl font-black text-gray-700">בחר קובץ וגליון מהספרייה כדי להתחיל</p>
+                <p className="text-[14px] mt-2 font-medium">השתמש בתיבת החיפוש או פתח את אחת הסדרות בסרגל הימני</p>
               </div>
-            </>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center bg-slate-100 text-gray-500">
-              <BookOpen size={80} className="mb-5 text-slate-300" strokeWidth={1} />
-              <p className="text-2xl font-black text-gray-700">בחר קובץ וגליון מהספרייה כדי להתחיל</p>
-              <p className="text-[14px] mt-2 font-medium">השתמש בתיבת החיפוש או פתח את אחת הסדרות בסרגל הימני</p>
-            </div>
-          )}
-        </main>
+            )}
+          </main>
 
-      </div>
-      <style>{`
+        </div>
+        <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
       `}</style>
-    </div>
-  );
-}
+      </div>
+    );
+  }

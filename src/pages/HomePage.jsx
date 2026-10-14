@@ -1,8 +1,24 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { UserCircle, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import api from '../api';
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleEnter = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      const request = api.get('/series');
+      window.__seriesPromise = request;
+      await request;
+    } catch (err) {
+      window.__seriesPromise = null;
+    }
+    navigate('/series');
+  };
 
   // חילוץ כתובת השרת מתוך משתני הסביבה או כתובת הדיפולט
   const API_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api';
@@ -82,15 +98,25 @@ export default function HomePage() {
           </div>
 
           <div className="animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-            <Link
-              to="/series"
-              className="inline-flex items-center gap-4 px-10 py-4 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 hover:from-amber-700 hover:via-amber-600 hover:to-yellow-700 text-white text-xl md:text-2xl font-black rounded-full shadow-[0_10px_25px_rgba(217,119,6,0.4)] transition-all transform hover:scale-105"
+            <button
+              onClick={handleEnter}
+              disabled={isLoading}
+              className="inline-flex items-center gap-4 px-10 py-4 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 hover:from-amber-700 hover:via-amber-600 hover:to-yellow-700 text-white text-xl md:text-2xl font-black rounded-full shadow-[0_10px_25px_rgba(217,119,6,0.4)] transition-all transform hover:scale-105 disabled:cursor-wait disabled:hover:scale-100"
             >
-              כניסה לאוסף המלא
-              <svg className="w-7 h-7 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+              {isLoading ? 'טוען את האוסף...' : 'כניסה לאוסף המלא'}
+              {isLoading ? (
+                <span className="w-6 h-6 border-4 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg className="w-7 h-7 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                </svg>
+              )}
+            </button>
+            {isLoading && (
+              <p className="text-white/80 text-sm mt-4 font-medium">
+                טוענים את הנתונים, זה יכול לקחת כמה שניות...
+              </p>
+            )}
           </div>
 
         </div>
