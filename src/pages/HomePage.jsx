@@ -7,18 +7,25 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleEnter = async () => {
+
+  const handleEnter = () => {
     if (isLoading) return;
     setIsLoading(true);
-    try {
-      const request = api.get('/series');
-      window.__seriesPromise = request;
-      await request;
-    } catch (err) {
-      window.__seriesPromise = null;
-    }
+
+    const request = api.get('/series');
+    window.__seriesPromise = request;
+
+    request.catch((err) => {
+      console.error('Failed to load series:', err);
+
+      if (window.__seriesPromise === request) {
+        window.__seriesPromise = null;
+      }
+    });
+
     navigate('/series');
   };
+
 
   // חילוץ כתובת השרת מתוך משתני הסביבה או כתובת הדיפולט
   const API_URL = import.meta.env.VITE_API_URL || 'https://node-project-cvek.onrender.com/api';
