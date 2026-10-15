@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import AdminExcelUpload from './pages/AdminExcelUpload';
 import AddNewSeries from './pages/AddNewSeries'
+import AiTocUpload from './pages/AiTocUpload'
 
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -15,7 +16,7 @@ function App() {
       <Route path="/series" element={<SeriesPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      
+
       {/* הוספת סדרה חדשה לגמרי (עם כרך ראשון ונושאים) */}
       <Route
         path="/add-series"
@@ -25,17 +26,26 @@ function App() {
           </ProtectedRoute>
         }
       />
-      
-      {/* 🌟 עטפנו גם את האקסל והגדרנו שזה רק למנהלים! 🌟 */}
-      <Route 
-        path="/admin/import" 
+
+      {/* ייבוא מאקסל - רק למנהלים */}
+      <Route
+        path="/admin/import"
         element={
           <ProtectedRoute adminOnly={true}>
             <AdminExcelUpload />
           </ProtectedRoute>
-        } 
+        }
       />
 
+      {/* חילוץ תוכן עניינים בעזרת AI - רק למנהלים */}
+      <Route
+        path="/admin/ai-toc"
+        element={
+          <ProtectedRoute adminOnly={true}>
+            <AiTocUpload />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   )
 }
